@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: implement
-  (next: Task 2 — vault + outer lock; Task 1 DONE)
+  (next: Task 3 — Booth Enroll/Unlock chrome; Tasks 1–2 DONE)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -25,11 +25,11 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
 
-- [ ] **Task 2** — Vault file + outer lock engine (`src/voicelock/vault.py`, outer-lock helpers as needed, `tests/test_vault.py`, `tests/test_outer_lock.py`)
-  - state: REVIEW
+- [x] **Task 2** — Vault file + outer lock engine (`src/voicelock/vault.py`, outer-lock helpers as needed, `tests/test_vault.py`, `tests/test_outer_lock.py`)
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/vault.py`, `tests/test_vault.py`, `tests/test_outer_lock.py`
-  - notes: Injectable `path=` for tests. Layout VLCK+version+opslimit+memlimit+salt+SecretBox. Argon2id MODERATE. Errors: ValidationError / AuthError / NoVaultError ("No vault yet — enroll first"). Default path helper present (live wiring is Task 4).
+  - notes: Injectable `path=` for tests. Layout VLCK+version+opslimit+memlimit+salt+SecretBox. Argon2id MODERATE. Errors: ValidationError / AuthError / NoVaultError ("No vault yet — enroll first"). Default path helper present (live wiring is Task 4). Verdict: `2026-07-22-F2-T2.json`.
   - done-criteria:
     - `uv run pytest tests/test_vault.py tests/test_outer_lock.py -q` → exit 0; final summary reports 0 failed. Must cover, with a temp Vault path: (1) enroll with name + passphrase writes a sealed file whose header starts with magic `VLCK`; (2) unlock with the right passphrase returns the display name; (3) unlock with a wrong passphrase REJECTS (auth failure / error state — no plaintext); (4) enroll with empty name or empty passphrase refuses and does not write a vault; (5) unlock when no vault file exists surfaces a no-vault error suitable for the Booth copy "No vault yet — enroll first".
     - `uv run ruff check .` → exit 0
@@ -56,8 +56,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 2 REVIEW (vault + outer lock). Task 1 DONE.
-2. Crypto locked: PyNaCl Argon2id MODERATE + SecretBox; VLCK header with params.
-3. Next after Task 2 wrap-up: Task 3 Booth Enroll/Unlock chrome.
-4. Mode 3 blind spot: live Booth enroll → vault → unlock → wrong REJECT (Task 4).
-5. Diff base Task 2: `6784e09` (see handoff).
+1. 2026-07-22 — F2 Tasks 1–2 DONE. Next: Task 3 Booth Enroll/Unlock chrome.
+2. Vault engine ready: `vault.py` + temp-path tests; PyNaCl 1.6.2.
+3. Task 3 = DOM hooks only; Task 4 wires bridge + live `~/.voicelock/vault.vl`.
+4. Mode 3 blind spot: live Booth enroll → unlock → wrong REJECT (Task 4 Verification).
+5. Verdicts: `2026-07-22-F2-T1.json`, `2026-07-22-F2-T2.json` · lessons none.
