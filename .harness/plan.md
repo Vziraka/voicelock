@@ -36,10 +36,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — Booth chrome for Enroll + Unlock (DOM hooks only) (`src/voicelock/ui/index.html`)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
-  - files: `src/voicelock/ui/index.html` (and any split CSS/JS under `src/voicelock/ui/` if extracted)
-  - notes: Keep F1 mock layout/branding. Enable Enroll sidebar row → name + passphrase fields (no recording required for enroll). Enable passphrase field + Unlock control. Hooks for success / REJECT status, wrong-passphrase chip on REJECT, post-unlock profile display name, no-vault status copy, and overwrite-confirm before re-enroll. Record / Stop / Play stay as F1 tools. Python bridge wiring is Task 4 — this task only prepares chrome + JS hooks.
+  - files: `src/voicelock/ui/index.html`
+  - notes: Enroll panel (name+pass), overwrite-confirm banner, enabled passphrase+Unlock, wrong-passphrase / no-vault / success chips, profile display hooks. Record/Stop/Play unchanged. Bridge calls stubbed for Task 4.
   - done-criteria:
     - `uv run python -c "from pathlib import Path; t = Path('src/voicelock/ui/index.html').read_text(encoding='utf-8').lower(); assert 'enroll' in t; assert 'passphrase' in t or 'pass-input' in t; assert 'unlock' in t; assert 'wrong passphrase' in t; assert 'no vault yet' in t or 'enroll first' in t; assert 'fonts.googleapis.com' not in t; assert 'fonts.gstatic.com' not in t"` → exit 0
     - `uv run ruff check .` → exit 0
@@ -56,8 +56,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 3 DOING (Booth Enroll/Unlock chrome). Tasks 1–2 DONE.
+1. 2026-07-22 — F2 Task 3 REVIEW (Booth Enroll/Unlock chrome). Tasks 1–2 DONE.
 2. Vault engine ready: `vault.py` + temp-path tests; PyNaCl 1.6.2.
-3. Task 3 = DOM hooks only; Task 4 wires bridge + live `~/.voicelock/vault.vl`.
+3. Next after Task 3 wrap-up: Task 4 bridge + live `~/.voicelock/vault.vl`.
 4. Mode 3 blind spot: live Booth enroll → unlock → wrong REJECT (Task 4 Verification).
-5. Diff base Task 3: see handoff after DOING commit.
+5. Diff base Task 3: `76b8338` (see handoff).

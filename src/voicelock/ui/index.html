@@ -102,12 +102,76 @@
     background: rgba(255, 255, 255, 0.02);
     color: inherit;
     text-align: left;
-    cursor: default;
+    cursor: pointer;
     opacity: 0.85;
+  }
+  .profile-row:disabled,
+  .enroll-row:disabled {
+    cursor: default;
+    opacity: 0.55;
   }
   .profile-row.selected {
     background: rgba(255, 255, 255, 0.055);
     border-color: rgba(150, 156, 166, 0.4);
+  }
+  .enroll-panel {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .enroll-panel.visible {
+    display: flex;
+  }
+  .field-input {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e7e9ee;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .field-input:focus {
+    border-color: rgba(120, 170, 255, 0.45);
+  }
+  .enroll-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .chip.reject-visible {
+    display: inline-flex;
+    border-color: rgba(240, 96, 96, 0.45);
+    background: rgba(240, 96, 96, 0.12);
+    color: #f0b0b0;
+  }
+  .chip.hidden {
+    display: none;
+  }
+  .confirm-banner {
+    display: none;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(240, 180, 96, 0.4);
+    background: rgba(240, 180, 96, 0.1);
+    color: #f0d0a0;
+    font-size: 12px;
+  }
+  .confirm-banner.visible {
+    display: block;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
   }
   .avatar {
     width: 38px;
@@ -313,8 +377,14 @@
     font-size: 13px;
     letter-spacing: 0.04em;
     outline: none;
-    pointer-events: none;
-    opacity: 0.7;
+  }
+  .pass-input:focus {
+    border-color: rgba(120, 170, 255, 0.45);
+  }
+  .unlock-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
   }
 </style>
 </head>
@@ -337,28 +407,36 @@
 
       <div class="section-label mono">PROFILES</div>
       <div class="profiles">
-        <button type="button" class="profile-row selected" disabled aria-disabled="true">
-          <div class="avatar">A</div>
+        <button type="button" class="profile-row selected" id="profile-row" disabled aria-disabled="true">
+          <div class="avatar" id="profile-avatar">—</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:500">Ana</div>
-            <div class="mono" style="font-size:10px;color:#6f7681">enrolled · visual context</div>
+            <div style="font-size:14px;font-weight:500" id="profile-name">No profile yet</div>
+            <div class="mono" style="font-size:10px;color:#6f7681" id="profile-meta">enroll to create vault</div>
           </div>
-          <div class="dot"></div>
+          <div class="dot" id="profile-dot" hidden></div>
         </button>
-        <button type="button" class="profile-row" disabled aria-disabled="true">
-          <div class="avatar">M</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:500">Marco</div>
-            <div class="mono" style="font-size:10px;color:#6f7681">enrolled · visual context</div>
-          </div>
-        </button>
-        <button type="button" class="enroll-row" disabled aria-disabled="true">
+        <button type="button" class="enroll-row" id="btn-enroll-open">
           <div class="avatar" style="border-style:dashed;background:transparent;font-size:20px;font-weight:400">+</div>
           <div>
-            <div style="font-size:14px;font-weight:500">Enroll new voice</div>
-            <div class="mono" style="font-size:10px;color:#6f7681">name · passphrase · sample</div>
+            <div style="font-size:14px;font-weight:500">Enroll</div>
+            <div class="mono" style="font-size:10px;color:#6f7681">name · passphrase</div>
           </div>
         </button>
+        <div class="enroll-panel" id="enroll-panel" aria-hidden="true">
+          <input class="field-input" id="enroll-name" type="text" placeholder="Display name" autocomplete="off">
+          <input class="field-input mono" id="enroll-pass" type="password" placeholder="Passphrase" autocomplete="new-password">
+          <div id="overwrite-confirm" class="confirm-banner" role="alertdialog" aria-hidden="true">
+            A vault already exists. Overwrite it?
+            <div class="confirm-actions">
+              <button type="button" class="btn btn-secondary" id="btn-overwrite-cancel">Cancel</button>
+              <button type="button" class="btn" id="btn-overwrite-yes">Overwrite</button>
+            </div>
+          </div>
+          <div class="enroll-actions">
+            <button type="button" class="btn btn-secondary" id="btn-enroll-cancel">Cancel</button>
+            <button type="button" class="btn" id="btn-enroll">Enroll</button>
+          </div>
+        </div>
       </div>
 
       <div class="status-bar">
@@ -401,14 +479,21 @@
             <button type="button" class="btn btn-secondary" id="btn-stop" disabled>Stop</button>
             <button type="button" class="btn btn-secondary" id="btn-play" disabled>Play</button>
           </div>
-          <input class="pass-input mono" type="password" placeholder="Enter passphrase" disabled tabindex="-1" aria-hidden="true">
+          <div class="unlock-row">
+            <input class="pass-input mono" id="pass-input" type="password" placeholder="Enter passphrase" autocomplete="current-password">
+            <button type="button" class="btn" id="btn-unlock">Unlock</button>
+          </div>
+        </div>
+
+        <div class="chips" id="result-chips" aria-live="polite">
+          <span class="chip mono hidden" id="chip-success">Unlocked</span>
+          <span class="chip mono hidden" id="chip-wrong-pass">Wrong passphrase</span>
+          <span class="chip mono hidden" id="chip-no-vault">No vault yet — enroll first</span>
         </div>
 
         <div class="inert-panel" aria-hidden="true">
           <div class="inert-label mono">DEMO — LATER FEATURES (INERT)</div>
           <div class="chips">
-            <span class="chip mono">Correct</span>
-            <span class="chip mono">Wrong passphrase</span>
             <span class="chip mono">Wrong voice</span>
             <span class="chip mono">Replay attack</span>
           </div>
@@ -419,7 +504,7 @@
 </div>
 
 <script>
-  /* Booth chrome + live bridge hooks (Task 5). */
+  /* Booth chrome + live bridge hooks (F1 record/play; F2 enroll/unlock chrome). */
   (function () {
     const canvas = document.getElementById("viz-canvas");
     const ctx = canvas.getContext("2d");
@@ -430,10 +515,29 @@
     const prompt = document.getElementById("prompt-text");
     const sub = document.getElementById("sub-text");
     const status = document.getElementById("status-line");
+    const btnEnrollOpen = document.getElementById("btn-enroll-open");
+    const enrollPanel = document.getElementById("enroll-panel");
+    const enrollName = document.getElementById("enroll-name");
+    const enrollPass = document.getElementById("enroll-pass");
+    const btnEnroll = document.getElementById("btn-enroll");
+    const btnEnrollCancel = document.getElementById("btn-enroll-cancel");
+    const overwriteConfirm = document.getElementById("overwrite-confirm");
+    const btnOverwriteYes = document.getElementById("btn-overwrite-yes");
+    const btnOverwriteCancel = document.getElementById("btn-overwrite-cancel");
+    const passInput = document.getElementById("pass-input");
+    const btnUnlock = document.getElementById("btn-unlock");
+    const chipSuccess = document.getElementById("chip-success");
+    const chipWrongPass = document.getElementById("chip-wrong-pass");
+    const chipNoVault = document.getElementById("chip-no-vault");
+    const profileName = document.getElementById("profile-name");
+    const profileMeta = document.getElementById("profile-meta");
+    const profileAvatar = document.getElementById("profile-avatar");
+    const profileDot = document.getElementById("profile-dot");
     let level = 0.11;
     let recording = false;
     let playing = false;
     let hasTake = false;
+    let pendingOverwrite = false;
 
     function drawBars() {
       const dpr = window.devicePixelRatio || 1;
@@ -532,12 +636,188 @@
       status.textContent = "LOCKED · MIC ERROR";
     }
 
-    async function call(name) {
+    function hideResultChips() {
+      chipSuccess.classList.add("hidden");
+      chipSuccess.classList.remove("reject-visible");
+      chipWrongPass.classList.add("hidden");
+      chipWrongPass.classList.remove("reject-visible");
+      chipNoVault.classList.add("hidden");
+      chipNoVault.classList.remove("reject-visible");
+    }
+
+    function showEnrollPanel(open) {
+      const visible = !!open;
+      enrollPanel.classList.toggle("visible", visible);
+      enrollPanel.setAttribute("aria-hidden", visible ? "false" : "true");
+      if (!visible) {
+        hideOverwriteConfirm();
+      }
+    }
+
+    function hideOverwriteConfirm() {
+      pendingOverwrite = false;
+      overwriteConfirm.classList.remove("visible");
+      overwriteConfirm.setAttribute("aria-hidden", "true");
+    }
+
+    function showOverwriteConfirm() {
+      pendingOverwrite = true;
+      overwriteConfirm.classList.add("visible");
+      overwriteConfirm.setAttribute("aria-hidden", "false");
+      status.textContent = "CONFIRM OVERWRITE";
+    }
+
+    function setProfileName(name) {
+      const display = (name || "").trim();
+      if (!display) {
+        profileName.textContent = "No profile yet";
+        profileMeta.textContent = "enroll to create vault";
+        profileAvatar.textContent = "—";
+        profileDot.hidden = true;
+        return;
+      }
+      profileName.textContent = display;
+      profileMeta.textContent = "unlocked · outer lock";
+      profileAvatar.textContent = display.charAt(0).toUpperCase();
+      profileDot.hidden = false;
+    }
+
+    function showStatusSuccess(message) {
+      hideResultChips();
+      chipSuccess.classList.remove("hidden");
+      status.textContent = message || "UNLOCKED";
+      prompt.textContent = "Vault unlocked";
+      sub.textContent = "outer lock opened with passphrase";
+    }
+
+    function showWrongPassphrase() {
+      hideResultChips();
+      chipWrongPass.classList.remove("hidden");
+      chipWrongPass.classList.add("reject-visible");
+      status.textContent = "REJECT · WRONG PASSPHRASE";
+      prompt.textContent = "Unlock rejected";
+      sub.textContent = "Wrong passphrase";
+    }
+
+    function showNoVault() {
+      hideResultChips();
+      chipNoVault.classList.remove("hidden");
+      chipNoVault.classList.add("reject-visible");
+      status.textContent = "NO VAULT · ENROLL FIRST";
+      prompt.textContent = "No vault yet";
+      sub.textContent = "No vault yet — enroll first";
+    }
+
+    function showValidation(message) {
+      hideResultChips();
+      status.textContent = "ENROLL REFUSED";
+      prompt.textContent = "Enroll refused";
+      sub.textContent = message || "Name and passphrase are required";
+    }
+
+    async function call(name, payload) {
       if (!(window.pywebview && window.pywebview.api && window.pywebview.api[name])) {
         return { ok: false, error: "Bridge not ready" };
       }
-      return window.pywebview.api[name]();
+      if (payload === undefined) {
+        return window.pywebview.api[name]();
+      }
+      return window.pywebview.api[name](payload);
     }
+
+    btnEnrollOpen.addEventListener("click", function () {
+      showEnrollPanel(true);
+      enrollName.focus();
+    });
+
+    btnEnrollCancel.addEventListener("click", function () {
+      showEnrollPanel(false);
+      enrollName.value = "";
+      enrollPass.value = "";
+    });
+
+    btnOverwriteCancel.addEventListener("click", function () {
+      hideOverwriteConfirm();
+      status.textContent = "LOCKED · BOOTH READY";
+    });
+
+    btnOverwriteYes.addEventListener("click", function () {
+      hideOverwriteConfirm();
+      /* Task 4 wires overwrite enroll; chrome only confirms intent here. */
+      status.textContent = "OVERWRITE CONFIRMED · AWAITING BRIDGE";
+    });
+
+    btnEnroll.addEventListener("click", async function () {
+      const name = (enrollName.value || "").trim();
+      const passphrase = enrollPass.value || "";
+      if (!name || !passphrase) {
+        showValidation("Name and passphrase are required");
+        return;
+      }
+      /* Task 4 wires vault.enroll; chrome collects inputs + confirm hook. */
+      const result = await call("enroll", {
+        name: name,
+        passphrase: passphrase,
+        overwrite: pendingOverwrite,
+      });
+      if (!result || result.needs_confirm) {
+        if (result && result.needs_confirm) {
+          showOverwriteConfirm();
+          return;
+        }
+        if (!(window.pywebview && window.pywebview.api && window.pywebview.api.enroll)) {
+          status.textContent = "ENROLL · AWAITING BRIDGE";
+          sub.textContent = "name + passphrase ready · bridge wires in Task 4";
+          return;
+        }
+        showOverwriteConfirm();
+        return;
+      }
+      if (!result.ok) {
+        if (result.error === "validation") {
+          showValidation(result.message);
+          return;
+        }
+        status.textContent = "ENROLL FAILED";
+        sub.textContent = (result && result.error) || "Enroll failed";
+        return;
+      }
+      hideOverwriteConfirm();
+      showEnrollPanel(false);
+      enrollName.value = "";
+      enrollPass.value = "";
+      setProfileName(name);
+      profileMeta.textContent = "enrolled · sealed on disk";
+      hideResultChips();
+      status.textContent = "ENROLLED · VAULT SEALED";
+      prompt.textContent = "Vault enrolled";
+      sub.textContent = "passphrase outer lock sealed on disk";
+    });
+
+    btnUnlock.addEventListener("click", async function () {
+      const passphrase = passInput.value || "";
+      const result = await call("unlock", { passphrase: passphrase });
+      if (!result || !result.ok) {
+        if (result && result.error === "no_vault") {
+          showNoVault();
+          return;
+        }
+        if (result && result.error === "auth") {
+          showWrongPassphrase();
+          return;
+        }
+        if (!(window.pywebview && window.pywebview.api && window.pywebview.api.unlock)) {
+          status.textContent = "UNLOCK · AWAITING BRIDGE";
+          sub.textContent = "passphrase field ready · bridge wires in Task 4";
+          return;
+        }
+        showWrongPassphrase();
+        return;
+      }
+      setProfileName(result.name || "");
+      showStatusSuccess("UNLOCKED");
+      passInput.value = "";
+    });
 
     btnRecord.addEventListener("click", async function () {
       const result = await call("start_record");
@@ -583,6 +863,14 @@
         prompt: prompt,
         sub: sub,
         status: status,
+        enrollName: enrollName,
+        enrollPass: enrollPass,
+        passInput: passInput,
+        unlock: btnUnlock,
+        enroll: btnEnroll,
+        chipWrongPass: chipWrongPass,
+        chipNoVault: chipNoVault,
+        profileName: profileName,
       },
       setLevel: function (value) {
         level = Math.max(0, Math.min(1, Number(value) || 0));
@@ -591,6 +879,14 @@
       setPlaying: setPlaying,
       onCaptureEnded: onCaptureEnded,
       showMicError: showMicError,
+      showWrongPassphrase: showWrongPassphrase,
+      showNoVault: showNoVault,
+      showStatusSuccess: showStatusSuccess,
+      showValidation: showValidation,
+      setProfileName: setProfileName,
+      showOverwriteConfirm: showOverwriteConfirm,
+      hideOverwriteConfirm: hideOverwriteConfirm,
+      showEnrollPanel: showEnrollPanel,
     };
 
     function onBridgeReady() {
