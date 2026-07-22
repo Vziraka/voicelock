@@ -490,6 +490,15 @@
       }
     }
 
+    function onCaptureEnded(samples) {
+      hasTake = Number(samples) > 0;
+      setRecording(false);
+      if (hasTake) {
+        sub.textContent = "take ended · press Play to hear the capture";
+      }
+      level = 0.11;
+    }
+
     function showMicError(message) {
       micError.textContent = message || "No microphone available";
       micError.classList.add("visible");
@@ -553,6 +562,7 @@
         level = Math.max(0, Math.min(1, Number(value) || 0));
       },
       setRecording: setRecording,
+      onCaptureEnded: onCaptureEnded,
       showMicError: showMicError,
     };
 

@@ -114,9 +114,10 @@ class BoothApi:
             self.capture.pump()
             if not self.capture.is_recording:
                 self._pumping = False
+                samples = int(self.capture.pcm_buffer().size)
                 self._eval(
-                    "window.voicelockBooth && window.voicelockBooth.setRecording && "
-                    "window.voicelockBooth.setRecording(false)"
+                    "window.voicelockBooth && window.voicelockBooth.onCaptureEnded && "
+                    f"window.voicelockBooth.onCaptureEnded({samples})"
                 )
                 break
             if self.capture.levels:
