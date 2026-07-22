@@ -36,7 +36,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — Booth chrome for Enroll + Unlock (DOM hooks only) (`src/voicelock/ui/index.html`)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/ui/index.html` (and any split CSS/JS under `src/voicelock/ui/` if extracted)
   - notes: Keep F1 mock layout/branding. Enable Enroll sidebar row → name + passphrase fields (no recording required for enroll). Enable passphrase field + Unlock control. Hooks for success / REJECT status, wrong-passphrase chip on REJECT, post-unlock profile display name, no-vault status copy, and overwrite-confirm before re-enroll. Record / Stop / Play stay as F1 tools. Python bridge wiring is Task 4 — this task only prepares chrome + JS hooks.
@@ -56,8 +56,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Tasks 1–2 DONE. Next: Task 3 Booth Enroll/Unlock chrome.
+1. 2026-07-22 — F2 Task 3 DOING (Booth Enroll/Unlock chrome). Tasks 1–2 DONE.
 2. Vault engine ready: `vault.py` + temp-path tests; PyNaCl 1.6.2.
 3. Task 3 = DOM hooks only; Task 4 wires bridge + live `~/.voicelock/vault.vl`.
 4. Mode 3 blind spot: live Booth enroll → unlock → wrong REJECT (Task 4 Verification).
-5. Verdicts: `2026-07-22-F2-T1.json`, `2026-07-22-F2-T2.json` · lessons none.
+5. Diff base Task 3: see handoff after DOING commit.
