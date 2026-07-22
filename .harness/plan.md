@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 1 from `roadmap.md` · Mode: Mode 3 · Phase: implement
-  (next: Task 4 — Booth UI chrome · DOING)
+  (next: Task 5 — pywebview bridge · LAST)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -44,8 +44,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
   - feedback: (none)
 
-- [ ] **Task 4** — Booth UI chrome from mock, offline (`src/voicelock/ui/` adapted from `design/voicelock-mock.html`)
-  - state: REVIEW
+- [x] **Task 4** — Booth UI chrome from mock, offline (`src/voicelock/ui/` adapted from `design/voicelock-mock.html`)
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/ui/index.html` (and any split CSS/JS under `src/voicelock/ui/` if extracted)
   - notes: keep mock layout/branding/sidebar/panels as visual context. Only prepare DOM hooks for Record / Stop / Play, bars canvas, and a mic-error message — wiring is Task 5. Strip runtime network font loads (offline-only). Other mock controls stay visible and inert.
@@ -55,7 +55,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — pywebview Booth host + bridge: live record → bars → play (+ mic error); `uv run voicelock` entry
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/app.py` (or equivalent host module), `src/voicelock/__main__.py` and/or `[project.scripts]` entry in `pyproject.toml`, bridge API, `src/voicelock/ui/` JS hooks wired to Python capture/playback
   - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Click-toggle Record/Stop; manual Play after stop; bars react to level frames while recording; mic missing/denied disables Record and shows a short Booth message; window stays open. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
@@ -65,8 +65,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 4 REVIEW: Booth UI chrome offline with Record/Stop/Play hooks.
-2. Capture + playback ready with injectable streams (Gate-safe).
-3. Live Booth still Tasks 4–5 (chrome then pywebview bridge).
-4. Blind spot accepted: live window/mic proven only by manual Verification (Task 5).
-5. Mode 3 standing go — continue until feature-end checkpoint.
+1. 2026-07-22 — F1 Task 5 DOING: pywebview host + bridge + `uv run voicelock`.
+2. Capture + playback + offline Booth chrome ready.
+3. Task 5 wires live record → bars → play and `uv run voicelock`.
+4. Blind spot: Gate uses fake streams; live Booth needs manual Verification line.
+5. Mode 3 standing go — feature-end checkpoint after Task 5 wrap-up.

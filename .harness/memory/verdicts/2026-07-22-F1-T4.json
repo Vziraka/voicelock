@@ -1,0 +1,23 @@
+{
+  "task": "T4",
+  "spec": "spec.md@ac884d834c161cfae65623e40708b9945f5c1f37",
+  "change": "1b0c865a3a8f1f31831ec4ac19305a7ef479535f..ac884d834c161cfae65623e40708b9945f5c1f37",
+  "gate": {
+    "commands": [
+      "uv run python -c \"from pathlib import Path; ...\"",
+      "uv run ruff check ."
+    ],
+    "exit": 0,
+    "note": "UI path asserts + ruff clean"
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Offline booth chrome; Record/Stop/Play + canvas + mic-error hooks"
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-22"
+}
