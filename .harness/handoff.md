@@ -1,29 +1,32 @@
-# Handoff — F2 plan ready; implement Task 1 next
+# Handoff — F2 Task 1 REVIEW (PyNaCl pinned)
 
 ## Session
 - Date: 2026-07-22
 - Feature: F2 — Passphrase-only vault (outer lock)
-- Phase: `/plan` complete → ready for `/implement`
+- Phase: `/implement` Task 1 → `REVIEW`
 - Mode: Mode 3 (spec Approval gate)
 
 ## Done this session
-- Entry gate: Grilling `Status: CLEAR`; zero `[NEEDS-CLARIFICATION:` hits;
-  both Approval boxes checked; Mode 3.
-- Wrote F2 `plan.md` ledger: Tasks 1–4 all `TODO`, `rejects: 0`.
-  - T1 pin PyNaCl · T2 vault + outer lock (temp-path tests) · T3 Booth
-    Enroll/Unlock chrome · T4 bridge + FULL Verification (incl. manual).
-- Memory spine refreshed for F2.
+- Entry gate: Grilling `CLEAR`; zero `[NEEDS-CLARIFICATION:` hits; both
+  Approval boxes checked; Mode 3; no invalid DONE-without-verdict tasks.
+- Quoted anchors: spec Crypto PyNaCl TECH-PICK; plan Task 1 `uv add` only;
+  no vault code.
+- Committed `DOING` first (`52cc9e5`), then built.
+- `uv add pynacl` → `pynacl>=1.6.2` in `pyproject.toml`, lock resolves 1.6.2.
+- Local sanity (disclose for Gate): `uv sync` 0; import `nacl`/`pwhash`/
+  `secret` prints `1.6.2`; `ruff check .` 0; `pytest` 8 passed.
 
 ## Next action
-1. Mode 3: the approved Mode is the standing go — start `/implement` Task 1
-   in a **fresh session** (planning session does not build).
-2. Do not start Task 2+ until Task 1 wrap-up completes (WIP=1).
+1. Clean-context verifier via `formats/VERIFIER-PROMPT.md` (verbatim).
+   Fill-ins: task **F2-T1** · base `52cc9e5` · head `ac89891`.
+2. On APPROVE → wrap-up → then Mode 3 may start Task 2 (WIP=1).
 
 ## Commit checkpoint
-- Committed: `f4e8a86` — Plan F2 into four tracer-bullet tasks.
-- Session base → head: `4a5ef0d` → `f4e8a86`
+- Diff base (DOING): `52cc9e5`
+- Build commit: `ac89891` — F2-T1: pin PyNaCl dependency for outer-lock crypto.
+- Bookkeeping commit: (this file) — recorded after build.
 - Remote: none (local history only) — no push.
-- Left untracked: `harness-v1/` (not part of this commit)
+- Left untracked: `harness-v1/` (not part of this work)
 
 ## Pending
-- Fresh session: `/implement` Task 1
+- Verifier: Gate + Review for F2 Task 1
