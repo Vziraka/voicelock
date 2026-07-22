@@ -17,6 +17,36 @@ Format:
 
 <!-- entries go below this line -->
 
+- 2026-07-22 · **F1 visualizer: bars**
+  - why: clearest “levels reacting” demo signal; mock default
+  - rejected: orb / rings (prettier, less obvious as loudness)
+  - link: `spec.md` Constraints
+
+- 2026-07-22 · **F1 capture format: 16 kHz mono**
+  - why: speech band is enough for demo + later voiceprint; smallest sensible buffers
+  - rejected: 48 kHz mono (heavier, little identity gain); stereo hi-rate (waste for who-are-you)
+  - link: `spec.md` Constraints
+
+- 2026-07-22 · **F1 UI: use voicelock-mock.html chrome; only record/viz/play live**
+  - why: mock already sketches the full product; polish later; avoids a throwaway minimal booth
+  - rejected: booth-only strip-down (loses project context); full mock interactive in F1 (scope creep)
+  - link: `spec.md` Constraints · Non-goals
+
+- 2026-07-22 · **F1 Mode 3 + live Booth manual check in Verification**
+  - why: Mode 3 autonomy; blind spot is pywebview/live mic not covered by fake-stream tests
+  - rejected: waiving the live-window check (would let Gate pass a dead Booth)
+  - link: `spec.md` Approval · Verification
+
+- 2026-07-22 · **F1 audio: sounddevice + numpy**
+  - why: live PortAudio bindings with array I/O and injectable streams for Gate tests
+  - rejected: PyAudio (fails ~12-month liveness bar); DIY WASAPI/ctypes (F1 time sink)
+  - link: `spec.md` Constraints · `memory/research/2026-07-22-f1-audio-capture.md`
+
+- 2026-07-22 · **F1 UI shell: pywebview**
+  - why: light native webview + JS↔Python bridge fits Booth without Chromium weight
+  - rejected: PySide6+WebEngine (heavy Qt/Chromium); Eel (Alpha, Chrome-shaped)
+  - link: `spec.md` Constraints · `memory/research/2026-07-22-f1-ui-shell.md`
+
 - 2026-07-22 · **Stack: Python 3.11 + uv; JS UI for looks; UI shell TECH-PICK at F1**
   - why: offline audio/crypto/voiceprint brain in Python; mock-based booth stays HTML/CSS/JS
   - rejected: Electron/TS-first (ML path harder); bare pip (no lockfile discipline)

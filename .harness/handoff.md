@@ -3,10 +3,13 @@
 Generated at session end so a fresh session (any model) continues cleanly.
 Rule: **reference, don't restate** — point to spec/plan/ADRs/commits; don't copy them.
 
-- **Changed since last session:** Intake-scaffold complete — conventions, project.md, AGENTS.md, .gitignore, design/ mock copied as reference. Design roadmap already set (F1–F6).
-- **Commits:** base b7a954d Record design-session commit hashes in handoff → head 796ebad778761b9b3b3449d5065cf7af3e1974df
+- **Changed since last session:** `/spec` for F1 complete; grilling CLEAR; Mode 3;
+  human approved box 2. Mock chrome + bars + 16 kHz mono + 30s cap locked.
+- **Commits:** base 3fde41a63e955a1265cc802657e0c2b7212880fc → head pending this commit
 - **Failed + lesson:** none
-- **Next action:** `/spec` on F1 (recording booth) in a **fresh session**. Mode 1 recommended (first-time user).
+- **Next action:** `/plan` in a **fresh session** (spec approved at Mode 3).
 - **Pending guardrail:** none
-- **Where the rest lives:** `roadmap.md` · `constitution/topics/conventions.md` · `constitution/project.md` · `design/` · `AGENTS.md`
-- **Wrap-up:** not run — session ended at scaffold complete / commit checkpoint
+- **Where the rest lives:** `spec.md` · `roadmap.md` · `memory/decisions.md` ·
+  `memory/research/2026-07-22-f1-ui-shell.md` ·
+  `memory/research/2026-07-22-f1-audio-capture.md`
+- **Wrap-up:** not run — session ending at approved-spec / commit checkpoint
