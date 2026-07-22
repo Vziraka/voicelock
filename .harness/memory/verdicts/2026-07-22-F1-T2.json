@@ -1,0 +1,20 @@
+{
+  "task": "T2",
+  "spec": "spec.md@6c0329bf4b167522903c14ac6d98e019743e41c6",
+  "change": "8cb7572adfe764ab0ef38d67e3d21c1589bafb08..6c0329bf4b167522903c14ac6d98e019743e41c6",
+  "gate": {
+    "commands": ["uv run pytest tests/test_capture.py -q", "uv run ruff check ."],
+    "exit": 0,
+    "note": "5 passed, 0 failed; ruff clean"
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "16 kHz mono, toggle, levels, mic error, 30s cap, injectable streams"
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-22"
+}

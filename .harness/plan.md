@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 1 from `roadmap.md` · Mode: Mode 3 · Phase: implement
-  (next: Task 2 — capture engine)
+  (next: Task 3 — playback engine)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -24,8 +24,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
 
-- [ ] **Task 2** — Capture engine with injectable streams (`src/voicelock/capture.py`, `tests/test_capture.py`)
-  - state: REVIEW
+- [x] **Task 2** — Capture engine with injectable streams (`src/voicelock/capture.py`, `tests/test_capture.py`)
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/capture.py`, `tests/test_capture.py`
   - notes: 16 kHz mono PCM; click-toggle start/stop; soft auto-stop at 30s; emit level frames for bars; mic-unavailable returns an error state (no crash, no silent success). Tests inject fake streams only.
@@ -35,7 +35,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — Playback engine with injectable streams (`src/voicelock/playback.py`, `tests/test_playback.py`)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/playback.py`, `tests/test_playback.py`
   - notes: play a captured PCM buffer to completion; tests inject fake output device/stream — no real speakers required in Gate.
@@ -65,8 +65,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 2 REVIEW: capture engine + injectable-stream tests.
-2. Stack locked: pywebview · sounddevice + numpy · mock chrome · 16 kHz mono · bars · 30s soft cap · click-toggle · manual Play.
-3. Package exists: `src/voicelock/` + Gate wired (`ruff` · `pytest`).
-4. Blind spot accepted: fake streams in Gate; live Booth proven only by manual Verification (Task 5).
-5. Mode 3 standing go — continue tasks until feature-end checkpoint.
+1. 2026-07-22 — F1 Task 3 DOING: playback engine with injectable output stream.
+2. Capture ready: 16 kHz mono · toggle · levels · mic error · 30s soft cap (fake streams).
+3. Package + Gate wired; live Booth still Task 5.
+4. Blind spot accepted: fake streams in Gate; live Booth manual only (Task 5).
+5. Mode 3 standing go — continue until feature-end checkpoint.
