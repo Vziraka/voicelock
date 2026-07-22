@@ -3,6 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 1 from `roadmap.md` · Mode: Mode 3 · Phase: implement
+  (next: Task 2 — capture engine)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -12,8 +13,8 @@ A task is `DONE` only when the Gate exited 0 **and** the Reviewer approved.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — Scaffold uv package + Gate tooling (`pyproject.toml`, `uv.lock`, `src/voicelock/__init__.py`, `tests/` so pytest collects)
-  - state: REVIEW
+- [x] **Task 1** — Scaffold uv package + Gate tooling (`pyproject.toml`, `uv.lock`, `src/voicelock/__init__.py`, `tests/` so pytest collects)
+  - state: DONE
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`, `src/voicelock/__init__.py`, `tests/` (minimal so the suite runs)
   - notes: pin approved deps only — pywebview, sounddevice, numpy, ruff, pytest. No entry-point window yet.
@@ -64,8 +65,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 1 REVIEW: uv scaffold + Gate tooling (numpy pinned `<2.3` for Python 3.11).
+1. 2026-07-22 — F1 Task 1 DONE (verdict `2026-07-22-F1-T1.json`); next is Task 2 capture.
 2. Stack locked: pywebview · sounddevice + numpy · mock chrome · 16 kHz mono · bars · 30s soft cap · click-toggle · manual Play.
-3. Package exists: `src/voicelock/` + `tests/test_package.py`; live Booth still Task 5.
-4. Gate standing commands wired: `uv run ruff check .` · `uv run pytest`.
-5. Blind spot accepted: automated tests use fake streams; live pywebview + real mic proven only by the manual Verification line.
+3. Package exists: `src/voicelock/` + Gate wired (`ruff` · `pytest`).
+4. Blind spot accepted: fake streams in Gate; live Booth proven only by manual Verification (Task 5).
+5. Mode 3 standing go — continue tasks until feature-end checkpoint.
