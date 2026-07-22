@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-22
-- Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: plan
+- Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: implement
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -13,7 +13,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Pin approved PyNaCl dependency (`pyproject.toml`, `uv.lock`)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`
   - notes: Human-approved TECH-PICK (Argon2id + SecretBox). Add via `uv add` so the lockfile stays authoritative. No vault code yet.
@@ -55,8 +55,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 plan ready (Tasks 1–4 TODO). Spec CLEAR · Mode 3 · approved.
+1. 2026-07-22 — F2 implement: Task 1 DOING (pin PyNaCl). Spec CLEAR · Mode 3.
 2. Crypto locked: PyNaCl Argon2id MODERATE + SecretBox; vault `~/.voicelock/vault.vl` · VLCK header.
 3. Engine first (Task 2 temp-path tests), then Booth chrome, then live bridge (Task 4 LAST).
 4. Mode 3 blind spot: live Booth enroll → vault file → unlock → wrong REJECT is required Verification.
-5. Next: implement starts Task 1 (Mode 3 standing go — fresh session).
+5. Diff base for Task 1 Gate: commit before DOING write (see handoff after build).
