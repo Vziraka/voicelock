@@ -46,19 +46,20 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 4** — Bridge Enroll/Unlock to outer lock + live `~/.voicelock/vault.vl`; `uv run voicelock` end-to-end
-  - state: BLOCKED
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: BoothApi.enroll/unlock → vault at injectable path (default `~/.voicelock/vault.vl`). Re-enroll needs_confirm unless overwrite. JS overwrite yes re-clicks Enroll. Bridge tests use temp path. LAST task — FULL Verification incl. required manual Booth demo.
   - done-criteria: FULL list from `spec.md` **Verification** (standing + feature-specific + required manual demo line)
   - feedback:
+    - 2026-07-22 human attested **manual PASS** (Booth demo: Enroll → `~/.voicelock/vault.vl` → Unlock right → Unlock wrong REJECT). Re-verify Gate with attestation.
     - 2026-07-22 ESCALATE_HUMAN (subagent Gate): automated `ruff`/`pytest`/`test_vault+outer_lock` all exit 0; scope PASS. Required Manual Booth demo cannot run without human (pywebview). Awaiting **manual PASS** or FAIL notes: `uv run voicelock` → Enroll → `~/.voicelock/vault.vl` → Unlock right → Unlock wrong REJECT.
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 4 BLOCKED: awaiting human manual Booth attestation.
-2. Automated Gate: ruff 0 · pytest 21 passed · vault/outer-lock 8 passed · scope PASS.
-3. Manual required: `uv run voicelock` Enroll → vault.vl → Unlock right → wrong REJECT.
-4. Reply **manual PASS** (or FAIL notes) → re-verify / close Gate.
-5. Diff base/head: `16ac680`..`7da064f`.
+1. 2026-07-22 — F2 Task 4 REVIEW: human attested manual PASS; re-verify.
+2. Automated Gate already: ruff 0 · pytest 21 · vault/outer-lock 8 · scope PASS.
+3. Manual: human attested Enroll → vault.vl → Unlock right → wrong REJECT.
+4. Diff base/head: `16ac680`..`7da064f`.
+5. On APPROVE → Mode 3 completion report + feature-end checkpoint.
