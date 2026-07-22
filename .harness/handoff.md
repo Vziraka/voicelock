@@ -3,19 +3,18 @@
 Generated at session end so a fresh session (any model) continues cleanly.
 Rule: **reference, don't restate** — point to spec/plan/ADRs/commits; don't copy them.
 
-- **Changed since last session:** Task 5 Gate `ESCALATE_HUMAN` → `BLOCKED`.
-  Soft-cap take-ready fix is in build `586943c`. Automated Verification commands
-  exit 0; required Manual demo cannot be attested by the subagent verifier.
-- **Commits:** base 11e4bf34f41e212dc67bbe4772180184cb258f6d → head
-  586943c4f3a3b2dc5f103f8e3508df440daecc68 (retry build)
-- **Failed + lesson:** Mode 3 still needs a human for the live Booth line —
-  that is the accepted blind spot, not a waiver.
-- **Next action:** Human — run `uv run voicelock`, then Record → speak until
-  the visualizer moves → Stop → Play; confirm the take is audible. Then say
-  the demo passed (or failed) so Task 5 can leave `BLOCKED` and finish
-  verify/wrap-up. (New here? `GUIDE.md` walks the loop.)
+- **Changed since last session:** Task 5 — stoppable playback (`playback.py` stop +
+  non-blocking play; `app.py` `stop_playback`; Stop button while playing). Human
+  attested Manual demo PASSED (recorded in `plan.md` Task 5 feedback).
+- **Commits:** base df24b662567edfd77c48e9b9129812e746295067 → head
+  f3076c77841601d5df9cd8c3a81cfcdcc348485a
+- **Failed + lesson:** prior: blocking `sd.wait` froze the bridge so Stop could
+  not interrupt playback.
+- **Next action:** Mode 3 — clean-context verifier for Task 5. Manual line:
+  human-attested PASS in plan feedback (do not re-escalate solely for lack of
+  subagent GUI eyes).
 - **Pending guardrail:** none
-- **Where the rest lives:** `spec.md` Verification · `plan.md` Task 5 ·
-  `src/voicelock/app.py` · `src/voicelock/ui/index.html` ·
-  `memory/verdicts/2026-07-22-F1-T{1..4}.json`
-- **Wrap-up:** not run — blocked on human manual demo
+- **Where the rest lives:** `plan.md` Task 5 · `src/voicelock/playback.py` ·
+  `src/voicelock/app.py` · `src/voicelock/ui/index.html`
+- **Local smoke (implementor, disclosed):** ruff · pytest — exit 0
+- **Wrap-up:** not run — awaiting verifier
