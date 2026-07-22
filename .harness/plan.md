@@ -13,10 +13,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Pin approved PyNaCl dependency (`pyproject.toml`, `uv.lock`)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`
-  - notes: Human-approved TECH-PICK (Argon2id + SecretBox). Add via `uv add` so the lockfile stays authoritative. No vault code yet.
+  - notes: Human-approved TECH-PICK (Argon2id + SecretBox). Added via `uv add pynacl` → `pynacl>=1.6.2` / lock 1.6.2. No vault code.
   - done-criteria:
     - `uv sync` → exit 0
     - `uv run python -c "import nacl; from nacl import pwhash, secret; print(nacl.__version__)"` → exit 0
@@ -55,8 +55,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 implement: Task 1 DOING (pin PyNaCl). Spec CLEAR · Mode 3.
+1. 2026-07-22 — F2 Task 1 REVIEW (PyNaCl pinned). Spec CLEAR · Mode 3.
 2. Crypto locked: PyNaCl Argon2id MODERATE + SecretBox; vault `~/.voicelock/vault.vl` · VLCK header.
 3. Engine first (Task 2 temp-path tests), then Booth chrome, then live bridge (Task 4 LAST).
 4. Mode 3 blind spot: live Booth enroll → vault file → unlock → wrong REJECT is required Verification.
-5. Diff base for Task 1 Gate: commit before DOING write (see handoff after build).
+5. Next after Task 1 wrap-up: Task 2 vault + outer lock.
