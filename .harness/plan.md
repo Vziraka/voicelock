@@ -1,9 +1,8 @@
-# Plan — F1 — The recording booth
+# Plan — F2 — Passphrase-only vault (outer lock)
 
 ## Active context
 - Updated: 2026-07-22
-- Spec: `spec.md` · Feature: Feature 1 from `roadmap.md` · Mode: Mode 3 · Phase: complete
-  (F1 DONE — awaiting feature-end commit checkpoint)
+- Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: plan
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -13,63 +12,51 @@ A task is `DONE` only when the Gate exited 0 **and** the Reviewer approved.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [x] **Task 1** — Scaffold uv package + Gate tooling (`pyproject.toml`, `uv.lock`, `src/voicelock/__init__.py`, `tests/` so pytest collects)
-  - state: DONE
+- [ ] **Task 1** — Pin approved PyNaCl dependency (`pyproject.toml`, `uv.lock`)
+  - state: TODO
   - rejects: 0
-  - files: `pyproject.toml`, `uv.lock`, `src/voicelock/__init__.py`, `tests/` (minimal so the suite runs)
-  - notes: pin approved deps only — pywebview, sounddevice, numpy, ruff, pytest. No entry-point window yet.
+  - files: `pyproject.toml`, `uv.lock`
+  - notes: Human-approved TECH-PICK (Argon2id + SecretBox). Add via `uv add` so the lockfile stays authoritative. No vault code yet.
   - done-criteria:
     - `uv sync` → exit 0
+    - `uv run python -c "import nacl; from nacl import pwhash, secret; print(nacl.__version__)"` → exit 0
     - `uv run ruff check .` → exit 0 (stdout/stderr contain no ruff error findings)
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
 
-- [x] **Task 2** — Capture engine with injectable streams (`src/voicelock/capture.py`, `tests/test_capture.py`)
-  - state: DONE
+- [ ] **Task 2** — Vault file + outer lock engine (`src/voicelock/vault.py`, outer-lock helpers as needed, `tests/test_vault.py`, `tests/test_outer_lock.py`)
+  - state: TODO
   - rejects: 0
-  - files: `src/voicelock/capture.py`, `tests/test_capture.py`
-  - notes: 16 kHz mono PCM; click-toggle start/stop; soft auto-stop at 30s; emit level frames for bars; mic-unavailable returns an error state (no crash, no silent success). Tests inject fake streams only.
+  - files: `src/voicelock/vault.py` (and any thin helper module under `src/voicelock/` if split), `tests/test_vault.py`, `tests/test_outer_lock.py`
+  - notes: Injectable vault path for tests (never require live `~/.voicelock` in Gate). On-disk layout: magic `VLCK` + version byte + salt + SecretBox ciphertext. Argon2id `OPSLIMIT_MODERATE` / `MEMLIMIT_MODERATE` (params stored in header). Sealed payload = structured profile with display name (UTF-8); room for later fields; no audio bytes. Public errors: empty/missing name or passphrase refuses write; wrong passphrase REJECT (auth failure, no plaintext); missing file → no-vault error suitable for Booth copy "No vault yet — enroll first". Default path helper returns `Path.home() / ".voicelock" / "vault.vl"` (wiring to live path is Task 4).
   - done-criteria:
-    - `uv run pytest tests/test_capture.py -q` → exit 0; final summary reports 0 failed. Must cover with injected fake streams: (1) start/stop yields a non-empty PCM buffer; (2) level frames emit during capture; (3) mic-unavailable surfaces an error state; (4) recording auto-stops by the 30s soft cap (fake/fast stream or clock is fine).
+    - `uv run pytest tests/test_vault.py tests/test_outer_lock.py -q` → exit 0; final summary reports 0 failed. Must cover, with a temp Vault path: (1) enroll with name + passphrase writes a sealed file whose header starts with magic `VLCK`; (2) unlock with the right passphrase returns the display name; (3) unlock with a wrong passphrase REJECTS (auth failure / error state — no plaintext); (4) enroll with empty name or empty passphrase refuses and does not write a vault; (5) unlock when no vault file exists surfaces a no-vault error suitable for the Booth copy "No vault yet — enroll first".
     - `uv run ruff check .` → exit 0
   - feedback: (none)
 
-- [x] **Task 3** — Playback engine with injectable streams (`src/voicelock/playback.py`, `tests/test_playback.py`)
-  - state: DONE
-  - rejects: 0
-  - files: `src/voicelock/playback.py`, `tests/test_playback.py`
-  - notes: play a captured PCM buffer to completion; tests inject fake output device/stream — no real speakers required in Gate.
-  - done-criteria:
-    - `uv run pytest tests/test_playback.py -q` → exit 0; final summary reports 0 failed. Must cover: playback of a non-empty captured buffer completes without error (injected fake stream).
-    - `uv run ruff check .` → exit 0
-  - feedback: (none)
-
-- [x] **Task 4** — Booth UI chrome from mock, offline (`src/voicelock/ui/` adapted from `design/voicelock-mock.html`)
-  - state: DONE
+- [ ] **Task 3** — Booth chrome for Enroll + Unlock (DOM hooks only) (`src/voicelock/ui/index.html`)
+  - state: TODO
   - rejects: 0
   - files: `src/voicelock/ui/index.html` (and any split CSS/JS under `src/voicelock/ui/` if extracted)
-  - notes: keep mock layout/branding/sidebar/panels as visual context. Only prepare DOM hooks for Record / Stop / Play, bars canvas, and a mic-error message — wiring is Task 5. Strip runtime network font loads (offline-only). Other mock controls stay visible and inert.
+  - notes: Keep F1 mock layout/branding. Enable Enroll sidebar row → name + passphrase fields (no recording required for enroll). Enable passphrase field + Unlock control. Hooks for success / REJECT status, wrong-passphrase chip on REJECT, post-unlock profile display name, no-vault status copy, and overwrite-confirm before re-enroll. Record / Stop / Play stay as F1 tools. Python bridge wiring is Task 4 — this task only prepares chrome + JS hooks.
   - done-criteria:
-    - `uv run python -c "from pathlib import Path; p = Path('src/voicelock/ui'); assert (p / 'index.html').is_file(); t = (p / 'index.html').read_text(encoding='utf-8'); assert 'record' in t.lower(); assert 'canvas' in t.lower(); assert 'fonts.googleapis.com' not in t.lower(); assert 'fonts.gstatic.com' not in t.lower()"` → exit 0
+    - `uv run python -c "from pathlib import Path; t = Path('src/voicelock/ui/index.html').read_text(encoding='utf-8').lower(); assert 'enroll' in t; assert 'passphrase' in t or 'pass-input' in t; assert 'unlock' in t; assert 'wrong passphrase' in t; assert 'no vault yet' in t or 'enroll first' in t; assert 'fonts.googleapis.com' not in t; assert 'fonts.gstatic.com' not in t"` → exit 0
     - `uv run ruff check .` → exit 0
   - feedback: (none)
 
-- [x] **Task 5** — pywebview Booth host + bridge: live record → bars → play (+ mic error); `uv run voicelock` entry
-  - state: DONE
-  - rejects: 1
-  - files: `src/voicelock/app.py` (or equivalent host module), `src/voicelock/__main__.py` and/or `[project.scripts]` entry in `pyproject.toml`, bridge API, `src/voicelock/ui/` JS hooks wired to Python capture/playback
-  - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Click-toggle Record/Stop; manual Play after stop; bars react to level frames while recording; mic missing/denied disables Record and shows a short Booth message; window stays open. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
+- [ ] **Task 4** — Bridge Enroll/Unlock to outer lock + live `~/.voicelock/vault.vl`; `uv run voicelock` end-to-end
+  - state: TODO
+  - rejects: 0
+  - files: `src/voicelock/app.py` (BoothApi), `src/voicelock/ui/index.html` (wire hooks), any thin glue under `src/voicelock/`
+  - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Default vault path is `Path.home() / ".voicelock" / "vault.vl"`; re-enroll overwrites only after clear Booth confirm. Wrong passphrase → visible REJECT (status / chip); no vault → "No vault yet — enroll first"; empty enroll inputs → visible validation, no write. After unlock, show enrolled display name in the profile row. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
   - done-criteria: FULL list from `spec.md` **Verification** (standing + feature-specific + required manual demo line)
-  - feedback:
-    - 2026-07-22 human: Manual demo PASSED (Record → viz → Stop → Play audible). Also: Stop does nothing during playback — forced to hear the whole take. Fix: stoppable playback (Stop while playing).
-    - 2026-07-22 ESCALATE_HUMAN (gate): Spec Verification’s required Manual demo line cannot be executed or attested by a subagent verifier; human must run Record → visualizer → Stop → Play and confirm the take is audible before Gate can PASS. Automated commands and scope are clean; do not waive the live Booth check.
-    - 2026-07-22 REJECT (review): Soft-cap auto-stop leaves Play disabled. `app.py` `_pump_loop` must surface take-ready (e.g. call into JS with sample count / set `hasTake`) when capture ends without an explicit Stop; today `setRecording(false)` alone leaves `hasTake === false` (`index.html`), so Play never enables and the next Record clears the buffer (`capture.py` `start`). (Fix landed in retry build `586943c`; awaiting human manual demo + re-verify.)
+  - feedback: (none)
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 COMPLETE (Tasks 1–5 DONE). Verdicts `2026-07-22-F1-T1`…`T5`.
-2. Booth live: capture · playback (stoppable) · pywebview · `uv run voicelock`.
-3. Next roadmap item: F2 passphrase-only vault (needs `/spec`).
-4. Gate: ruff + pytest + human manual demo attested.
-5. Mode 3 feature-end checkpoint — commit/push awaits human approval.
+1. 2026-07-22 — F2 plan ready (Tasks 1–4 TODO). Spec CLEAR · Mode 3 · approved.
+2. Crypto locked: PyNaCl Argon2id MODERATE + SecretBox; vault `~/.voicelock/vault.vl` · VLCK header.
+3. Engine first (Task 2 temp-path tests), then Booth chrome, then live bridge (Task 4 LAST).
+4. Mode 3 blind spot: live Booth enroll → vault file → unlock → wrong REJECT is required Verification.
+5. Next: implement starts Task 1 (Mode 3 standing go — fresh session).
