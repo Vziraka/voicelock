@@ -26,7 +26,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — Vault file + outer lock engine (`src/voicelock/vault.py`, outer-lock helpers as needed, `tests/test_vault.py`, `tests/test_outer_lock.py`)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/vault.py` (and any thin helper module under `src/voicelock/` if split), `tests/test_vault.py`, `tests/test_outer_lock.py`
   - notes: Injectable vault path for tests (never require live `~/.voicelock` in Gate). On-disk layout: magic `VLCK` + version byte + salt + SecretBox ciphertext. Argon2id `OPSLIMIT_MODERATE` / `MEMLIMIT_MODERATE` (params stored in header). Sealed payload = structured profile with display name (UTF-8); room for later fields; no audio bytes. Public errors: empty/missing name or passphrase refuses write; wrong passphrase REJECT (auth failure, no plaintext); missing file → no-vault error suitable for Booth copy "No vault yet — enroll first". Default path helper returns `Path.home() / ".voicelock" / "vault.vl"` (wiring to live path is Task 4).
@@ -56,8 +56,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 1 DONE (PyNaCl 1.6.2). Next: Task 2 vault + outer lock.
+1. 2026-07-22 — F2 Task 2 DOING (vault + outer lock). Task 1 DONE (PyNaCl 1.6.2).
 2. Crypto locked: PyNaCl Argon2id MODERATE + SecretBox; vault `~/.voicelock/vault.vl` · VLCK header.
 3. Engine first (Task 2 temp-path tests), then Booth chrome, then live bridge (Task 4 LAST).
 4. Mode 3 blind spot: live Booth enroll → vault file → unlock → wrong REJECT is required Verification.
-5. Verdict: `memory/verdicts/2026-07-22-F2-T1.json` · lesson none.
+5. Diff base for Task 2 Gate: see handoff after DOING commit.
