@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 1 from `roadmap.md` · Mode: Mode 3 · Phase: implement
-  (next: Task 4 — Booth UI chrome)
+  (next: Task 4 — Booth UI chrome · DOING)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -45,7 +45,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 4** — Booth UI chrome from mock, offline (`src/voicelock/ui/` adapted from `design/voicelock-mock.html`)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/ui/index.html` (and any split CSS/JS under `src/voicelock/ui/` if extracted)
   - notes: keep mock layout/branding/sidebar/panels as visual context. Only prepare DOM hooks for Record / Stop / Play, bars canvas, and a mic-error message — wiring is Task 5. Strip runtime network font loads (offline-only). Other mock controls stay visible and inert.
@@ -65,7 +65,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Tasks 1–3 DONE; next is Task 4 Booth UI chrome.
+1. 2026-07-22 — F1 Task 4 DOING: Booth UI chrome from mock (offline, hooks only).
 2. Capture + playback ready with injectable streams (Gate-safe).
 3. Live Booth still Tasks 4–5 (chrome then pywebview bridge).
 4. Blind spot accepted: live window/mic proven only by manual Verification (Task 5).
