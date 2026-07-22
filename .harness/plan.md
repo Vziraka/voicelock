@@ -46,18 +46,18 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 4** — Bridge Enroll/Unlock to outer lock + live `~/.voicelock/vault.vl`; `uv run voicelock` end-to-end
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
-  - files: `src/voicelock/app.py` (BoothApi), `src/voicelock/ui/index.html` (wire hooks), any thin glue under `src/voicelock/`
-  - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Default vault path is `Path.home() / ".voicelock" / "vault.vl"`; re-enroll overwrites only after clear Booth confirm. Wrong passphrase → visible REJECT (status / chip); no vault → "No vault yet — enroll first"; empty enroll inputs → visible validation, no write. After unlock, show enrolled display name in the profile row. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
+  - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
+  - notes: BoothApi.enroll/unlock → vault at injectable path (default `~/.voicelock/vault.vl`). Re-enroll needs_confirm unless overwrite. JS overwrite yes re-clicks Enroll. Bridge tests use temp path. LAST task — FULL Verification incl. required manual Booth demo.
   - done-criteria: FULL list from `spec.md` **Verification** (standing + feature-specific + required manual demo line)
   - feedback: (none)
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 4 DOING (bridge + live vault). Tasks 1–3 DONE.
-2. Chrome + vault engine ready; wire BoothApi enroll/unlock to default path.
-3. LAST task — FULL Verification + required manual Booth demo.
-4. Re-enroll overwrites only after Booth confirm; wrong pass → REJECT chip.
-5. Diff base Task 4: see handoff after DOING commit.
+1. 2026-07-22 — F2 Task 4 REVIEW (bridge + live vault). Tasks 1–3 DONE.
+2. BoothApi.enroll/unlock wired; default `~/.voicelock/vault.vl`; temp-path bridge tests.
+3. LAST task — FULL Verification; manual Booth demo required (human attest).
+4. Diff base Task 4: `16ac680` (see handoff).
+5. On APPROVE → Mode 3 feature completion report + feature-end checkpoint.

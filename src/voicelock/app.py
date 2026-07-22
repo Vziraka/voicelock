@@ -1,4 +1,4 @@
-"""pywebview Booth host — bridges UI to capture/playback."""
+"""pywebview Booth host — bridges UI to capture/playback and outer lock."""
 
 from __future__ import annotations
 
@@ -11,20 +11,30 @@ import webview
 
 from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, SAMPLE_RATE
 from voicelock.playback import PlaybackEngine
+from voicelock.vault import (
+    AuthError,
+    NoVaultError,
+    ValidationError,
+    default_vault_path,
+    enroll as vault_enroll,
+    unlock as vault_unlock,
+)
 
 UI_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
 
 
 class BoothApi:
-    """JS ↔ Python bridge for record / stop / play and mic errors."""
+    """JS ↔ Python bridge for record / stop / play and vault enroll / unlock."""
 
     def __init__(
         self,
         capture: CaptureEngine | None = None,
         playback: PlaybackEngine | None = None,
+        vault_path: Path | None = None,
     ) -> None:
         self.capture = capture or CaptureEngine()
         self.playback = playback or PlaybackEngine()
+        self.vault_path = vault_path if vault_path is not None else default_vault_path()
         self._window: Any = None
         self._pumping = False
         self._pump_thread: threading.Thread | None = None
@@ -40,6 +50,42 @@ class BoothApi:
             self._push_mic_error(error)
             return {"ok": False, "error": error}
         return {"ok": True}
+
+    def enroll(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Seal (or overwrite) the Vault with name + passphrase."""
+        data = payload or {}
+        name = str(data.get("name", "") or "")
+        passphrase = str(data.get("passphrase", "") or "")
+        overwrite = bool(data.get("overwrite", False))
+
+        if self.vault_path.is_file() and not overwrite:
+            return {"ok": False, "needs_confirm": True}
+
+        try:
+            vault_enroll(name, passphrase, path=self.vault_path)
+        except ValidationError as exc:
+            return {
+                "ok": False,
+                "error": "validation",
+                "message": str(exc) or "Name and passphrase are required",
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc) or "Enroll failed"}
+        return {"ok": True, "name": name.strip(), "path": str(self.vault_path)}
+
+    def unlock(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Open the outer lock; return the enrolled display name."""
+        data = payload or {}
+        passphrase = str(data.get("passphrase", "") or "")
+        try:
+            name = vault_unlock(passphrase, path=self.vault_path)
+        except NoVaultError:
+            return {"ok": False, "error": "no_vault"}
+        except AuthError:
+            return {"ok": False, "error": "auth"}
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc) or "Unlock failed"}
+        return {"ok": True, "name": name}
 
     def start_record(self) -> dict[str, Any]:
         if self.playback.is_playing:

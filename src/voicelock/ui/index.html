@@ -742,9 +742,10 @@
     });
 
     btnOverwriteYes.addEventListener("click", function () {
-      hideOverwriteConfirm();
-      /* Task 4 wires overwrite enroll; chrome only confirms intent here. */
-      status.textContent = "OVERWRITE CONFIRMED · AWAITING BRIDGE";
+      pendingOverwrite = true;
+      overwriteConfirm.classList.remove("visible");
+      overwriteConfirm.setAttribute("aria-hidden", "true");
+      btnEnroll.click();
     });
 
     btnEnroll.addEventListener("click", async function () {
@@ -760,21 +761,17 @@
         passphrase: passphrase,
         overwrite: pendingOverwrite,
       });
-      if (!result || result.needs_confirm) {
-        if (result && result.needs_confirm) {
-          showOverwriteConfirm();
-          return;
-        }
-        if (!(window.pywebview && window.pywebview.api && window.pywebview.api.enroll)) {
-          status.textContent = "ENROLL · AWAITING BRIDGE";
-          sub.textContent = "name + passphrase ready · bridge wires in Task 4";
-          return;
-        }
+      if (result && result.needs_confirm) {
         showOverwriteConfirm();
         return;
       }
-      if (!result.ok) {
-        if (result.error === "validation") {
+      if (!result || !result.ok) {
+        if (!(window.pywebview && window.pywebview.api && window.pywebview.api.enroll)) {
+          status.textContent = "ENROLL · BRIDGE MISSING";
+          sub.textContent = "name + passphrase ready but enroll API is missing";
+          return;
+        }
+        if (result && result.error === "validation") {
           showValidation(result.message);
           return;
         }
@@ -783,10 +780,11 @@
         return;
       }
       hideOverwriteConfirm();
+      pendingOverwrite = false;
       showEnrollPanel(false);
       enrollName.value = "";
       enrollPass.value = "";
-      setProfileName(name);
+      setProfileName(result.name || name);
       profileMeta.textContent = "enrolled · sealed on disk";
       hideResultChips();
       status.textContent = "ENROLLED · VAULT SEALED";
@@ -807,8 +805,8 @@
           return;
         }
         if (!(window.pywebview && window.pywebview.api && window.pywebview.api.unlock)) {
-          status.textContent = "UNLOCK · AWAITING BRIDGE";
-          sub.textContent = "passphrase field ready · bridge wires in Task 4";
+          status.textContent = "UNLOCK · BRIDGE MISSING";
+          sub.textContent = "passphrase field ready but unlock API is missing";
           return;
         }
         showWrongPassphrase();
