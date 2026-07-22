@@ -419,11 +419,20 @@
 </div>
 
 <script>
-  /* Task 4: chrome + DOM hooks only. Task 5 wires pywebview bridge. */
+  /* Booth chrome + live bridge hooks (Task 5). */
   (function () {
     const canvas = document.getElementById("viz-canvas");
     const ctx = canvas.getContext("2d");
+    const btnRecord = document.getElementById("btn-record");
+    const btnStop = document.getElementById("btn-stop");
+    const btnPlay = document.getElementById("btn-play");
+    const micError = document.getElementById("mic-error");
+    const prompt = document.getElementById("prompt-text");
+    const sub = document.getElementById("sub-text");
+    const status = document.getElementById("status-line");
     let level = 0.11;
+    let recording = false;
+    let hasTake = false;
 
     function drawBars() {
       const dpr = window.devicePixelRatio || 1;
@@ -440,7 +449,9 @@
       const bw = 3.2;
       const gap = (w - n * bw) / (n + 1);
       const t = performance.now() / 1000;
-      const r = 150, g = 156, b = 166;
+      const r = recording ? 86 : 150;
+      const g = recording ? 150 : 156;
+      const b = recording ? 255 : 166;
       for (let i = 0; i < n; i++) {
         const d = Math.abs(i - (n - 1) / 2) / ((n - 1) / 2);
         const env = 1 - d * d * 0.85;
@@ -461,28 +472,103 @@
     }
     loop();
 
-    /* Expose hooks for Task 5 bridge wiring (no Python bridge yet). */
+    function setRecording(active) {
+      recording = !!active;
+      btnStop.disabled = !recording;
+      btnRecord.disabled = false;
+      btnPlay.disabled = recording || !hasTake;
+      if (recording) {
+        prompt.textContent = "Listening…";
+        sub.textContent = "capturing audio · click Stop when done";
+        status.textContent = "CAPTURING…";
+        document.getElementById("mode-badge").textContent = "● LISTENING";
+      } else {
+        prompt.textContent = hasTake ? "Take ready" : "Ready to record";
+        sub.textContent = hasTake ? "press Play to hear the capture" : "record · visualizer · play back";
+        status.textContent = hasTake ? "LOCKED · TAKE READY" : "LOCKED · BOOTH READY";
+        document.getElementById("mode-badge").textContent = "RECORDING BOOTH";
+      }
+    }
+
+    function showMicError(message) {
+      micError.textContent = message || "No microphone available";
+      micError.classList.add("visible");
+      btnRecord.disabled = true;
+      btnStop.disabled = true;
+      prompt.textContent = "Microphone unavailable";
+      sub.textContent = message || "No microphone available";
+      status.textContent = "LOCKED · MIC ERROR";
+    }
+
+    async function call(name) {
+      if (!(window.pywebview && window.pywebview.api && window.pywebview.api[name])) {
+        return { ok: false, error: "Bridge not ready" };
+      }
+      return window.pywebview.api[name]();
+    }
+
+    btnRecord.addEventListener("click", async function () {
+      const result = await call("start_record");
+      if (!result || !result.ok) {
+        if (result && result.error) showMicError(result.error);
+        return;
+      }
+      if (result.samples != null) {
+        hasTake = result.samples > 0;
+        setRecording(false);
+        return;
+      }
+      setRecording(true);
+    });
+
+    btnStop.addEventListener("click", async function () {
+      const result = await call("stop_record");
+      hasTake = !!(result && result.ok && result.samples > 0);
+      setRecording(false);
+    });
+
+    btnPlay.addEventListener("click", async function () {
+      btnPlay.disabled = true;
+      status.textContent = "PLAYING…";
+      const result = await call("play");
+      btnPlay.disabled = !hasTake || recording;
+      status.textContent = hasTake ? "LOCKED · TAKE READY" : "LOCKED · BOOTH READY";
+      if (!result || !result.ok) {
+        sub.textContent = (result && result.error) || "Playback failed";
+      }
+    });
+
     window.voicelockBooth = {
       els: {
-        record: document.getElementById("btn-record"),
-        stop: document.getElementById("btn-stop"),
-        play: document.getElementById("btn-play"),
+        record: btnRecord,
+        stop: btnStop,
+        play: btnPlay,
         canvas: canvas,
-        micError: document.getElementById("mic-error"),
-        prompt: document.getElementById("prompt-text"),
-        sub: document.getElementById("sub-text"),
-        status: document.getElementById("status-line"),
+        micError: micError,
+        prompt: prompt,
+        sub: sub,
+        status: status,
       },
       setLevel: function (value) {
         level = Math.max(0, Math.min(1, Number(value) || 0));
       },
-      showMicError: function (message) {
-        const el = document.getElementById("mic-error");
-        el.textContent = message || "No microphone available";
-        el.classList.add("visible");
-        document.getElementById("btn-record").disabled = true;
-      },
+      setRecording: setRecording,
+      showMicError: showMicError,
     };
+
+    function onBridgeReady() {
+      call("ready").then(function (result) {
+        if (result && result.ok === false && result.error) {
+          showMicError(result.error);
+        }
+      });
+    }
+
+    if (window.pywebview && window.pywebview.api) {
+      onBridgeReady();
+    } else {
+      window.addEventListener("pywebviewready", onBridgeReady);
+    }
   })();
 </script>
 </body>
