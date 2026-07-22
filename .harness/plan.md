@@ -35,7 +35,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — Playback engine with injectable streams (`src/voicelock/playback.py`, `tests/test_playback.py`)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/playback.py`, `tests/test_playback.py`
   - notes: play a captured PCM buffer to completion; tests inject fake output device/stream — no real speakers required in Gate.
@@ -65,7 +65,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 3 DOING: playback engine with injectable output stream.
+1. 2026-07-22 — F1 Task 3 REVIEW: playback engine + injectable output tests.
 2. Capture ready: 16 kHz mono · toggle · levels · mic error · 30s soft cap (fake streams).
 3. Package + Gate wired; live Booth still Task 5.
 4. Blind spot accepted: fake streams in Gate; live Booth manual only (Task 5).
