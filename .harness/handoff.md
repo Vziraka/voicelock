@@ -40,7 +40,7 @@ Full impostor arc (wrong passphrase / voice / face / replay) reachable at F8.
 
 ## Commit checkpoint
 - Base (session start): `4b2391a`
-- Head: this design commit (recorded in the follow-up bookkeeping commit)
+- Head: `60d1d33` (design commit) + this bookkeeping commit
 - Remote: none — local history only, no push
 - Files: `roadmap.md`, `CONTEXT.md`, `memory/codebase-map.md`,
   `memory/decisions.md`, `adr/0002-three-nested-locks.md`, `handoff.md`
