@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 1 from `roadmap.md` · Mode: Mode 3 · Phase: implement
-  (next: Task 3 — playback engine)
+  (next: Task 4 — Booth UI chrome)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -34,8 +34,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
   - feedback: (none)
 
-- [ ] **Task 3** — Playback engine with injectable streams (`src/voicelock/playback.py`, `tests/test_playback.py`)
-  - state: REVIEW
+- [x] **Task 3** — Playback engine with injectable streams (`src/voicelock/playback.py`, `tests/test_playback.py`)
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/playback.py`, `tests/test_playback.py`
   - notes: play a captured PCM buffer to completion; tests inject fake output device/stream — no real speakers required in Gate.
@@ -65,8 +65,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 3 REVIEW: playback engine + injectable output tests.
-2. Capture ready: 16 kHz mono · toggle · levels · mic error · 30s soft cap (fake streams).
-3. Package + Gate wired; live Booth still Task 5.
-4. Blind spot accepted: fake streams in Gate; live Booth manual only (Task 5).
+1. 2026-07-22 — F1 Tasks 1–3 DONE; next is Task 4 Booth UI chrome.
+2. Capture + playback ready with injectable streams (Gate-safe).
+3. Live Booth still Tasks 4–5 (chrome then pywebview bridge).
+4. Blind spot accepted: live window/mic proven only by manual Verification (Task 5).
 5. Mode 3 standing go — continue until feature-end checkpoint.
