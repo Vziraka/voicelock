@@ -85,7 +85,7 @@ becomes reachable at **F5**. F6 makes the demo reliable and presentable.
   App window: press to record, live visualizer reacts, audio captures and plays back.
   *Demo:* speak → visualizer moves → captured audio plays back. (No auth yet.)
 
-- [ ] **F2 — Passphrase-only vault (outer lock)** · blocked-by: F1
+- [x] **F2 — Passphrase-only vault (outer lock)** · blocked-by: F1
   Enroll name + passphrase (+ a recording placeholder as needed); passphrase
   derives the outer key and seals a profile vault on disk. Unlock with passphrase.
   *Demo:* enroll → on-disk file is sealed → right passphrase opens → **wrong

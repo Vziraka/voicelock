@@ -4,7 +4,7 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Updated: 2026-07-22 after F1. Solid = built (F1 booth path); dashed = later features.
+- Updated: 2026-07-22 after F2. Solid = built (F1 booth + F2 outer lock); dashed = later.
 
 ## Architecture (data flow)
 
@@ -13,11 +13,11 @@ flowchart TB
     Mic([Microphone])
 
     subgraph Window["Desktop window — Booth UI"]
-        Booth["Booth — record / stop / play (F1)"]
+        Booth["Booth — record / enroll / unlock (F1–F2)"]
         Viz["Visualizer — live levels (F1)"]
     end
 
-    Bridge{{"UI ↔ engine bridge (F1)"}}
+    Bridge{{"UI ↔ engine bridge (F1–F2)"}}
 
     subgraph Engine["Engine"]
         Capture["Audio capture (F1)"]
@@ -46,27 +46,29 @@ flowchart TB
     Challenge -- "gate before unlock" --> Inner
 
     classDef planned stroke-dasharray:6 4
-    class Voiceprint,Challenge,Fuzzy,Outer,Inner,Vault planned
+    class Voiceprint,Challenge,Fuzzy,Inner planned
 ```
 
 ## Shape
 - `.harness/` — governing harness (roadmap, specs, conventions).
 - `design/` — mock UI reference (`voicelock-mock.html`); not final chrome.
-- `src/voicelock/` — app engine (capture, playback, pywebview host).
-- `src/voicelock/ui/` — HTML/CSS/JS booth (adapted from mock, offline).
-- `tests/` — pytest suite (fake streams; no real mic in Gate).
+- `src/voicelock/` — app engine (capture, playback, vault, pywebview host).
+- `src/voicelock/ui/` — HTML/CSS/JS booth (offline).
+- `tests/` — pytest suite (fake streams / temp vault paths; no real mic in Gate).
 
 ## Key modules
 - `src/voicelock/capture.py` — 16 kHz mono capture, levels, 30s soft cap, mic error
 - `src/voicelock/playback.py` — play / stop PCM buffers
-- `src/voicelock/app.py` — pywebview host + JS bridge (`BoothApi`)
-- `src/voicelock/ui/index.html` — Booth chrome + Record/Stop/Play
+- `src/voicelock/vault.py` — outer lock (Argon2id + SecretBox), VLCK file format
+- `src/voicelock/app.py` — pywebview host + JS bridge (`BoothApi` record/enroll/unlock)
+- `src/voicelock/ui/index.html` — Booth chrome + Record/Stop/Play + Enroll/Unlock
 - `src/voicelock/__main__.py` — `python -m voicelock`
 
 ## Where things live
 - Entry point(s): `uv run voicelock`
+- Vault path: `~/.voicelock/vault.vl`
 - Tests: `tests/` via `uv run pytest`
-- Config: `pyproject.toml` + `uv.lock`
+- Config: `pyproject.toml` + `uv.lock` (includes `pynacl`)
 - Lint: `uv run ruff check .`
 
 ## Conventions

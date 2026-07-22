@@ -2,8 +2,8 @@
 
 ## Active context
 - Updated: 2026-07-22
-- Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: implement
-  (next: Task 4 — bridge + live vault; Tasks 1–3 DONE)
+- Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: complete
+  (F2 DONE — all Tasks 1–4; next roadmap: F3)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -45,11 +45,11 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
   - feedback: (none)
 
-- [ ] **Task 4** — Bridge Enroll/Unlock to outer lock + live `~/.voicelock/vault.vl`; `uv run voicelock` end-to-end
-  - state: REVIEW
+- [x] **Task 4** — Bridge Enroll/Unlock to outer lock + live `~/.voicelock/vault.vl`; `uv run voicelock` end-to-end
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
-  - notes: BoothApi.enroll/unlock → vault at injectable path (default `~/.voicelock/vault.vl`). Re-enroll needs_confirm unless overwrite. JS overwrite yes re-clicks Enroll. Bridge tests use temp path. LAST task — FULL Verification incl. required manual Booth demo.
+  - notes: BoothApi.enroll/unlock → vault at injectable path (default `~/.voicelock/vault.vl`). Re-enroll needs_confirm unless overwrite. JS overwrite yes re-clicks Enroll. Bridge tests use temp path. Verdict: `2026-07-22-F2-T4.json`. Manual Booth PASS human-attested.
   - done-criteria: FULL list from `spec.md` **Verification** (standing + feature-specific + required manual demo line)
   - feedback:
     - 2026-07-22 human attested **manual PASS** (Booth demo: Enroll → `~/.voicelock/vault.vl` → Unlock right → Unlock wrong REJECT). Re-verify Gate with attestation.
@@ -58,8 +58,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 4 REVIEW: human attested manual PASS; re-verify.
-2. Automated Gate already: ruff 0 · pytest 21 · vault/outer-lock 8 · scope PASS.
-3. Manual: human attested Enroll → vault.vl → Unlock right → wrong REJECT.
-4. Diff base/head: `16ac680`..`7da064f`.
-5. On APPROVE → Mode 3 completion report + feature-end checkpoint.
+1. 2026-07-22 — F2 COMPLETE (Mode 3). Outer lock + Booth enroll/unlock shipped.
+2. Vault at `~/.voicelock/vault.vl` · PyNaCl Argon2id MODERATE + SecretBox · VLCK.
+3. Verdicts F2-T1..T4 on disk · rejects all 0 · lessons none.
+4. Next roadmap: F3 — Voiceprint on screen (blocked-by F1 only).
+5. Feature-end checkpoint: await human commit/push approval.
