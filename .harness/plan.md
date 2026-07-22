@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: implement
-  (next: Task 3 — Booth Enroll/Unlock chrome; Tasks 1–2 DONE)
+  (next: Task 4 — bridge + live vault; Tasks 1–3 DONE)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -35,11 +35,11 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
   - feedback: (none)
 
-- [ ] **Task 3** — Booth chrome for Enroll + Unlock (DOM hooks only) (`src/voicelock/ui/index.html`)
-  - state: REVIEW
+- [x] **Task 3** — Booth chrome for Enroll + Unlock (DOM hooks only) (`src/voicelock/ui/index.html`)
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
-  - notes: Enroll panel (name+pass), overwrite-confirm banner, enabled passphrase+Unlock, wrong-passphrase / no-vault / success chips, profile display hooks. Record/Stop/Play unchanged. Bridge calls stubbed for Task 4.
+  - notes: Enroll panel (name+pass), overwrite-confirm banner, enabled passphrase+Unlock, wrong-passphrase / no-vault / success chips, profile display hooks. Record/Stop/Play unchanged. Bridge calls stubbed for Task 4. Verdict: `2026-07-22-F2-T3.json`.
   - done-criteria:
     - `uv run python -c "from pathlib import Path; t = Path('src/voicelock/ui/index.html').read_text(encoding='utf-8').lower(); assert 'enroll' in t; assert 'passphrase' in t or 'pass-input' in t; assert 'unlock' in t; assert 'wrong passphrase' in t; assert 'no vault yet' in t or 'enroll first' in t; assert 'fonts.googleapis.com' not in t; assert 'fonts.gstatic.com' not in t"` → exit 0
     - `uv run ruff check .` → exit 0
@@ -56,8 +56,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 3 REVIEW (Booth Enroll/Unlock chrome). Tasks 1–2 DONE.
-2. Vault engine ready: `vault.py` + temp-path tests; PyNaCl 1.6.2.
-3. Next after Task 3 wrap-up: Task 4 bridge + live `~/.voicelock/vault.vl`.
-4. Mode 3 blind spot: live Booth enroll → unlock → wrong REJECT (Task 4 Verification).
-5. Diff base Task 3: `76b8338` (see handoff).
+1. 2026-07-22 — F2 Tasks 1–3 DONE. Next: Task 4 bridge + live vault (LAST).
+2. Chrome ready: Enroll/Unlock UI hooks; vault engine + PyNaCl pinned.
+3. Task 4 wires BoothApi enroll/unlock to `~/.voicelock/vault.vl`.
+4. FULL Verification + required manual Booth demo gates feature done.
+5. Verdicts T1–T3 on disk · lessons none.
