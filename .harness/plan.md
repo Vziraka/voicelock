@@ -55,19 +55,20 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — pywebview Booth host + bridge: live record → bars → play (+ mic error); `uv run voicelock` entry
-  - state: REVIEW
+  - state: BLOCKED
   - rejects: 1
   - files: `src/voicelock/app.py` (or equivalent host module), `src/voicelock/__main__.py` and/or `[project.scripts]` entry in `pyproject.toml`, bridge API, `src/voicelock/ui/` JS hooks wired to Python capture/playback
   - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Click-toggle Record/Stop; manual Play after stop; bars react to level frames while recording; mic missing/denied disables Record and shows a short Booth message; window stays open. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
   - done-criteria: FULL list from `spec.md` **Verification** (standing + feature-specific + required manual demo line)
   - feedback:
-    - 2026-07-22 REJECT (review): Soft-cap auto-stop leaves Play disabled. `app.py` `_pump_loop` must surface take-ready (e.g. call into JS with sample count / set `hasTake`) when capture ends without an explicit Stop; today `setRecording(false)` alone leaves `hasTake === false` (`index.html`), so Play never enables and the next Record clears the buffer (`capture.py` `start`).
+    - 2026-07-22 ESCALATE_HUMAN (gate): Spec Verification’s required Manual demo line cannot be executed or attested by a subagent verifier; human must run Record → visualizer → Stop → Play and confirm the take is audible before Gate can PASS. Automated commands and scope are clean; do not waive the live Booth check.
+    - 2026-07-22 REJECT (review): Soft-cap auto-stop leaves Play disabled. `app.py` `_pump_loop` must surface take-ready (e.g. call into JS with sample count / set `hasTake`) when capture ends without an explicit Stop; today `setRecording(false)` alone leaves `hasTake === false` (`index.html`), so Play never enables and the next Record clears the buffer (`capture.py` `start`). (Fix landed in retry build `586943c`; awaiting human manual demo + re-verify.)
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 5 REVIEW retry 1: onCaptureEnded surfaces take-ready after soft-cap.
-2. Capture + playback + offline Booth chrome ready.
-3. Task 5 wires live record → bars → play and `uv run voicelock`.
-4. Blind spot: Gate uses fake streams; live Booth needs manual Verification line.
-5. Mode 3 standing go — feature-end checkpoint after Task 5 wrap-up.
+1. 2026-07-22 — F1 Task 5 BLOCKED: Gate ESCALATE_HUMAN — needs your live Booth demo.
+2. Soft-cap take-ready fix is in `586943c`; automated Gate commands exit 0.
+3. Tasks 1–4 DONE with verdicts; Task 5 waits on manual Verification line.
+4. Blind spot was accepted in the spec — live window cannot be attested by subagent.
+5. After you confirm the demo, say "verify" / unblock so Gate+Review can finish.
