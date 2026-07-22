@@ -25,7 +25,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — Capture engine with injectable streams (`src/voicelock/capture.py`, `tests/test_capture.py`)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/capture.py`, `tests/test_capture.py`
   - notes: 16 kHz mono PCM; click-toggle start/stop; soft auto-stop at 30s; emit level frames for bars; mic-unavailable returns an error state (no crash, no silent success). Tests inject fake streams only.
@@ -65,7 +65,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 2 DOING: capture engine (16 kHz mono, 30s cap, levels, mic error).
+1. 2026-07-22 — F1 Task 2 REVIEW: capture engine + injectable-stream tests.
 2. Stack locked: pywebview · sounddevice + numpy · mock chrome · 16 kHz mono · bars · 30s soft cap · click-toggle · manual Play.
 3. Package exists: `src/voicelock/` + Gate wired (`ruff` · `pytest`).
 4. Blind spot accepted: fake streams in Gate; live Booth proven only by manual Verification (Task 5).
