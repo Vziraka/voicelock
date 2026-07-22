@@ -4,49 +4,64 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Updated: 2026-07-22 after F2. Solid = built (F1 booth + F2 outer lock); dashed = later.
+- Updated: 2026-07-22 after F2, then re-scoped by `design` for the three-factor
+  pivot (voice + face + lips). Solid = built (F1 booth + F2 outer lock);
+  dashed = planned (F3–F9). Nothing below F2 exists in code yet.
 
 ## Architecture (data flow)
 
 ```mermaid
 flowchart TB
     Mic([Microphone])
+    Cam([Webcam])
 
     subgraph Window["Desktop window — Booth UI"]
         Booth["Booth — record / enroll / unlock (F1–F2)"]
-        Viz["Visualizer — live levels (F1)"]
+        Viz["Visualizer — live audio levels (F1)"]
+        FaceView["FaceView — camera + landmarks (F5)"]
     end
 
-    Bridge{{"UI ↔ engine bridge (F1–F2)"}}
+    Bridge{{"UI ↔ engine bridge (F1)"}}
 
     subgraph Engine["Engine"]
         Capture["Audio capture (F1)"]
         Playback["Playback (F1)"]
-        Voiceprint["Voiceprint — identity signal (F3)"]
-        Challenge["Liveness: challenge match (F5)"]
-        Fuzzy["Fuzzy reconcile — helper data (F4)"]
+        FaceDetect["Face detect + landmarks (F5)"]
+        Voiceprint["Voiceprint — voice identity (F3)"]
+        Faceprint["Faceprint — face identity (F6)"]
+        FuzzyV["Fuzzy reconcile — voice (F4)"]
+        FuzzyF["Fuzzy reconcile — face (F7)"]
         Outer["Outer lock — passphrase → AEAD (F2)"]
-        Inner["Inner lock — voice codeword → AEAD (F4)"]
+        Middle["Middle lock — voice codeword → AEAD (F4)"]
+        Inner["Inner lock — face codeword → AEAD (F7)"]
+        Liveness["Liveness — challenge + lip-sync (F8)"]
     end
 
     Vault[("Profile vault on disk (F2)")]
 
     Mic --> Viz
     Mic --> Capture
+    Cam --> FaceView
+    Cam --> FaceDetect
     Booth <--> Bridge <--> Capture
     Booth <--> Bridge <--> Playback
+    Booth <--> Bridge <--> FaceDetect
     Booth -- "passphrase" --> Outer
     Capture --> Voiceprint
-    Capture --> Challenge
-    Voiceprint --> Fuzzy
-    Fuzzy -- "inner key" --> Inner
-    Fuzzy <-. "helper data" .-> Vault
+    FaceDetect --> Faceprint
+    Capture -- "audio envelope" --> Liveness
+    FaceDetect -- "lip landmarks" --> Liveness
+    Voiceprint --> FuzzyV -- "voice key" --> Middle
+    Faceprint --> FuzzyF -- "face key" --> Inner
+    FuzzyV <-. "helper data" .-> Vault
+    FuzzyF <-. "helper data" .-> Vault
     Outer --> Vault
+    Middle --> Vault
     Inner --> Vault
-    Challenge -- "gate before unlock" --> Inner
+    Liveness -- "gate before unlock" --> Inner
 
     classDef planned stroke-dasharray:6 4
-    class Voiceprint,Challenge,Fuzzy,Inner planned
+    class FaceView,FaceDetect,Voiceprint,Faceprint,FuzzyV,FuzzyF,Middle,Inner,Liveness planned
 ```
 
 ## Shape

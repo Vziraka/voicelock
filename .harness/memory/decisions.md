@@ -17,6 +17,31 @@ Format:
 
 <!-- entries go below this line -->
 
+- 2026-07-22 · **Pivot: augment to three biometric factors (voice + face + lips), not replace voice**
+  - why: richest demo arc — wrong passphrase / voice / face / replay each fail a distinct factor
+  - rejected: face+lips replacing voice (loses the voice work); face for liveness only (weaker identity story)
+  - link: `roadmap.md` The idea · Approach · `adr/0002-three-nested-locks.md`
+
+- 2026-07-22 · **Approach B′ — three nested locks: passphrase → voice → face**
+  - why: keeps each factor an independent, nameable failure; extends the two-lock Approach B rather than fusing keys
+  - rejected: fusing voice+face into one inner key (blurs which factor failed — same reason a combined key was rejected in F1/F2 era); face as a match-gate only (wouldn't seal bytes)
+  - link: `roadmap.md` Approach · `adr/0002-three-nested-locks.md` · supersedes `adr/0001-two-stacked-locks.md`
+
+- 2026-07-22 · **Passphrase stays typed (not spoken)**
+  - why: outer key needs exact bytes (Argon2id); a spoken passphrase via STT is fragile (one misheard char = lockout), leaks the secret aloud, and needs a new dependency
+  - rejected: spoken passphrase via offline STT; dropping the passphrase (undoes F2, loses "something you know")
+  - link: `roadmap.md` Approach
+
+- 2026-07-22 · **Liveness = audio-visual lip-sync to a spoken challenge**
+  - why: one capture proves words match challenge (anti-replay) + voiceprint + faceprint + lips move in time (live person); defeats photo, audio-only replay, muted video
+  - rejected: mouth-movement-only (any talking-head passes); visual lip-reading (offline lip-reading model, brittle, heavy)
+  - link: `roadmap.md` The idea · F8
+
+- 2026-07-22 · **Build order (Order A): voice fully, then face, then liveness, then reliability**
+  - why: each modality is a complete working lock before the next starts; always a working thing
+  - rejected: both on-screen signals first then both locks (no full lock until later); coarser one-feature-per-modality slices (thicker, less demoable)
+  - link: `roadmap.md` Features
+
 - 2026-07-22 · **F2 Mode 3 + live Booth enroll/unlock/REJECT as required Verification**
   - why: Mode 3 autonomy; Gate must not pass if only temp-path tests work and the Booth never seals ~/.voicelock/vault.vl
   - rejected: treating live Booth as accepted risk / waived check
