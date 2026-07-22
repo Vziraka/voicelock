@@ -21,11 +21,11 @@
 3. Do not plan or build until both Approval boxes are checked.
 
 ## Commit checkpoint
-- Proposed message below — commit only after human approval.
+- Committed: `4a85ae5` — Spec F2 parked at approval.
+- Session base → head: `3e98b47` → `4a85ae5`
 - Remote: none (local history only) — no push.
-- Base → head: record after commit.
+- Left untracked: `harness-v1/` (not part of this commit)
 
 ## Pending
-- Human Approval box 2
-- F1 feature-end commit (if still uncommitted from prior wrap-up) — separate
-  from this F2 spec commit unless you want them combined
+- Human Approval box 2 in `spec.md`
+- Fresh session: `/plan` after box 2 is checked
