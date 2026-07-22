@@ -6,9 +6,7 @@ Rule: **reference, don't restate** — point to spec/plan/ADRs/commits; don't co
 - **Changed since last session:** `/plan` for F1 — 5-task ledger written to `plan.md`
   (scaffold → capture → playback → UI chrome → pywebview bridge). All `TODO`,
   `rejects: 0`. Mode 3 standing go applies after this session's commit.
-- **Commits:** base {pending plan commit} → head {pending plan commit}
-  (fill after commit checkpoint; prior HEAD was
-  `82e7e1c190453d0fb042402f022b88daeb664bb3`)
+- **Commits:** base 82e7e1c190453d0fb042402f022b88daeb664bb3 → head c0491d5809d8d2629d7760101cec6f5d0e3fdd78
 - **Failed + lesson:** none
 - **Next action:** Mode 3 standing go — start `/implement` Task 1 in a **fresh
   session** (do not build in the plan session).
