@@ -18,9 +18,16 @@ Extracted by `intake-recon` (existing repo) or declared by `intake-scaffold` (ne
 repo). The non-negotiables go here; the full detail lives in
 `constitution/topics/conventions.md`.
 
-- Naming: {e.g. snake_case files, PascalCase types}
-- Structure: {e.g. tests next to source}
-- Stack rules: {e.g. reuse the existing Redis client; no new dependencies without approval}
+- Naming: snake_case files/functions/variables, PascalCase classes,
+  `tests/test_<module>.py`; prefer CONTEXT.md terms in identifiers.
+- Structure: code in `src/voicelock/`, UI in `src/voicelock/ui/`, tests in
+  `tests/`, design mock reference in `design/` (not final UI).
+- Stack rules: Python 3.11 + uv only (no bare pip); JS UI for looks, Python for
+  brain; UI shell TECH-PICK at F1; **offline-only — no network at runtime**;
+  no new dependencies without human approval.
+- Division of labor: Python owns audio/DSP/crypto/state; JS owns rendering only.
+- Gate commands: `uv run ruff check .` and `uv run pytest`, both exit 0
+  (promises until F1 wires them).
 
 ## Earned guardrails
 Last curated: never · verdicts then: 0

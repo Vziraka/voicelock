@@ -17,6 +17,21 @@ Format:
 
 <!-- entries go below this line -->
 
+- 2026-07-22 · **Stack: Python 3.11 + uv; JS UI for looks; UI shell TECH-PICK at F1**
+  - why: offline audio/crypto/voiceprint brain in Python; mock-based booth stays HTML/CSS/JS
+  - rejected: Electron/TS-first (ML path harder); bare pip (no lockfile discipline)
+  - link: `constitution/topics/conventions.md` · `constitution/project.md`
+
+- 2026-07-22 · **Layout: src/voicelock (+ ui/), tests/, design/ mock reference**
+  - why: clear brain/looks split; mock is starting chrome not final
+  - rejected: none — human accepted recommendation
+  - link: `constitution/topics/conventions.md`
+
+- 2026-07-22 · **Gate: uv run ruff check . · uv run pytest**
+  - why: simple, standard Python checks; promises until F1 wires them
+  - rejected: none — human accepted recommendation
+  - link: `constitution/project.md`
+
 - 2026-07-22 · **Approach B — two stacked locks for the profile vault**
   - why: always-both factors with crisp, independent impostor rejects for a learning demo
   - rejected: A voice-as-gate-only (voice wouldn't seal bytes); C single combined key (failures blur)

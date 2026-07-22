@@ -4,12 +4,12 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Greenfield: seeded by `design` (2026-07-22); grows as features build.
-- **Dashed = planned, solid = built** — nothing built yet.
+- Greenfield: seeded by `design` (2026-07-22); layout locked by intake-scaffold
+  (2026-07-22). **Dashed = planned, solid = built** — nothing built yet.
 
 ## Architecture (data flow)
 
-Same boxes as `roadmap.md`. Libraries and folder layout land at intake / F1.
+Same boxes as `roadmap.md`.
 
 ```mermaid
 flowchart TB
@@ -51,17 +51,20 @@ flowchart TB
 ```
 
 ## Shape
-- `.harness/` — governing harness (this map, roadmap, specs).
-- App source / tests — not created yet (intake + F1).
-- Optional reference: prior mock UI may live under `design/` if brought over later.
+- `.harness/` — governing harness (roadmap, specs, conventions).
+- `design/` — mock UI reference (`voicelock-mock.html`); not final chrome.
+- `src/voicelock/` — app engine (planned; F1 creates it).
+- `src/voicelock/ui/` — HTML/CSS/JS booth (planned; adapted from mock).
+- `tests/` — pytest suite (planned; F1 creates it).
 
 ## Key modules
-(None yet — greenfield.)
+(None yet — greenfield. F1 creates the first.)
 
 ## Where things live
-- Entry point(s): TBD at intake / F1
-- Tests: TBD at intake
-- Config: TBD at intake
+- Entry point(s): `uv run voicelock` (planned, F1)
+- Tests: `tests/` via `uv run pytest`
+- Config: `pyproject.toml` + `uv.lock` (planned, F1)
+- Lint: `uv run ruff check .`
 
 ## Conventions
-See `constitution/topics/conventions.md` (filled when intake-scaffold finishes).
+See `constitution/topics/conventions.md`.
