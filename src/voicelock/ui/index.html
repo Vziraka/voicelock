@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoiceLock</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0b0c0e;
+    color: #e7e9ee;
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  }
+  .mono {
+    font-family: Consolas, "Courier New", monospace;
+  }
+  @keyframes vlBlink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    96% { transform: scaleY(0.08); }
+  }
+  @keyframes vlFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes vlPulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+  .shell {
+    min-height: 100vh;
+    width: 100%;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    background: radial-gradient(120% 90% at 50% -10%, #1c1f24 0%, #0d0e11 55%, #08090b 100%);
+  }
+  .window {
+    width: min(1060px, 95vw);
+    height: min(680px, 88vh);
+    display: flex;
+    border-radius: 30px;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(150deg, #17191e, #101216);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.85),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  aside {
+    width: 326px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    padding: 26px 22px;
+    background: rgba(255, 255, 255, 0.018);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(150deg, #2b2f37, #171a1f);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .brand-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand-sub {
+    font-size: 10.5px;
+    color: #6f7681;
+    letter-spacing: 0.06em;
+  }
+  .section-label {
+    font-size: 10.5px;
+    color: #5f6673;
+    letter-spacing: 0.12em;
+    margin: 26px 4px 12px;
+  }
+  .profiles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .profile-row,
+  .enroll-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+    color: inherit;
+    text-align: left;
+    cursor: default;
+    opacity: 0.85;
+  }
+  .profile-row.selected {
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(150, 156, 166, 0.4);
+  }
+  .avatar {
+    width: 38px;
+    height: 38px;
+    flex: none;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    font-weight: 600;
+    background: linear-gradient(150deg, #2c313a, #191c21);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgb(150, 156, 166);
+    box-shadow: 0 0 8px rgba(150, 156, 166, 0.6);
+  }
+  .status-bar {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgb(150, 156, 166);
+  }
+  .status-line {
+    font-size: 10.5px;
+    color: #8a8f99;
+    letter-spacing: 0.08em;
+  }
+  main {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 34px;
+    background: radial-gradient(90% 70% at 50% 32%, rgba(255, 255, 255, 0.02), transparent 70%);
+  }
+  .booth {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 13px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgb(150, 156, 166);
+  }
+  .badge-text {
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    color: #b9bfca;
+  }
+  .face-wrap {
+    position: relative;
+    width: 172px;
+    height: 172px;
+    display: grid;
+    place-items: center;
+  }
+  .face-glow {
+    position: absolute;
+    inset: -22px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(150, 156, 166, 0.14), transparent 66%);
+    filter: blur(4px);
+  }
+  .face-disk {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .prompt {
+    text-align: center;
+    min-height: 58px;
+  }
+  .prompt-title {
+    font-size: 27px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .prompt-sub {
+    font-size: 12px;
+    color: #6f7681;
+    letter-spacing: 0.03em;
+    margin-top: 7px;
+  }
+  #viz-canvas {
+    width: 100%;
+    max-width: 440px;
+    height: 96px;
+    display: block;
+  }
+  .f1-controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: vlFade 0.35s ease;
+  }
+  .f1-row {
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(120, 170, 255, 0.35);
+    background: linear-gradient(150deg, rgba(120, 170, 255, 0.22), rgba(120, 170, 255, 0.08));
+    color: #eaf1ff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+    color: #c9cdd6;
+  }
+  #mic-error {
+    display: none;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(240, 96, 96, 0.4);
+    background: rgba(240, 96, 96, 0.1);
+    color: #f0b0b0;
+    font-size: 13px;
+  }
+  #mic-error.visible {
+    display: block;
+  }
+  .inert-panel {
+    width: 100%;
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .inert-label {
+    font-size: 9.5px;
+    color: #5f6673;
+    letter-spacing: 0.14em;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .chip {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.025);
+    color: #aeb3bd;
+    font-size: 11px;
+  }
+  .pass-input {
+    width: 100%;
+    padding: 13px 15px;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e7e9ee;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    outline: none;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="window" id="booth-root">
+    <aside>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c9cdd6" stroke-width="2">
+            <rect x="4" y="10" width="16" height="11" rx="2.5"></rect>
+            <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">VoiceLock</div>
+          <div class="brand-sub mono">OFFLINE · VOICE VAULT</div>
+        </div>
+      </div>
+
+      <div class="section-label mono">PROFILES</div>
+      <div class="profiles">
+        <button type="button" class="profile-row selected" disabled aria-disabled="true">
+          <div class="avatar">A</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:500">Ana</div>
+            <div class="mono" style="font-size:10px;color:#6f7681">enrolled · visual context</div>
+          </div>
+          <div class="dot"></div>
+        </button>
+        <button type="button" class="profile-row" disabled aria-disabled="true">
+          <div class="avatar">M</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:500">Marco</div>
+            <div class="mono" style="font-size:10px;color:#6f7681">enrolled · visual context</div>
+          </div>
+        </button>
+        <button type="button" class="enroll-row" disabled aria-disabled="true">
+          <div class="avatar" style="border-style:dashed;background:transparent;font-size:20px;font-weight:400">+</div>
+          <div>
+            <div style="font-size:14px;font-weight:500">Enroll new voice</div>
+            <div class="mono" style="font-size:10px;color:#6f7681">name · passphrase · sample</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-dot" id="status-dot"></div>
+        <div class="status-line mono" id="status-line">LOCKED · BOOTH READY</div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="booth">
+        <div class="badge">
+          <div class="badge-dot"></div>
+          <span class="badge-text mono" id="mode-badge">RECORDING BOOTH</span>
+        </div>
+
+        <div class="face-wrap" aria-hidden="true">
+          <div class="face-glow"></div>
+          <div class="face-disk"></div>
+          <svg viewBox="0 0 100 100" width="118" height="118" style="position:relative;overflow:visible">
+            <g style="animation:vlBlink 5.4s infinite;transform-origin:50px 44px">
+              <rect x="33.5" y="35" width="7" height="18" rx="3.5" fill="#eef0f5"></rect>
+              <rect x="59.5" y="35" width="7" height="18" rx="3.5" fill="#eef0f5"></rect>
+            </g>
+            <path d="M37 63 Q50 68 63 63" fill="none" stroke="#eef0f5" stroke-width="6" stroke-linecap="round"></path>
+          </svg>
+        </div>
+
+        <div class="prompt">
+          <div class="prompt-title" id="prompt-text">Ready to record</div>
+          <div class="prompt-sub mono" id="sub-text">record · visualizer · play back</div>
+        </div>
+
+        <canvas id="viz-canvas" width="440" height="96" aria-label="Audio level visualizer"></canvas>
+
+        <div id="mic-error" role="alert" aria-live="polite">No microphone available</div>
+
+        <div class="f1-controls">
+          <div class="f1-row">
+            <button type="button" class="btn" id="btn-record">Record</button>
+            <button type="button" class="btn btn-secondary" id="btn-stop" disabled>Stop</button>
+            <button type="button" class="btn btn-secondary" id="btn-play" disabled>Play</button>
+          </div>
+          <input class="pass-input mono" type="password" placeholder="Enter passphrase" disabled tabindex="-1" aria-hidden="true">
+        </div>
+
+        <div class="inert-panel" aria-hidden="true">
+          <div class="inert-label mono">DEMO — LATER FEATURES (INERT)</div>
+          <div class="chips">
+            <span class="chip mono">Correct</span>
+            <span class="chip mono">Wrong passphrase</span>
+            <span class="chip mono">Wrong voice</span>
+            <span class="chip mono">Replay attack</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  /* Task 4: chrome + DOM hooks only. Task 5 wires pywebview bridge. */
+  (function () {
+    const canvas = document.getElementById("viz-canvas");
+    const ctx = canvas.getContext("2d");
+    let level = 0.11;
+
+    function drawBars() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (!w || !h) return;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const n = 34;
+      const cy = h / 2;
+      const bw = 3.2;
+      const gap = (w - n * bw) / (n + 1);
+      const t = performance.now() / 1000;
+      const r = 150, g = 156, b = 166;
+      for (let i = 0; i < n; i++) {
+        const d = Math.abs(i - (n - 1) / 2) / ((n - 1) / 2);
+        const env = 1 - d * d * 0.85;
+        const v = 0.32 + 0.68 * Math.abs(Math.sin(i * 0.7 + t * 4.2)) * Math.abs(Math.cos(i * 0.31 - t * 2.1));
+        const bh = Math.max(3, h * 0.1 + v * level * env * h * 0.82);
+        const x = gap + i * (bw + gap);
+        ctx.fillStyle = `rgba(${r},${g},${b},${0.5 + 0.45 * env})`;
+        const y = cy - bh / 2;
+        ctx.beginPath();
+        ctx.roundRect(x, y, bw, bh, bw / 2);
+        ctx.fill();
+      }
+    }
+
+    function loop() {
+      drawBars();
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    /* Expose hooks for Task 5 bridge wiring (no Python bridge yet). */
+    window.voicelockBooth = {
+      els: {
+        record: document.getElementById("btn-record"),
+        stop: document.getElementById("btn-stop"),
+        play: document.getElementById("btn-play"),
+        canvas: canvas,
+        micError: document.getElementById("mic-error"),
+        prompt: document.getElementById("prompt-text"),
+        sub: document.getElementById("sub-text"),
+        status: document.getElementById("status-line"),
+      },
+      setLevel: function (value) {
+        level = Math.max(0, Math.min(1, Number(value) || 0));
+      },
+      showMicError: function (message) {
+        const el = document.getElementById("mic-error");
+        el.textContent = message || "No microphone available";
+        el.classList.add("visible");
+        document.getElementById("btn-record").disabled = true;
+      },
+    };
+  })();
+</script>
+</body>
+</html>
