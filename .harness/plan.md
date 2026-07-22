@@ -46,7 +46,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 4** — Bridge Enroll/Unlock to outer lock + live `~/.voicelock/vault.vl`; `uv run voicelock` end-to-end
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/app.py` (BoothApi), `src/voicelock/ui/index.html` (wire hooks), any thin glue under `src/voicelock/`
   - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Default vault path is `Path.home() / ".voicelock" / "vault.vl"`; re-enroll overwrites only after clear Booth confirm. Wrong passphrase → visible REJECT (status / chip); no vault → "No vault yet — enroll first"; empty enroll inputs → visible validation, no write. After unlock, show enrolled display name in the profile row. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
@@ -56,8 +56,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Tasks 1–3 DONE. Next: Task 4 bridge + live vault (LAST).
-2. Chrome ready: Enroll/Unlock UI hooks; vault engine + PyNaCl pinned.
-3. Task 4 wires BoothApi enroll/unlock to `~/.voicelock/vault.vl`.
-4. FULL Verification + required manual Booth demo gates feature done.
-5. Verdicts T1–T3 on disk · lessons none.
+1. 2026-07-22 — F2 Task 4 DOING (bridge + live vault). Tasks 1–3 DONE.
+2. Chrome + vault engine ready; wire BoothApi enroll/unlock to default path.
+3. LAST task — FULL Verification + required manual Booth demo.
+4. Re-enroll overwrites only after Booth confirm; wrong pass → REJECT chip.
+5. Diff base Task 4: see handoff after DOING commit.
