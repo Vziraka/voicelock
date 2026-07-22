@@ -13,7 +13,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Scaffold uv package + Gate tooling (`pyproject.toml`, `uv.lock`, `src/voicelock/__init__.py`, `tests/` so pytest collects)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`, `src/voicelock/__init__.py`, `tests/` (minimal so the suite runs)
   - notes: pin approved deps only — pywebview, sounddevice, numpy, ruff, pytest. No entry-point window yet.
@@ -64,8 +64,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 1 DOING: scaffold uv package + Gate tooling (pywebview, sounddevice, numpy, ruff, pytest).
+1. 2026-07-22 — F1 Task 1 REVIEW: uv scaffold + Gate tooling (numpy pinned `<2.3` for Python 3.11).
 2. Stack locked: pywebview · sounddevice + numpy · mock chrome · 16 kHz mono · bars · 30s soft cap · click-toggle · manual Play.
-3. Greenfield: Task 1 creates `src/` + Gate; live Booth is Task 5 (manual demo in Verification).
-4. Gate standing commands: `uv run ruff check .` · `uv run pytest` (wired in Task 1).
+3. Package exists: `src/voicelock/` + `tests/test_package.py`; live Booth still Task 5.
+4. Gate standing commands wired: `uv run ruff check .` · `uv run pytest`.
 5. Blind spot accepted: automated tests use fake streams; live pywebview + real mic proven only by the manual Verification line.
