@@ -1,39 +1,31 @@
-# Handoff — F1 completion report (Mode 3)
+# Handoff — F2 spec draft at approval gate
 
-Feature 1 is complete pending the feature-end commit/push checkpoint.
+## Session
+- Date: 2026-07-22
+- Feature: F2 — Passphrase-only vault (outer lock)
+- Phase: `/spec` complete → awaiting human box-2 approval
+- Mode (proposed in Approval gate): Mode 3
 
-## Outcome vs spec
-Spec Outcome: local Booth window — record from mic, live visualizer, play back.
-Shipped: `uv run voicelock` opens the Booth; Record/Stop/Play wired through
-pywebview; bars react to levels; mic errors disable Record; soft-cap take-ready;
-Stop works during playback. No auth/vault/voiceprint (non-goals held).
+## Done this session
+- Drafted `spec.md` for F2; grilled CLEAR (zero `[NEEDS-CLARIFICATION:` markers).
+- TECH-PICK: PyNaCl (Argon2id + SecretBox) — research + decisions logged.
+- Locked: `~/.voicelock/vault.vl`, name+pass only, mock Enroll/Unlock UX,
+  Argon2id MODERATE, VLCK header, no-vault copy, Mode 3.
+- Mode 3 blind spot is a **required Verification check** (manual live Booth
+  enroll → vault file → unlock → wrong REJECT), not accepted risk.
 
-## Final Gate evidence (Task 5)
-- `uv run ruff check .` → exit 0
-- `uv run pytest` → exit 0 (8 passed, 0 failed)
-- `uv run pytest tests/test_capture.py tests/test_playback.py -q` → exit 0 (7 passed)
-- Manual `uv run voicelock` Record → viz → Stop → Play → human-attested PASS
+## Next action
+1. Human: read Outcome + Verification in `spec.md`, confirm Mode 3, type `x`
+   in Approval box 2.
+2. Fresh session: `/plan` after box 2 is checked.
+3. Do not plan or build until both Approval boxes are checked.
 
-## Retry counts
-- Task 1: rejects 0
-- Task 2: rejects 0
-- Task 3: rejects 0
-- Task 4: rejects 0
-- Task 5: rejects 1 (soft-cap Play) + human stoppable-playback fix after demo
+## Commit checkpoint
+- Proposed message below — commit only after human approval.
+- Remote: none (local history only) — no push.
+- Base → head: record after commit.
 
-## Deviations
-None recorded in `memory/deviations.md` during F1.
-
-## Escalations
-Gate ESCALATE_HUMAN on live Booth (accepted blind spot) — resolved by human
-manual demo PASS. Soft-cap REJECT fixed before that.
-
-## Next
-Roadmap F1 checked. Next feature is F2 (passphrase-only vault) via `/spec` when
-you want it. Feature-end checkpoint: approve the wrap-up commit message (and
-push if/when you want a remote — currently none).
-
-- **Pending guardrail:** none
-- **Where the rest lives:** `spec.md` · `plan.md` · `roadmap.md` ·
-  `memory/verdicts/2026-07-22-F1-T{1..5}.json` · `memory/codebase-map.md`
-- **Wrap-up:** complete for Task 5 / F1 — awaiting feature-end commit approval
+## Pending
+- Human Approval box 2
+- F1 feature-end commit (if still uncommitted from prior wrap-up) — separate
+  from this F2 spec commit unless you want them combined

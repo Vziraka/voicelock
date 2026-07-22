@@ -17,6 +17,46 @@ Format:
 
 <!-- entries go below this line -->
 
+- 2026-07-22 · **F2 Mode 3 + live Booth enroll/unlock/REJECT as required Verification**
+  - why: Mode 3 autonomy; Gate must not pass if only temp-path tests work and the Booth never seals ~/.voicelock/vault.vl
+  - rejected: treating live Booth as accepted risk / waived check
+  - link: `spec.md` Approval · Verification · Constraints
+
+- 2026-07-22 · **F2 no-vault unlock copy: "No vault yet — enroll first"**
+  - why: actionable status when Unlock is hit before enroll
+  - rejected: "Vault missing"; custom wording
+  - link: `spec.md` Constraints
+
+- 2026-07-22 · **F2 vault file layout: VLCK magic + version + salt + ciphertext**
+  - why: one self-describing file; version leaves room for F4 format bumps
+  - rejected: salt+ciphertext only; JSON sidecar + separate blob
+  - link: `spec.md` Constraints
+
+- 2026-07-22 · **F2 Argon2id cost: OPSLIMIT_MODERATE / MEMLIMIT_MODERATE**
+  - why: demo-snappy stretch of the passphrase without pretending product-grade hardness
+  - rejected: INTERACTIVE (weaker story); SENSITIVE (sluggish demo)
+  - link: `spec.md` Constraints
+
+- 2026-07-22 · **F2 Booth UX: wire mock Enroll + passphrase Unlock; keep F1 record/play**
+  - why: mock already sketches the flow; end-to-end demo without a throwaway panel
+  - rejected: separate minimal panel; engine-only / script unlock
+  - link: `spec.md` Constraints
+
+- 2026-07-22 · **F2 enroll: name + passphrase only; sealed payload = display name (no audio)**
+  - why: outer lock is passphrase; recording already proven in F1; voice auth is F3/F4
+  - rejected: required recording placeholder; optional take-if-present
+  - link: `spec.md` Constraints · Non-goals
+
+- 2026-07-22 · **F2 vault path: single profile at ~/.voicelock/vault.vl; re-enroll overwrites after confirm**
+  - why: fixed, inspectable demo location outside the repo; one vault keeps F2 thin
+  - rejected: project-local cwd vault; multi-profile in F2
+  - link: `spec.md` Constraints
+
+- 2026-07-22 · **F2 outer lock crypto: PyNaCl (Argon2id + SecretBox)**
+  - why: one dep covers passphrase KDF + AEAD seal for the learning vault demo
+  - rejected: cryptography (broader, more wiring); stdlib-only (no suitable AEAD)
+  - link: `spec.md` Constraints · `memory/research/2026-07-22-f2-outer-lock-crypto.md`
+
 - 2026-07-22 · **F1 visualizer: bars**
   - why: clearest “levels reacting” demo signal; mock default
   - rejected: orb / rings (prettier, less obvious as loudness)
