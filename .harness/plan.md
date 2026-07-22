@@ -55,7 +55,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — pywebview Booth host + bridge: live record → bars → play (+ mic error); `uv run voicelock` entry
-  - state: DOING
+  - state: REVIEW
   - rejects: 1
   - files: `src/voicelock/app.py` (or equivalent host module), `src/voicelock/__main__.py` and/or `[project.scripts]` entry in `pyproject.toml`, bridge API, `src/voicelock/ui/` JS hooks wired to Python capture/playback
   - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Click-toggle Record/Stop; manual Play after stop; bars react to level frames while recording; mic missing/denied disables Record and shows a short Booth message; window stays open. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
@@ -68,7 +68,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F1 Task 5 DOING: human demo passed; fixing stoppable playback.
+1. 2026-07-22 — F1 Task 5 REVIEW: stoppable playback + human manual demo PASSED.
 2. Soft-cap take-ready fix is in `586943c`; automated Gate commands exit 0.
 3. Tasks 1–4 DONE with verdicts.
 4. Blind spot: live Booth attested by human; Gate still needs a full re-verify after this fix.

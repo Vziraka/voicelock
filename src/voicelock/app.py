@@ -28,6 +28,7 @@ class BoothApi:
         self._window: Any = None
         self._pumping = False
         self._pump_thread: threading.Thread | None = None
+        self._play_watch: threading.Thread | None = None
 
     def bind_window(self, window: Any) -> None:
         self._window = window
@@ -41,6 +42,8 @@ class BoothApi:
         return {"ok": True}
 
     def start_record(self) -> dict[str, Any]:
+        if self.playback.is_playing:
+            self.stop_playback()
         if self.capture.is_recording:
             return self.stop_record()
         self.capture.start()
@@ -56,6 +59,8 @@ class BoothApi:
         return {"ok": True}
 
     def stop_record(self) -> dict[str, Any]:
+        if self.playback.is_playing:
+            return self.stop_playback()
         self._stop_pump()
         buf = self.capture.stop()
         self._eval(
@@ -73,10 +78,23 @@ class BoothApi:
         if buf.size == 0:
             return {"ok": False, "error": "Nothing to play yet"}
         try:
-            self.playback.play_buffer(buf)
+            self.playback.play_buffer(buf, block=False)
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": str(exc) or "Playback failed"}
-        return {"ok": True, "samples": int(buf.size)}
+        self._start_play_watch()
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setPlaying && "
+            "window.voicelockBooth.setPlaying(true)"
+        )
+        return {"ok": True, "samples": int(buf.size), "playing": True}
+
+    def stop_playback(self) -> dict[str, Any]:
+        self.playback.stop()
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setPlaying && "
+            "window.voicelockBooth.setPlaying(false)"
+        )
+        return {"ok": True, "playing": False}
 
     def _probe_mic(self) -> str | None:
         try:
@@ -127,6 +145,28 @@ class BoothApi:
                     f"window.voicelockBooth.setLevel({level:.4f})"
                 )
             time.sleep(0.05)
+
+    def _start_play_watch(self) -> None:
+        prior = self._play_watch
+        if prior is not None and prior.is_alive():
+            # Prior wait will exit after sd.stop(); don't join on the API thread.
+            pass
+        thread = threading.Thread(target=self._play_watch_loop, name="voicelock-play", daemon=True)
+        self._play_watch = thread
+        thread.start()
+
+    def _play_watch_loop(self) -> None:
+        try:
+            self.playback.wait()
+        except Exception:  # noqa: BLE001
+            pass
+        if not self.playback.interrupted:
+            self.playback.completed = True
+        self.playback.is_playing = False
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setPlaying && "
+            "window.voicelockBooth.setPlaying(false)"
+        )
 
     def _push_mic_error(self, message: str) -> None:
         safe = message.replace("\\", "\\\\").replace("'", "\\'")

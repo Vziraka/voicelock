@@ -13,24 +13,44 @@ from voicelock.capture import DTYPE, SAMPLE_RATE
 
 @dataclass
 class PlaybackEngine:
-    """Play a mono PCM buffer to completion.
+    """Play a mono PCM buffer; support stop so the Booth is not stuck listening.
 
-    `play` is injectable so Gate tests never need real speakers.
+    `play` / `wait` / `stop_output` are injectable so Gate tests never need real speakers.
     """
 
     sample_rate: int = SAMPLE_RATE
     play: Callable[..., None] = sd.play
     wait: Callable[[], None] = sd.wait
+    stop_output: Callable[[], None] = sd.stop
     last_frames: np.ndarray | None = field(default=None, init=False)
     completed: bool = field(default=False, init=False)
+    is_playing: bool = field(default=False, init=False)
+    interrupted: bool = field(default=False, init=False)
 
-    def play_buffer(self, pcm: np.ndarray) -> None:
-        """Play `pcm` (mono float PCM) and wait until it finishes."""
+    def play_buffer(self, pcm: np.ndarray, *, block: bool = True) -> None:
+        """Play `pcm` (mono float PCM). If `block`, wait until finished or stopped."""
         frames = np.asarray(pcm, dtype=DTYPE).reshape(-1)
         if frames.size == 0:
             raise ValueError("Cannot play an empty PCM buffer")
+        self.stop()
         self.completed = False
+        self.interrupted = False
         self.last_frames = frames
+        self.is_playing = True
         self.play(frames, self.sample_rate)
-        self.wait()
-        self.completed = True
+        if block:
+            self.wait()
+            self.is_playing = False
+            self.completed = not self.interrupted
+
+    def stop(self) -> None:
+        """Stop playback early (or clear a finished stream)."""
+        was_playing = self.is_playing
+        if was_playing:
+            try:
+                self.stop_output()
+            except Exception:  # noqa: BLE001
+                pass
+            self.is_playing = False
+            self.interrupted = True
+            self.completed = False

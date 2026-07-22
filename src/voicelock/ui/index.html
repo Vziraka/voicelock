@@ -432,6 +432,7 @@
     const status = document.getElementById("status-line");
     let level = 0.11;
     let recording = false;
+    let playing = false;
     let hasTake = false;
 
     function drawBars() {
@@ -472,17 +473,38 @@
     }
     loop();
 
+    function refreshControls() {
+      btnStop.disabled = !(recording || playing);
+      btnRecord.disabled = playing;
+      btnPlay.disabled = recording || playing || !hasTake;
+    }
+
     function setRecording(active) {
       recording = !!active;
-      btnStop.disabled = !recording;
-      btnRecord.disabled = false;
-      btnPlay.disabled = recording || !hasTake;
+      if (recording) playing = false;
+      refreshControls();
       if (recording) {
         prompt.textContent = "Listening…";
         sub.textContent = "capturing audio · click Stop when done";
         status.textContent = "CAPTURING…";
         document.getElementById("mode-badge").textContent = "● LISTENING";
-      } else {
+      } else if (!playing) {
+        prompt.textContent = hasTake ? "Take ready" : "Ready to record";
+        sub.textContent = hasTake ? "press Play to hear the capture" : "record · visualizer · play back";
+        status.textContent = hasTake ? "LOCKED · TAKE READY" : "LOCKED · BOOTH READY";
+        document.getElementById("mode-badge").textContent = "RECORDING BOOTH";
+      }
+    }
+
+    function setPlaying(active) {
+      playing = !!active;
+      refreshControls();
+      if (playing) {
+        prompt.textContent = "Playing take";
+        sub.textContent = "click Stop to end playback early";
+        status.textContent = "PLAYING…";
+        document.getElementById("mode-badge").textContent = "● PLAYBACK";
+      } else if (!recording) {
         prompt.textContent = hasTake ? "Take ready" : "Ready to record";
         sub.textContent = hasTake ? "press Play to hear the capture" : "record · visualizer · play back";
         status.textContent = hasTake ? "LOCKED · TAKE READY" : "LOCKED · BOOTH READY";
@@ -504,6 +526,7 @@
       micError.classList.add("visible");
       btnRecord.disabled = true;
       btnStop.disabled = true;
+      btnPlay.disabled = true;
       prompt.textContent = "Microphone unavailable";
       sub.textContent = message || "No microphone available";
       status.textContent = "LOCKED · MIC ERROR";
@@ -531,20 +554,23 @@
     });
 
     btnStop.addEventListener("click", async function () {
+      if (playing) {
+        await call("stop_playback");
+        setPlaying(false);
+        return;
+      }
       const result = await call("stop_record");
       hasTake = !!(result && result.ok && result.samples > 0);
       setRecording(false);
     });
 
     btnPlay.addEventListener("click", async function () {
-      btnPlay.disabled = true;
-      status.textContent = "PLAYING…";
       const result = await call("play");
-      btnPlay.disabled = !hasTake || recording;
-      status.textContent = hasTake ? "LOCKED · TAKE READY" : "LOCKED · BOOTH READY";
       if (!result || !result.ok) {
         sub.textContent = (result && result.error) || "Playback failed";
+        return;
       }
+      setPlaying(true);
     });
 
     window.voicelockBooth = {
@@ -562,6 +588,7 @@
         level = Math.max(0, Math.min(1, Number(value) || 0));
       },
       setRecording: setRecording,
+      setPlaying: setPlaying,
       onCaptureEnded: onCaptureEnded,
       showMicError: showMicError,
     };
