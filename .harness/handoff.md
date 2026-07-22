@@ -5,7 +5,7 @@ Rule: **reference, don't restate** — point to spec/plan/ADRs/commits; don't co
 
 - **Changed since last session:** `/spec` for F1 complete; grilling CLEAR; Mode 3;
   human approved box 2. Mock chrome + bars + 16 kHz mono + 30s cap locked.
-- **Commits:** base 3fde41a63e955a1265cc802657e0c2b7212880fc → head pending this commit
+- **Commits:** base 3fde41a63e955a1265cc802657e0c2b7212880fc → head 652c9d31fa9f11b998dbb9a7e0fe1b90956728af
 - **Failed + lesson:** none
 - **Next action:** `/plan` in a **fresh session** (spec approved at Mode 3).
 - **Pending guardrail:** none
