@@ -20,12 +20,10 @@
 2. Do not start Task 2+ until Task 1 wrap-up completes (WIP=1).
 
 ## Commit checkpoint
-- Proposed (awaiting human approval): Plan F2 into four tracer-bullet tasks.
-- Session base: `4a5ef0d` (head at plan start)
-- Session head: (pending commit)
+- Committed: `f4e8a86` — Plan F2 into four tracer-bullet tasks.
+- Session base → head: `4a5ef0d` → `f4e8a86`
 - Remote: none (local history only) — no push.
 - Left untracked: `harness-v1/` (not part of this commit)
 
 ## Pending
-- Human approve commit message → commit plan/handoff state
 - Fresh session: `/implement` Task 1
