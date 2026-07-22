@@ -1,0 +1,25 @@
+{
+  "task": "T5",
+  "spec": "spec.md@f3076c77841601d5df9cd8c3a81cfcdcc348485a",
+  "change": "df24b662567edfd77c48e9b9129812e746295067..f3076c77841601d5df9cd8c3a81cfcdcc348485a",
+  "gate": {
+    "commands": [
+      "uv run ruff check .",
+      "uv run pytest",
+      "uv run pytest tests/test_capture.py tests/test_playback.py -q",
+      "Manual: uv run voicelock Record→Stop→Play (human-attested)"
+    ],
+    "exit": 0,
+    "note": "8 passed suite; human attested manual demo PASS"
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Stoppable playback + soft-cap take-ready; pywebview bridge complete"
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-22"
+}

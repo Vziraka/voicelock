@@ -81,7 +81,7 @@ flowchart TB
 Each is a thin end-to-end slice, demoable on its own. The full success arc
 becomes reachable at **F5**. F6 makes the demo reliable and presentable.
 
-- [ ] **F1 — The recording booth** · blocked-by: none
+- [x] **F1 — The recording booth** · blocked-by: none
   App window: press to record, live visualizer reacts, audio captures and plays back.
   *Demo:* speak → visualizer moves → captured audio plays back. (No auth yet.)
 

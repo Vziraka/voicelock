@@ -4,19 +4,16 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Greenfield: seeded by `design` (2026-07-22); layout locked by intake-scaffold
-  (2026-07-22). **Dashed = planned, solid = built** — nothing built yet.
+- Updated: 2026-07-22 after F1. Solid = built (F1 booth path); dashed = later features.
 
 ## Architecture (data flow)
-
-Same boxes as `roadmap.md`.
 
 ```mermaid
 flowchart TB
     Mic([Microphone])
 
     subgraph Window["Desktop window — Booth UI"]
-        Booth["Booth — modes, challenge,<br/>passphrase (F1)"]
+        Booth["Booth — record / stop / play (F1)"]
         Viz["Visualizer — live levels (F1)"]
     end
 
@@ -24,6 +21,7 @@ flowchart TB
 
     subgraph Engine["Engine"]
         Capture["Audio capture (F1)"]
+        Playback["Playback (F1)"]
         Voiceprint["Voiceprint — identity signal (F3)"]
         Challenge["Liveness: challenge match (F5)"]
         Fuzzy["Fuzzy reconcile — helper data (F4)"]
@@ -36,6 +34,7 @@ flowchart TB
     Mic --> Viz
     Mic --> Capture
     Booth <--> Bridge <--> Capture
+    Booth <--> Bridge <--> Playback
     Booth -- "passphrase" --> Outer
     Capture --> Voiceprint
     Capture --> Challenge
@@ -47,23 +46,27 @@ flowchart TB
     Challenge -- "gate before unlock" --> Inner
 
     classDef planned stroke-dasharray:6 4
-    class Mic,Booth,Viz,Bridge,Capture,Voiceprint,Challenge,Fuzzy,Outer,Inner,Vault planned
+    class Voiceprint,Challenge,Fuzzy,Outer,Inner,Vault planned
 ```
 
 ## Shape
 - `.harness/` — governing harness (roadmap, specs, conventions).
 - `design/` — mock UI reference (`voicelock-mock.html`); not final chrome.
-- `src/voicelock/` — app engine (planned; F1 creates it).
-- `src/voicelock/ui/` — HTML/CSS/JS booth (planned; adapted from mock).
-- `tests/` — pytest suite (planned; F1 creates it).
+- `src/voicelock/` — app engine (capture, playback, pywebview host).
+- `src/voicelock/ui/` — HTML/CSS/JS booth (adapted from mock, offline).
+- `tests/` — pytest suite (fake streams; no real mic in Gate).
 
 ## Key modules
-(None yet — greenfield. F1 creates the first.)
+- `src/voicelock/capture.py` — 16 kHz mono capture, levels, 30s soft cap, mic error
+- `src/voicelock/playback.py` — play / stop PCM buffers
+- `src/voicelock/app.py` — pywebview host + JS bridge (`BoothApi`)
+- `src/voicelock/ui/index.html` — Booth chrome + Record/Stop/Play
+- `src/voicelock/__main__.py` — `python -m voicelock`
 
 ## Where things live
-- Entry point(s): `uv run voicelock` (planned, F1)
+- Entry point(s): `uv run voicelock`
 - Tests: `tests/` via `uv run pytest`
-- Config: `pyproject.toml` + `uv.lock` (planned, F1)
+- Config: `pyproject.toml` + `uv.lock`
 - Lint: `uv run ruff check .`
 
 ## Conventions
