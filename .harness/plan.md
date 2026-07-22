@@ -55,12 +55,13 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — pywebview Booth host + bridge: live record → bars → play (+ mic error); `uv run voicelock` entry
-  - state: REVIEW
-  - rejects: 0
+  - state: TODO
+  - rejects: 1
   - files: `src/voicelock/app.py` (or equivalent host module), `src/voicelock/__main__.py` and/or `[project.scripts]` entry in `pyproject.toml`, bridge API, `src/voicelock/ui/` JS hooks wired to Python capture/playback
   - notes: LAST task — Gate runs the FULL Verification list from `spec.md`. Click-toggle Record/Stop; manual Play after stop; bars react to level frames while recording; mic missing/denied disables Record and shows a short Booth message; window stays open. Auto-discovered out-of-scope work → `.out-of-scope/`, never build.
   - done-criteria: FULL list from `spec.md` **Verification** (standing + feature-specific + required manual demo line)
-  - feedback: (none)
+  - feedback:
+    - 2026-07-22 REJECT (review): Soft-cap auto-stop leaves Play disabled. `app.py` `_pump_loop` must surface take-ready (e.g. call into JS with sample count / set `hasTake`) when capture ends without an explicit Stop; today `setRecording(false)` alone leaves `hasTake === false` (`index.html`), so Play never enables and the next Record clears the buffer (`capture.py` `start`).
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
