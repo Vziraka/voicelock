@@ -1,32 +1,27 @@
-# Handoff — F2 Task 1 REVIEW (PyNaCl pinned)
+# Handoff — F2 Task 1 DONE; next Task 2
 
 ## Session
 - Date: 2026-07-22
 - Feature: F2 — Passphrase-only vault (outer lock)
-- Phase: `/implement` Task 1 → `REVIEW`
+- Phase: wrap-up Task 1 → ready for `/implement` Task 2
 - Mode: Mode 3 (spec Approval gate)
 
 ## Done this session
-- Entry gate: Grilling `CLEAR`; zero `[NEEDS-CLARIFICATION:` hits; both
-  Approval boxes checked; Mode 3; no invalid DONE-without-verdict tasks.
-- Quoted anchors: spec Crypto PyNaCl TECH-PICK; plan Task 1 `uv add` only;
-  no vault code.
-- Committed `DOING` first (`52cc9e5`), then built.
-- `uv add pynacl` → `pynacl>=1.6.2` in `pyproject.toml`, lock resolves 1.6.2.
-- Local sanity (disclose for Gate): `uv sync` 0; import `nacl`/`pwhash`/
-  `secret` prints `1.6.2`; `ruff check .` 0; `pytest` 8 passed.
+- F2-T1 APPROVE (Gate PASS · Review APPROVE · mechanism subagent).
+- Verdict: `memory/verdicts/2026-07-22-F2-T1.json` · lesson: none.
+- No ADR (fails condition 2/3 — TECH-PICK already decided).
+- PyNaCl pinned: `pynacl>=1.6.2` / lock 1.6.2.
 
 ## Next action
-1. Clean-context verifier via `formats/VERIFIER-PROMPT.md` (verbatim).
-   Fill-ins: task **F2-T1** · base `52cc9e5` · head `ac89891`.
-2. On APPROVE → wrap-up → then Mode 3 may start Task 2 (WIP=1).
+1. Mode 3 standing go: `/implement` Task 2 (vault + outer lock, temp-path tests).
+2. WIP=1 — do not touch Task 3+ until Task 2 wrap-up completes.
 
 ## Commit checkpoint
 - Diff base (DOING): `52cc9e5`
-- Build commit: `ac89891` — F2-T1: pin PyNaCl dependency for outer-lock crypto.
-- Bookkeeping commit: (this file) — recorded after build.
+- Build: `ac89891` · bookkeeping: `3f78215`
+- Wrap-up commit: (this close-out)
 - Remote: none (local history only) — no push.
-- Left untracked: `harness-v1/` (not part of this work)
+- Left untracked: `harness-v1/`
 
 ## Pending
-- Verifier: Gate + Review for F2 Task 1
+- Implement Task 2

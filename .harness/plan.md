@@ -3,6 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 2 from `roadmap.md` · Mode: Mode 3 · Phase: implement
+  (next: Task 2 — vault + outer lock; Task 1 DONE)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -12,11 +13,11 @@ A task is `DONE` only when the Gate exited 0 **and** the Reviewer approved.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — Pin approved PyNaCl dependency (`pyproject.toml`, `uv.lock`)
-  - state: REVIEW
+- [x] **Task 1** — Pin approved PyNaCl dependency (`pyproject.toml`, `uv.lock`)
+  - state: DONE
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`
-  - notes: Human-approved TECH-PICK (Argon2id + SecretBox). Added via `uv add pynacl` → `pynacl>=1.6.2` / lock 1.6.2. No vault code.
+  - notes: Human-approved TECH-PICK (Argon2id + SecretBox). Added via `uv add pynacl` → `pynacl>=1.6.2` / lock 1.6.2. No vault code. Verdict: `2026-07-22-F2-T1.json`.
   - done-criteria:
     - `uv sync` → exit 0
     - `uv run python -c "import nacl; from nacl import pwhash, secret; print(nacl.__version__)"` → exit 0
@@ -55,8 +56,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F2 Task 1 REVIEW (PyNaCl pinned). Spec CLEAR · Mode 3.
+1. 2026-07-22 — F2 Task 1 DONE (PyNaCl 1.6.2). Next: Task 2 vault + outer lock.
 2. Crypto locked: PyNaCl Argon2id MODERATE + SecretBox; vault `~/.voicelock/vault.vl` · VLCK header.
 3. Engine first (Task 2 temp-path tests), then Booth chrome, then live bridge (Task 4 LAST).
 4. Mode 3 blind spot: live Booth enroll → vault file → unlock → wrong REJECT is required Verification.
-5. Next after Task 1 wrap-up: Task 2 vault + outer lock.
+5. Verdict: `memory/verdicts/2026-07-22-F2-T1.json` · lesson none.
