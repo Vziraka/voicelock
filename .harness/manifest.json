@@ -1,0 +1,17 @@
+{
+  "name": "sdd-harness",
+  "version": "0.5.9",
+  "description": "Universal spec-driven development harness. Drop into any repo as .harness/. Model-agnostic, plain files. Per-feature development Modes 1-4 scale how hands-on the human is.",
+  "entry": "constitution/universal.md",
+  "readFirst": [
+    "constitution/universal.md",
+    "constitution/project.md",
+    "roadmap.md",
+    "spec.md",
+    "plan.md",
+    "handoff.md",
+    "memory/codebase-map.md"
+  ],
+  "skills": "./skills/",
+  "protected": "protected.txt"
+}

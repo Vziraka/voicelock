@@ -1,0 +1,15 @@
+# Protected files — human-only.
+# The agent may PROPOSE changes (in handoff.md or a PR) but must never edit these itself.
+# This is the immutable-evaluator rule: the thing that measures the work cannot be
+# rewritten by the thing being measured.
+#
+# Exception — append-only paths: where marked append-only below, the agent MAY
+# CREATE new files / append new entries there; it may never modify or delete an
+# existing one.
+
+constitution/universal.md     # core principles + hard rules
+protected.txt                 # this list
+skills/verify-gate/           # the deterministic gate
+skills/verify-review/         # the reviewer discipline
+memory/verdicts/              # verdict archive — append-only: agent may create new verdict files, never modify or delete existing ones
+memory/deviations.md          # judgment-call log — append-only: agent may append new entries, never modify or delete existing ones
