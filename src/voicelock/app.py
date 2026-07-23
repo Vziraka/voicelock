@@ -7,8 +7,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import webview
 
+from voicelock import voiceprint
 from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, SAMPLE_RATE
 from voicelock.playback import PlaybackEngine
 from voicelock.vault import (
@@ -31,10 +33,13 @@ class BoothApi:
         capture: CaptureEngine | None = None,
         playback: PlaybackEngine | None = None,
         vault_path: Path | None = None,
+        ref_path: Path | None = None,
     ) -> None:
         self.capture = capture or CaptureEngine()
         self.playback = playback or PlaybackEngine()
         self.vault_path = vault_path if vault_path is not None else default_vault_path()
+        self.ref_path = ref_path if ref_path is not None else voiceprint.default_reference_path()
+        self._reference_takes: list[np.ndarray] = []
         self._window: Any = None
         self._pumping = False
         self._pump_thread: threading.Thread | None = None
@@ -86,6 +91,46 @@ class BoothApi:
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": str(exc) or "Unlock failed"}
         return {"ok": True, "name": name}
+
+    def set_reference(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Consume the last captured take as one of the reference sentences.
+
+        Called once per recorded sentence; after ``REFERENCE_TAKES`` valid takes
+        the averaged reference is persisted. A too-short/silent take is rejected
+        with ``need_more_audio`` and is not added — the caller re-records it.
+        """
+        buf = self.capture.pcm_buffer()
+        try:
+            voiceprint.embed(buf)  # validate this take before accepting it
+        except voiceprint.NeedMoreAudioError:
+            return {
+                "ok": False,
+                "error": "need_more_audio",
+                "progress": len(self._reference_takes),
+            }
+        self._reference_takes.append(np.asarray(buf, dtype=DTYPE))
+        progress = len(self._reference_takes)
+        if progress < voiceprint.REFERENCE_TAKES:
+            return {"ok": True, "done": False, "progress": progress}
+
+        takes = self._reference_takes[: voiceprint.REFERENCE_TAKES]
+        self._reference_takes = []
+        try:
+            voiceprint.set_reference(takes, path=self.ref_path)
+        except voiceprint.VoiceprintError as exc:
+            return {"ok": False, "error": str(exc) or "Set reference failed", "progress": 0}
+        return {"ok": True, "done": True, "progress": voiceprint.REFERENCE_TAKES}
+
+    def compare(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Match the last captured take against the stored reference voiceprint."""
+        buf = self.capture.pcm_buffer()
+        try:
+            distance, band = voiceprint.compare(buf, path=self.ref_path)
+        except voiceprint.NoReferenceError:
+            return {"ok": False, "error": "no_reference"}
+        except voiceprint.NeedMoreAudioError:
+            return {"ok": False, "error": "need_more_audio"}
+        return {"ok": True, "distance": distance, "band": band}
 
     def start_record(self) -> dict[str, Any]:
         if self.playback.is_playing:

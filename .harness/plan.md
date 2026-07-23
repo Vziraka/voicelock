@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Tasks 1–3 DONE; Task 4 DOING — bridge + end-to-end + manual demo, the LAST task)
+  (Tasks 1–3 DONE; Task 4 REVIEW — automated built; manual Booth demo needs human attestation)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -81,8 +81,9 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 4** — Bridge Set-reference + live compare to the engine; `uv run voicelock` end-to-end + manual Booth demo
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
+  - build-notes: `BoothApi` gained injectable `ref_path` + `set_reference` (banks the last captured take; validates via `voiceprint.embed`, rejects short/silent with `need_more_audio`, averages+persists on the 3rd via `voiceprint.set_reference`) and `compare` (→ `{distance, band}`; `no_reference`/`need_more_audio` errors). JS: Set-reference handler handles progressive `{progress,done}`; `updateVoiceprintMeter` runs after each Stop (record branch) → `renderDistance` / `showSetReferenceFirst` / `showNeedMoreAudio`. Enroll/Unlock + Record/Stop/Play unchanged. `tests/test_booth_api.py` +3 (stub capture + real fixtures): same→accept, different→reject, short-take rejected, no-reference. Packaging: `uv run voicelock` uses the EDITABLE install (resolves to `src/voicelock/`), so the vendored `models/ecapa/` is found at runtime — no wheel force-include needed for the demo (noted for any future wheel build).
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: Add `BoothApi` methods that call the Task-2 engine: `set_reference`
     (captures 3 takes via the F1 mic path → averaged reference at the injectable

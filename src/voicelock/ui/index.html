@@ -960,17 +960,13 @@
     });
 
     btnSetReference.addEventListener("click", async function () {
-      /* Task 4 wires the 3-take capture + voiceprint.set_reference; the chrome
-         drives the control and renders the result / edge states only. */
-      setVoiceprintHint("recording reference — speak 3 short sentences", false);
+      /* Bank the last recorded sentence as one of the 3 reference takes; the
+         engine averages + persists on the 3rd. JS renders progress / edges. */
       const result = await call("set_reference");
       if (!result || !result.ok) {
         if (result && result.error === "need_more_audio") {
           showNeedMoreAudio();
           return;
-        }
-        if (result && result.progress != null) {
-          setReferenceProgress(result.progress);
         }
         if (!(window.pywebview && window.pywebview.api && window.pywebview.api.set_reference)) {
           setVoiceprintHint("set reference — bridge not ready", true);
@@ -979,8 +975,34 @@
         setVoiceprintHint((result && result.error) || "set reference failed", true);
         return;
       }
-      showReferenceReady();
+      if (result.done) {
+        showReferenceReady();
+        return;
+      }
+      const progress = Number(result.progress) || 0;
+      setReferenceProgress(progress);
+      setVoiceprintHint(
+        "reference take " + progress + " of 3 saved — record another sentence, then Set reference",
+        false
+      );
     });
+
+    async function updateVoiceprintMeter() {
+      const result = await call("compare");
+      if (!result || !result.ok) {
+        if (result && result.error === "no_reference") {
+          showSetReferenceFirst();
+          return;
+        }
+        if (result && result.error === "need_more_audio") {
+          showNeedMoreAudio();
+          return;
+        }
+        return; // bridge not ready or other — leave the meter as it is
+      }
+      renderDistance(result.distance, result.band);
+      setVoiceprintHint("live match — " + result.band, false);
+    }
 
     btnRecord.addEventListener("click", async function () {
       const result = await call("start_record");
@@ -1005,6 +1027,9 @@
       const result = await call("stop_record");
       hasTake = !!(result && result.ok && result.samples > 0);
       setRecording(false);
+      if (hasTake) {
+        updateVoiceprintMeter();  // reflect the take on the meter (or prompt to set a reference)
+      }
     });
 
     btnPlay.addEventListener("click", async function () {
