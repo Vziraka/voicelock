@@ -37,7 +37,7 @@
 
 ## Commit checkpoint
 - Base (spec session): `76c40c5`
-- Head: this spec commit (hash recorded in the follow-up bookkeeping commit)
+- Head: `5d242ad` (spec commit) + this bookkeeping commit
 - Remote: none — local history only, no push
 - Files: `spec.md`, `memory/decisions.md`, `memory/research/2026-07-22-f3-voiceprint-embedding.md`
 - `plan.md` intentionally still F2-complete — rewritten by `/plan` after box 2.
