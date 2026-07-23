@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Tasks 1–2 DONE; Task 3 REVIEW — awaiting fresh-eyes verify; Task 4 TODO)
+  (Tasks 1–3 DONE — Gate PASS + Reviewer APPROVE; next: `/implement` Task 4 — the LAST task)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -62,8 +62,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed — full suite still green)
   - feedback: (none)
 
-- [ ] **Task 3** — Booth chrome: "Set reference" action + live 3-band meter + distance readout (DOM + JS render only)
-  - state: REVIEW
+- [x] **Task 3** — Booth chrome: "Set reference" action + live 3-band meter + distance readout (DOM + JS render only)
+  - state: DONE
   - rejects: 0
   - build-notes: Added `.voiceprint` panel to `ui/index.html` — VOICEPRINT·LIVE MATCH header + numeric `distance` readout, a decorative 3-band meter (green/amber/red) with a needle, a **Set reference** button + 3 take-dots, and a hint line carrying the "set reference first" / "need more audio" edge states. JS renders only (no embedding math): `renderDistance`, `showNeedMoreAudio`, `showSetReferenceFirst`, `setReferenceProgress`, `showReferenceReady` exposed on `window.voicelockBooth`; `btn-set-reference` calls the stubbed `set_reference` bridge (wired in Task 4). F1/F2 controls untouched; no network asset refs. Match band decided in Python, applied via readout color — JS never judges.
   - files: `src/voicelock/ui/index.html`
@@ -103,8 +103,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F3 Tasks 1–2 DONE (Mode 3). T1: ECAPA stack + vendored Apache-2.0 model. T2: `voiceprint.py` engine + fixtures + tests (spec §5 cases 1–5), full suite 30 passed, Reviewer APPROVE.
-2. Next: `/implement` Task 3 — Booth chrome in `ui/index.html` (Set-reference control + live 3-band meter + distance readout + edge states); JS renders only, bridge stubbed. Then T4 bridge + end-to-end + manual demo.
-3. Diagnostic only — no lock/key derivation (that is F4). Reference = 3-take averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext sibling, injectable path, not the vault). Cutoffs pinned `ACCEPT=0.45`/`REJECT=0.65` (module constants tests import).
-4. Offline load solved: `pretrained_path` override + `LocalStrategy.NO_LINK` under `HF_HUB_OFFLINE` (Windows symlink blocked); encapsulated in `voiceprint._load_classifier`.
-5. Open watch-out (Task 4): runtime wheel `force-include` currently only ships `ui/index.html` → `models/ecapa/` must be force-included (or editable install) for `uv run voicelock`.
+1. 2026-07-22 — F3 Tasks 1–3 DONE (Mode 3). T1: ECAPA stack + vendored model. T2: `voiceprint.py` engine + fixtures + tests (§5 cases 1–5). T3: Booth voiceprint chrome (Set reference + 3-band meter, JS render-only). All Reviewer APPROVE; full suite 30 passed.
+2. Next: `/implement` Task 4 (LAST task) — `BoothApi.set_reference` (3 takes → `voiceprint.set_reference`) + live `compare` → wire to the Task-3 JS hooks; `tests/test_booth_api.py` (temp ref path). Done-criterion = FULL spec §5 incl. human-attested manual Booth demo.
+3. Diagnostic only — no lock/key derivation (that is F4). Reference = 3-take averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext, injectable path, not the vault). Cutoffs pinned `ACCEPT=0.45`/`REJECT=0.65` (module constants).
+4. Offline load solved (`pretrained_path` override + `LocalStrategy.NO_LINK`, encapsulated in `voiceprint._load_classifier`). JS hooks on `window.voicelockBooth`: `renderDistance`/`showNeedMoreAudio`/`showSetReferenceFirst`/`showReferenceReady`/`setReferenceProgress`.
+5. ⚠ Task-4 packaging: wheel `force-include` ships only `ui/index.html` → `models/ecapa/` must be force-included (or editable install) or `uv run voicelock` won't find the model for the manual demo. Also: Task-3 DOING-commit was skipped (deviations.md F3-T3) — commit DOING first on Task 4.

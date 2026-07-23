@@ -1,74 +1,67 @@
-# Handoff — F3 Task 3 built (REVIEW); next: fresh-eyes verify
+# Handoff — F3 Task 3 DONE; next: /implement Task 4 (bridge + end-to-end + manual demo)
 
 ## Session
 - Date: 2026-07-22
 - Feature: F3 — Voiceprint on screen (`spec.md`)
-- Phase: implement — Task 3 built, now `REVIEW`; Tasks 1–2 DONE; Task 4 `TODO`
+- Phase: Task 3 DONE (Gate PASS + Reviewer APPROVE, subagent path); Tasks 1–2 DONE;
+  Task 4 `TODO` (the feature's LAST task)
 - Mode: **Mode 3**
 
-## ⚠ Process deviation this task (please read)
-- I **skipped the standalone committed `DOING` checkpoint** for Task 3. Its
-  `plan.md` state moved TODO → REVIEW inside the single build commit (`e020198`)
-  instead of a committed DOING before building (implement skill step 3 / BUILD
-  gate). The build is intact and the diff base is unambiguous, but the
-  crash-safety marker is missing. I did NOT rewrite history to fake a DOING
-  commit. Logged in `memory/deviations.md` (entry F3-T3). Verifier: please weigh
-  this — the code diff itself is a normal single-commit change.
-
 ## Changed (Task 3 — Booth voiceprint chrome)
-- `src/voicelock/ui/index.html` only:
-  - New `.voiceprint` panel in the booth: "VOICEPRINT · LIVE MATCH" header, a
-    numeric **distance** readout, a decorative **3-band meter** (accept green /
-    borderline amber / reject red) with a needle, a **Set reference** button + 3
-    take-dots, and a hint line carrying the **"set reference first"** and
-    **"need more audio"** edge states.
-  - JS **renders only** — `renderDistance`, `setVoiceprintHint`,
-    `showNeedMoreAudio`, `showSetReferenceFirst`, `setReferenceProgress`,
-    `showReferenceReady` exposed on `window.voicelockBooth`; `btn-set-reference`
-    calls the **stubbed** `set_reference` bridge (wired in Task 4). The match
-    band is decided in Python and applied via the readout color — JS never judges.
-  - F1 Record/Stop/Play and F2 Enroll/Unlock chrome untouched; no network asset
-    refs (offline).
+- `src/voicelock/ui/index.html` only: `.voiceprint` panel (distance readout,
+  3-band meter + needle, Set reference button + take-dots, "set reference first"
+  / "need more audio" edge states). JS renders only; hooks on
+  `window.voicelockBooth` (`renderDistance`, `showNeedMoreAudio`,
+  `showSetReferenceFirst`, `setReferenceProgress`, `showReferenceReady`);
+  `btn-set-reference` calls the stubbed `set_reference` bridge. F1/F2 untouched.
+- Verdict: `memory/verdicts/2026-07-22-F3-T3.json` (APPROVE, lesson none).
 
-## Measurement disclosure (step-5 exception)
-- Ran the Task 3 done-criterion assertion (DOM/asset check) → OK, and
-  `uv run ruff check .` → clean, as local sanity. Did NOT run the full
-  `uv run pytest` as the Gate — reserved for fresh eyes. No test asserts on the
-  HTML DOM (booth tests exercise the Python API), so the suite is unaffected.
+## Failed + lesson
+- No build failures. Process slip: skipped the standalone committed `DOING` for
+  Task 3 (state TODO→REVIEW inside build commit `e020198`); disclosed, logged in
+  `memory/deviations.md` (F3-T3), and the verifier judged it a non-defect. Learn
+  scan: no new guardrail — it overlaps the existing universal BUILD-gate rule; a
+  repeat will be caught by `curate` via the deviation log. **Discipline reminder
+  for Task 4: commit the DOING state as its own commit before editing code.**
 
-## Next action
-1. **Fresh-eyes verify** Task 3 (clean context — subagent via
-   `formats/VERIFIER-PROMPT.md` verbatim, or a fresh session).
-   - Gate base..head: **`e47c8b6..e020198`** (Task 2 wrap-up commit .. Task 3
-     build commit; there is NO separate DOING commit — see the deviation above.
-     A bookkeeping commit for this handoff is one ahead of the build commit).
-   - Task 3 done-criteria (`plan.md`): the `index.html` DOM/asset assertion → 0;
-     `uv run ruff check .` → 0; `uv run pytest` → 0.
-2. On APPROVE → wrap-up marks Task 3 DONE, then (Mode 3) chain to `/implement`
-   Task 4 (the feature's LAST task → done-criterion is the FULL spec §5
-   Verification incl. the human-attested manual Booth demo). **(curate due)**
+## next_action
+- `/implement` **Task 4** — bridge + end-to-end + manual Booth demo. This is the
+  feature's LAST task, so its done-criterion is the FULL spec §5 Verification
+  (standing + feature-specific + the human-attested manual demo). **(curate due — 12 verdicts)**
+- Add to `BoothApi` in `src/voicelock/app.py`:
+  - `set_reference` — capture 3 takes via the F1 mic path → `voiceprint.set_reference`
+    at the injectable ref path (default `~/.voicelock/voiceprint.ref`). Surface
+    "need more audio" for a short/silent take (re-record that take only).
+  - a live `compare` → `voiceprint.compare(live)` → return `{distance, band}` to
+    the meter; surface "set reference first" when no reference exists.
+  - Wire these to the Task-3 JS hooks (`renderDistance`, `showNeedMoreAudio`,
+    `showReferenceReady`, `showSetReferenceFirst`). Enroll/Unlock + Record/Stop/Play
+    stay unchanged.
+- `tests/test_booth_api.py` — extend with the new bridge methods using a **temp
+  ref path** (no real mic in the Gate; follow the existing injectable-path +
+  fake-stream patterns).
 
-## Watch-outs for Task 4
-- **Runtime packaging:** wheel `force-include` ships only `ui/index.html`; the
-  `models/ecapa/` dir must be force-included (or the project installed editable)
-  so `uv run voicelock` finds the model at runtime.
-- Bridge methods to add on `BoothApi` (`app.py`): `set_reference` (capture 3
-  takes via the F1 mic path → `voiceprint.set_reference` at the injectable ref
-  path) and a live `compare` returning `(distance, band)`; wire them to the
-  Task-3 JS hooks (`renderDistance`, `showNeedMoreAudio`, `showReferenceReady`,
-  `showSetReferenceFirst`). Bridge tests use a temp ref path (no real mic).
-- Task 4 is the LAST task: its done-criterion is the FULL spec §5 Verification,
-  including the **required human-attested manual Booth demo** (real mic, real
-  same-vs-different speaker separating into accept vs reject).
+## ⚠ Watch-out that WILL bite Task 4 (runtime packaging)
+- The wheel `force-include` in `pyproject.toml` currently ships only
+  `ui/index.html`. When the bridge loads the model at runtime from the installed
+  package, `src/voicelock/models/ecapa/` must ALSO be force-included, **or** the
+  project installed editable, or `uv run voicelock` won't find the vendored model
+  and the manual demo will fail. The engine resolves the model via
+  `Path(__file__).parent / "models" / "ecapa"`, so an editable/development install
+  already works; a packaged wheel needs the force-include. Confirm which install
+  `uv run voicelock` uses and fix packaging if needed (that is in Task-4 scope —
+  the manual demo is a done-criterion).
 
 ## Where the rest lives
-- Task ledger + spine: `plan.md`. Requirements: `spec.md`. Deviations (size +
-  the Task-3 DOING slip): `memory/deviations.md`.
+- Task ledger + spine: `plan.md`. Requirements: `spec.md`. Deviations (size + the
+  Task-3 DOING slip): `memory/deviations.md`. Cutoffs/offline-load notes:
+  `voiceprint.py` + Task-2 build-notes in `plan.md`.
 
 ## Commits
-- Build (Task 3 REVIEW): `e020198` (base `e47c8b6`) · bookkeeping: this commit.
+- Build (Task 3 REVIEW): `e020198` (base `e47c8b6`) · bookkeeping: `581a8e4` ·
+  wrap-up: this commit.
 - Remote: none — local history only, no push.
 
 ## Pending guardrail
-- None. (But see the deviation note — a repeat of the DOING-skip would be a
-  candidate for a project.md process guardrail.)
+- None written. (Repeat of the DOING-skip → curate will surface it from the
+  deviation log.)
