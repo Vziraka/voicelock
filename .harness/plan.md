@@ -3,10 +3,8 @@
 ## Active context
 - Updated: 2026-07-23
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Amendment approved 2026-07-23 — box 2 re-checked. Tasks 1–4 DONE; Task 4 closed
-  as intermediate on its passed automated verification. Next: `/implement` Task 5
-  — the Reset control, now the LAST task; its done = FULL amended §5 incl. the
-  human-attested manual demo with the reset step.)
+  (Amendment approved 2026-07-23. Tasks 1–4 DONE; Task 5 DOING — Reset control,
+  the LAST task; its done = FULL amended §5 incl. the human-attested manual demo.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -104,7 +102,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — Reset control: clear the stored reference + restart the 3-take flow (LAST task, F3 amendment 2026-07-23)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: Add a `BoothApi.reset_reference()` bridge method that **deletes**
