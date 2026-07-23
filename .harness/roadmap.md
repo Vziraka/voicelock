@@ -143,10 +143,12 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   *Demo:* enroll → on-disk file is sealed → right passphrase opens → **wrong
   passphrase REJECT**.
 
-- [ ] **F3 — Voiceprint on screen** · blocked-by: F1
+- [x] **F3 — Voiceprint on screen** · blocked-by: F1 · **DONE 2026-07-23 (Mode 3)**
   Compute the voiceprint and show live match distance vs a stored sample — not
   wired into the lock yet.
   *Demo:* same person → close / accept-colored; different person → far / reject-colored.
+  Built: vendored ECAPA (offline), `voiceprint.py` engine, Booth 3-band meter +
+  Set reference + Reset (amendment). Human manual demo attested.
 
 - [ ] **F4 — Voice as the middle lock (stacked)** · blocked-by: F2, F3
   Fuzzy-reconcile the voiceprint into a stable key; wrap the outer-sealed box

@@ -1,0 +1,26 @@
+{
+  "task": "T5",
+  "spec": "spec.md@b0eaad8",
+  "change": "55ff22a..ec9dc6b",
+  "gate": {
+    "commands": [
+      "uv run ruff check .",
+      "uv run pytest",
+      "uv run pytest tests/test_voiceprint.py -q",
+      "uv run pytest tests/test_booth_api.py -q",
+      "Manual (human-attested): uv run voicelock -> Set reference -> same=accept/green -> different=reject/red -> Reset clears -> re-settable"
+    ],
+    "exit": 0,
+    "note": "Automated: ruff 0, full suite 35 passed, test_voiceprint 9, test_booth_api 10 (incl. 2 reset tests). Manual Booth demo attested PASS by the human 2026-07-23 ('looks good') after verifier ESCALATE_HUMAN."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Reset control (amendment 2026-07-23): reset_reference clears in-progress takes + unlinks the injectable ref_path (missing_ok); Reset button renders the reset state, no confirm; Python clears, JS renders. F3's LAST task — full amended §5 satisfied incl. the human manual demo."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-23"
+}

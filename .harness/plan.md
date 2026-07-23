@@ -2,12 +2,11 @@
 
 ## Active context
 - Updated: 2026-07-23
-- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: verifying
-  (Amendment approved 2026-07-23. Tasks 1–4 DONE; Task 5 REVIEW — verifier
-  ESCALATE_HUMAN: automated Gate (full suite 35 passed) + both Review axes PASS,
-  ONLY the required manual Booth demo outstanding. As the LAST task, F3 is NOT
-  complete until the human runs the combined demo and attests it → then wrap-up +
-  Mode-3 completion report.)
+- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: DONE
+  (F3 COMPLETE 2026-07-23 — all 5 tasks DONE, full Gate green (35 passed) + human
+  manual demo attested. Roadmap F3 ticked; codebase-map refreshed. Completion
+  report in `handoff.md`. Awaiting the feature-end commit checkpoint (human
+  approves the wrap-up commit; no remote → commit only). Next feature: F4.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -104,8 +103,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     9 passed); the FULL-§5 manual demo moved to Task 5 by the 2026-07-23 amendment.
   - feedback: (none)
 
-- [ ] **Task 5** — Reset control: clear the stored reference + restart the 3-take flow (LAST task, F3 amendment 2026-07-23)
-  - state: REVIEW
+- [x] **Task 5** — Reset control: clear the stored reference + restart the 3-take flow (LAST task, F3 amendment 2026-07-23)
+  - state: DONE
   - rejects: 0
   - verify: 2026-07-23 verifier (subagent) → GATE automated all exit 0 (`ruff`; `pytest` 35 passed; `test_voiceprint` 9; `test_booth_api` 10 incl. both reset tests); REVIEW both axes APPROVE. Verdict = **ESCALATE_HUMAN** on the required manual Booth demo only. As the LAST task there is nothing to reassign it to — F3 is NOT done until the human runs the combined manual demo and attests it. Then wrap-up → DONE + Mode-3 completion report. No verdict file yet (written by wrap-up on APPROVE).
   - build-notes: `BoothApi.reset_reference()` clears `_reference_takes` + `ref_path.unlink(missing_ok=True)` → `{ok:true}`. `ui/index.html`: a **Reset** button (`btn-reset-reference`) next to Set reference → calls the bridge → `setReferenceProgress(0)` + `showSetReferenceFirst()`; no confirm. `tests/test_booth_api.py` +2: reset clears a set reference (compare→`no_reference`, file gone); reset is a no-op on a missing file and clears an in-progress take (progress restarts at 1). ruff clean; 10 booth tests pass locally.
@@ -136,8 +135,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-23 — F3 Tasks 1–4 DONE (Mode 3). T1 deps+model · T2 engine+tests · T3 chrome · T4 bridge+end-to-end. T4 closed as intermediate on its passed automated verification (verifier: ruff/pytest 33/test_voiceprint 9 all 0, both Review axes APPROVE).
-2. Amendment approved 2026-07-23: added a **Reset** control. Task 5 (Reset) is the new LAST task — `BoothApi.reset_reference` (delete injectable `ref_path` + clear in-progress takes) + a Reset button (JS renders reset state) + a `test_booth_api` reset test. No confirm prompt.
-3. NEXT: `/implement` Task 5 (commit DOING first). Its done = FULL amended §5 incl. the human-attested manual demo (set reference · same→accept · different→reject · reset).
-4. Diagnostic only — no lock/key derivation (F4). Reference = 3-take averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext, injectable, not the vault). Cutoffs `ACCEPT=0.45`/`REJECT=0.65`. Offline load = `pretrained_path` override + `NO_LINK`.
-5. `uv run voicelock` is an EDITABLE install → vendored `models/ecapa/` resolves at runtime (no wheel force-include needed for the demo). Roadmap F11 parked (manage enrollment from inside the vault, post-F7).
+1. 2026-07-23 — **F3 COMPLETE (Mode 3), all 5 tasks DONE.** Full Gate green (ruff 0; pytest 35; test_voiceprint 9; test_booth_api 10) + human manual demo attested ("looks good"). Verdicts F3-T1..T5 in `memory/verdicts/`.
+2. Built: vendored offline ECAPA (rev 0f99f2d) → `voiceprint.py` engine (embed · 3-take L2-avg reference · cosine · `ACCEPT=0.45`/`REJECT=0.65` 3-band) → Booth meter + Set reference + **Reset** (amendment) → bridge `set_reference`/`compare`/`reset_reference`.
+3. Diagnostic only — no lock/key derivation. Reference = plaintext `~/.voicelock/voiceprint.ref` (injectable, not the vault). Offline load = `pretrained_path` override + `NO_LINK`. Editable install resolves the vendored model at runtime.
+4. Open items for the human: (a) spec "~20 MB" model-size wording is wrong (actual ~85 MB) — human-only spec edit; (b) feature-end commit checkpoint pending approval.
+5. NEXT feature: **F4 — Voice as the middle lock** (blocked-by F2, F3 — both DONE). Roadmap F11 parked (manage enrollment from inside the vault, post-F7). Start with `/spec`.

@@ -1,64 +1,68 @@
-# Handoff — F3 Task 5 (Reset) built (REVIEW, LAST task); next: verify + human manual demo
+# Completion report — F3 (Voiceprint on screen) DONE · Mode 3 · 2026-07-23
 
-## Session
-- Date: 2026-07-23
-- Feature: F3 — Voiceprint on screen (`spec.md`, amended 2026-07-23)
-- Phase: implement — Task 5 (Reset, LAST task) built, now `REVIEW`; Tasks 1–4 DONE
-- Mode: **Mode 3**
+## Outcome vs spec §1
+**Delivered.** The voiceprint works on screen: the Booth computes a live ECAPA
+speaker embedding from the F1 mic path and shows a **live match distance** vs a
+stored **reference voiceprint**, colored **accept (green) / borderline (amber) /
+reject (red)**. Diagnostic only — **not wired into any lock**, no key derivation,
+no vault change (that is F4). Human manual demo attested 2026-07-23: same person →
+accept, different person → reject, and the amendment's **Reset** clears the
+reference back to the no-reference state.
 
-## Changed (Task 5 — Reset control)
-- `src/voicelock/app.py` — `BoothApi.reset_reference()`: clears `_reference_takes`
-  and `self.ref_path.unlink(missing_ok=True)`, returns `{ok: true}`.
-- `src/voicelock/ui/index.html` — a **Reset** button (`btn-reset-reference`) next
-  to Set reference → calls the bridge → `setReferenceProgress(0)` +
-  `showSetReferenceFirst()`. No confirm prompt; JS renders only. Everything else
-  (Set reference, Record/Stop/Play, Enroll/Unlock) unchanged.
-- `tests/test_booth_api.py` — +2 tests: (a) reset clears a set reference →
-  `compare` returns `no_reference` and the file is gone; (b) reset is a no-op on a
-  missing file and clears an in-progress take (progress restarts at 1). 10 booth
-  tests pass locally.
+## Final Gate evidence (full amended §5, all exit 0)
+- `uv run ruff check .` → 0 ("All checks passed!")
+- `uv run pytest` → 0 (**35 passed**)
+- `uv run pytest tests/test_voiceprint.py -q` → 0 (9 passed; §5 cases 1–5)
+- `uv run pytest tests/test_booth_api.py -q` → 0 (10 passed; incl. 2 reset tests)
+- Manual (human-attested): `uv run voicelock` → Set reference → same=accept/green
+  → different=reject/red → Reset clears → re-settable. **Attested PASS by human.**
+(Automated Gate run by a clean-context subagent verifier; manual line attested by
+the human.)
 
-## Measurement disclosure (step-5 exception)
-- Ran `uv run ruff check .` (clean) and `uv run pytest tests/test_booth_api.py -q`
-  (10 passed) locally as build sanity. Did NOT run the full `uv run pytest`,
-  `tests/test_voiceprint.py`, or the manual demo as the authoritative Gate —
-  reserved for fresh eyes.
+## Tasks (all DONE · rejects: 0 each)
+1. ECAPA deps + vendored offline model (Apache-2.0, rev 0f99f2d) — APPROVE.
+2. `voiceprint.py` engine + fixtures + tests (§5 cases 1–5); cutoffs
+   `ACCEPT=0.45`/`REJECT=0.65`; offline load via `pretrained_path` override +
+   `LocalStrategy.NO_LINK` — APPROVE.
+3. Booth voiceprint chrome (3-band meter, Set reference, edge states), JS
+   render-only — APPROVE.
+4. Bridge (`set_reference`/`compare`) + end-to-end wiring — APPROVE (closed as
+   intermediate after the amendment; see below).
+5. Reset control (amendment) — APPROVE (final Gate + manual demo).
 
-## Next action — verify (LAST task → FULL amended §5)
-1. **Fresh-eyes verify** Task 5 (clean context — subagent via
-   `formats/VERIFIER-PROMPT.md` verbatim, or a fresh session).
-   - Gate base..head: **`55ff22a..ec9dc6b`** (DOING .. build; a bookkeeping commit
-     for this handoff is one ahead of the build commit).
-   - Task 5 done-criteria = the FULL amended `spec.md` **Verification** list:
-     - `uv run ruff check .` → 0
-     - `uv run pytest` → 0
-     - `uv run pytest tests/test_voiceprint.py -q` → 0 (spec §5 cases 1–5)
-     - `uv run pytest tests/test_booth_api.py -q` → 0 (incl. the reset test)
-     - **Manual (required, human-attested):** `uv run voicelock` → Set reference
-       (3 sentences) → same person → accept/green → different person → reject/red
-       → **Reset** → meter returns to "set reference first", fresh reference
-       can be set again.
-2. **The manual line needs a HUMAN** (real mic + observing the meter) — expect the
-   verifier to PASS the automated Gate + APPROVE the automated axes and
-   **ESCALATE_HUMAN for the manual demo**. On the human's attestation → wrap-up
-   marks Task 5 DONE and writes the **Mode-3 completion report**, completing F3.
+## Amendment during the feature
+- 2026-07-23, human-requested + approved (fresh box-2): added a **Reset** control
+  (clears reference + in-progress takes, no confirm). Made Task 5 the new last
+  task; Task 4 reclassified to intermediate and closed on its passed automated
+  verification (human-approved closure path). Roadmap **F11** parked (manage
+  enrollment from inside the vault, post-F7).
 
-## Manual demo steps for the human (one combined run)
-- `uv run voicelock` → record a sentence, **Set reference** (dot 1); repeat ×2
-  (dots 2, 3) → "reference set".
-- Same person records a sentence → **accept (green)**, small distance.
-- Different person → **reject (red)**, large distance.
-- Click **Reset** → dots clear, meter shows "set reference first"; set a new
-  reference to confirm it works again.
+## Deviations logged (`memory/deviations.md`)
+1. Vendored ECAPA is **~85 MB** (embedding_model.ckpt = 83 MB), not the spec's
+   "~20 MB" estimate. Committed plainly (no LFS, offline). **Open for the human:**
+   correcting the spec's "~20 MB" wording is a human-only spec edit.
+2. Task 3's standalone committed `DOING` was skipped (state went TODO→REVIEW in
+   the build commit). Disclosed; verifier judged it a non-defect. Not repeated on
+   Tasks 4–5.
 
-## Where the rest lives
-- Task ledger + spine: `plan.md`. Requirements: `spec.md` (amended). Deviations:
-  `memory/deviations.md`. Roadmap F11 parked (vault-side enrollment management).
+## Escalations that resolved
+- Task 4 & Task 5 verifiers each returned **ESCALATE_HUMAN** on the required
+  manual Booth demo (a headless verifier can't drive a real mic). Task 4's moved
+  to Task 5 via the amendment; Task 5's resolved by the human's attestation.
 
-## Commits
-- DOING: `55ff22a` · build (REVIEW): `ec9dc6b` · bookkeeping: this commit.
-- Remote: none — local history only, no push. (Mode-3 feature-end checkpoint is
-  the human's: completion report + commit approval.)
+## Honest limitations (as specced)
+- Reference vector stored in **plaintext** (`~/.voicelock/voiceprint.ref`) — fine
+  for an F3 diagnostic; real sealing is F4.
+- Fixtures: one clip per speaker (model-repo examples), so the same-speaker live
+  probe overlaps the reference takes — acceptable for a deterministic diagnostic
+  fixture, not a cross-session generalization claim (see fixtures README).
 
-## Pending guardrail
-- None.
+## Next
+- **Feature-end checkpoint (human):** approve the commit below. No remote —
+  local commit only, no push.
+- Then F3 is closed. Next roadmap feature: **F4 — Voice as the middle lock**
+  (blocked-by F2, F3 — both now DONE). Start with `/spec` when you're ready.
+
+## Commits (this feature, on `main`)
+- Spanned `bbeafd2` (F3 plan) → the wrap-up commit below.
+- Remote: none — local history only.
