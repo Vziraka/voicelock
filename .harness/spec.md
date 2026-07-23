@@ -1,181 +1,144 @@
-# Spec: F2 — Passphrase-only vault (outer lock)
+# Spec: F3 — Voiceprint on screen
 
-Feature: Feature 2 from `roadmap.md`
+Feature: Feature 3 from `roadmap.md`
 
 ## 0. Approval gate
 
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
-  ```
-  the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns
-  zero hits in this file)
-  ```
-- [x] Approved by human
+  the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
+  hits in this file)
+- [ ] Approved by human
 
 - **Mode:** Mode 3
 
 The agent may NOT plan or build until BOTH boxes are checked.
-The second box is checked by the HUMAN typing the `x` — the agent never checks
-it, no matter what was said in chat.
-
-The Mode line is set by the human; checking box 2 approves the spec AND the
-mode together (Mode 2 is the default if the human states no preference).
-Mode 4 may only be set if a prior feature in this repo completed cleanly at
-Mode 3 or 4. Lowering the mode mid-feature is allowed (edit this line + log it
-in `memory/deviations.md`); raising it mid-feature is never allowed — a raise
-is a spec amendment needing a fresh box-2 approval.
+The second box is checked by the HUMAN typing the `x` — the agent never checks it.
 
 ## 1. Outcome
 
-Ship the **outer lock**: enroll with a display **name** and **passphrase**, derive
-an encryption key from the passphrase, and seal a **Vault** file on disk.
-Unlock peels that outer lock with the passphrase so the profile payload is
-readable again. Wrong passphrase must **REJECT** visibly (no silent failure,
-no crash).
-Demo: enroll → on-disk file is sealed → right passphrase opens → wrong
-passphrase REJECT.
-Voice / inner lock / challenge are still out — F2 is passphrase-only.
+Show the **voiceprint** working on screen. Compute a speaker embedding from
+captured speech (the F1 mic path) and display a **live match distance** against a
+stored **reference voiceprint** in the Booth, colored **accept** (close) vs
+**reject** (far). This is a diagnostic only — **not wired into any lock**, no key
+derivation, no vault change.
+Demo: same person speaks → distance small / accept-colored; a different person
+speaks → distance large / reject-colored.
 
 ## 2. Grilling record — ambiguity scan
 
 **Status: CLEAR**
 
-
-| Category                                  | Verdict | Resolved by                                        |
-| ----------------------------------------- | ------- | -------------------------------------------------- |
-| Functional scope & behavior               | Clear   | name+pass enroll · mock unlock · wrong REJECT      |
-| Domain & data model                       | Clear   | ~/.voicelock/vault.vl · name payload · VLCK header |
-| Interaction & UX flow                     | Clear   | wire mock Enroll + passphrase Unlock               |
-| Non-functional (perf, security)           | Clear   | offline · PyNaCl · Argon2id MODERATE               |
-| Integration & dependencies                | Clear   | PyNaCl (human-approved TECH-PICK)                  |
-| Edge cases & failure modes                | Clear   | empty refuse · no-vault copy · overwrite confirm   |
-| Completion signals (how we know it works) | Clear   | Verification · Mode 3 live Booth check             |
-| Terminology (matches `CONTEXT.md`)        | Clear   | Vault · Outer lock · Enroll · Booth · Impostor     |
-
-
-Answers from grilling are written back into the matching section of THIS file —
-never into a side file. Mark anything still open inline where it belongs, using
-the marker token: open square bracket, `NEEDS-CLARIFICATION`, a colon, then the
-question. The colon form is what the mechanical check greps for — prose that
-merely *mentions* the marker (like this paragraph) never uses the colon form,
-so any hit is a real unresolved question.
+| Category | Verdict | Resolved by |
+| --- | --- | --- |
+| Functional scope & behavior | Clear | compute voiceprint · show live distance vs reference · accept/reject color |
+| Domain & data model | Clear | reference = 3-sentence averaged ECAPA embedding, persisted to `~/.voicelock/voiceprint.ref` (plaintext vector, not in vault) |
+| Interaction & UX flow | Clear | "Set reference" action + live 3-band meter (green/amber/red) in the Booth |
+| Non-functional (perf, security) | Clear | model vendored in-repo + HF_HUB_OFFLINE; pytest model-load budget declared in §5 |
+| Integration & dependencies | Clear | SpeechBrain ECAPA (human-approved TECH-PICK) |
+| Edge cases & failure modes | Clear | no reference → prompt to set; short/silent → "need more audio"; no mic → F1 error path |
+| Completion signals | Clear | 3-band cosine meter; fixtures assert same→accept / different→reject; manual Booth check |
+| Terminology (matches `CONTEXT.md`) | Clear | Voiceprint · Booth · Impostor |
 
 ## 3. Non-goals
 
-- No inner lock, voiceprint, fuzzy reconcile, helper data, or voice-gated unlock.
-- No challenge-response / liveness / replay defense (F5).
-- No multi-device sync, cloud, network, accounts, or recovery when passphrase is lost.
-- Not a shippable security product; no FAR/FRR or certification claims.
-- No packaging/installer polish beyond `uv run voicelock`.
-- No redesign of Booth chrome — keep F1 mock layout; wire only what F2 needs.
-- No voice recording required at enroll in F2 (recording stays an F1 Booth tool).
-- Out-of-scope discoveries during Mode 3+: record in `.out-of-scope/`, never build.
-
-
+- No lock or key derivation, no fuzzy reconcile / helper data (that is F4).
+- No face, camera, liveness, or challenge (F5+).
+- No change to the vault file or F2 enroll/unlock behavior.
+- No tolerance-tuning UI and no enrollment-quality gate (F9) — F3 uses a fixed
+  provisional threshold only.
+- No multi-profile; a single reference voiceprint is enough for F3.
+- Out-of-scope discoveries during build: record in `.out-of-scope/`, never build.
 
 ## 4. Constraints
 
-- Honor `constitution/project.md` + `constitution/topics/conventions.md`:
-Python 3.11 + uv; code in `src/voicelock/`; UI in `src/voicelock/ui/`;
-tests in `tests/`; Python owns crypto/state; JS owns rendering only; offline-only.
+- Honor `constitution/project.md` + conventions: Python 3.11 + uv; engine code in
+  `src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; Python owns the
+  voiceprint compute, JS renders the meter only; **offline-only — no network at runtime**.
 - Entry point remains `uv run voicelock` (Booth window).
-- Outer lock: passphrase → Argon2id KDF → SecretBox AEAD seal of the Vault on
-disk; unlock decrypts with the same passphrase. Salt (and any non-secret
-header) stored with the Vault file so unlock is deterministic for the right
-passphrase.
-- Crypto: **PyNaCl** (human-approved TECH-PICK). Argon2id + SecretBox.
-Research: `memory/research/2026-07-22-f2-outer-lock-crypto.md`.
-- Argon2id cost: **OPSLIMIT_MODERATE** / **MEMLIMIT_MODERATE** (demo-snappy;
-params stored in the Vault header so unlock uses the same cost).
-- Vault location: **single profile only** for F2. Fixed path
-`Path.home() / ".voicelock" / "vault.vl"` (i.e. `~/.voicelock/vault.vl`).
-Re-enroll overwrites that file after a clear confirm in the Booth.
-On-disk layout (one file): magic `VLCK` + version byte + salt + ciphertext.
-- Enroll inputs: **name + passphrase only** (no recording required).
-- Sealed plaintext payload: structured profile with at least the display **name**
-(UTF-8); leave room in the schema for later fields, but F2 does not store
-audio bytes.
-- Booth UX: wire the existing mock chrome —
-  - **Enroll** sidebar row → name + passphrase → seal Vault;
-  - enable the passphrase field + **Unlock**;
-  - show success / REJECT in status (and wrong-passphrase chip on REJECT);
-  - after unlock, show the enrolled display name in the profile row;
-  - Record / Stop / Play remain available as F1 tools (not part of enroll).
-- Unlock with no Vault file present: visible status
-**"No vault yet — enroll first"**; do not crash.
-- Wrong passphrase: visible REJECT in the Booth (status / chip / message); Vault
-stays sealed; no crash.
-- Empty or missing name/passphrase at enroll: refuse enroll with a visible
-validation message (do not write a vault).
-- Mode 3 blind spot (Verification check, not waived): automated tests prove the
-Python vault/outer-lock path with a temp file path; they do not drive the live
-pywebview Booth. The required manual demo line below covers enroll → on-disk
-`~/.voicelock/vault.vl` → unlock → wrong-passphrase REJECT in the real Booth.
-- Out-of-scope discoveries during Mode 3: record in `.out-of-scope/`, never build.
+- Voiceprint method: **SpeechBrain ECAPA-TDNN** (`spkrec-ecapa-voxceleb`),
+  human-approved TECH-PICK. Research: `memory/research/2026-07-22-f3-voiceprint-embedding.md`.
+  New deps added via `uv` at build time: `speechbrain`, `torch`, `torchaudio`.
+- **Offline enforcement (from the TECH-PICK):** the ECAPA weights are **vendored
+  in the repo** at `src/voicelock/models/ecapa/` (model is Apache-2.0 — its
+  LICENSE/NOTICE retained alongside the files; redistribution permitted). The app
+  and the Gate load ECAPA from that local path with `HF_HUB_OFFLINE=1` (SpeechBrain
+  pointed at the local dir), so there is **no runtime network**. The Gate is
+  self-contained: `uv run pytest` loads the vendored model offline, no setup step.
+  One-time developer action during build: download the official files once and
+  commit them (~20 MB in git; plain git, no LFS for this local project).
+- Reference voiceprint: a Booth **"Set reference"** action records **3 separate
+  short sentences**, computes an ECAPA embedding for each, and **averages** them
+  (mean of the L2-normalized embeddings, then re-normalized) into one reference
+  vector. It persists **just that averaged vector** to `~/.voicelock/voiceprint.ref`
+  — a small sibling file, **not** inside the vault. Persists across runs;
+  re-settable by setting again. A take that is too short/silent is rejected with
+  "need more audio" and re-recorded (that take only), not averaged in. Keeps F3
+  decoupled from the lock; F4 later supersedes this with vault-stored voice helper
+  data. This multi-sample averaging deliberately overlaps F9's territory (human
+  chose robustness); the **full** enrollment-quality gate + tolerance UI remain
+  F9. Honest limitation: the reference vector is stored in **plaintext** —
+  acceptable for an F3 diagnostic (real sealing is F4).
+- Match distance + coloring: **cosine distance** between the live ECAPA embedding
+  and the reference, shown with **three-band coloring** — accept (green) /
+  borderline (amber) / reject (red). The concrete accept and reject cutoffs are
+  chosen **empirically during build** from the test fixtures and pinned in §5 once
+  measured; the borderline band sits between them. The Gate asserts same-speaker
+  distance lands in the accept band and different-speaker distance lands in the
+  reject band on fixed fixtures. Tolerance-tuning UI is F9, not F3.
+- Booth UX: reuse the existing mock chrome; add a live distance readout + accept/
+  reject color; keep Record/Stop/Play and F2 Enroll/Unlock unchanged.
+- Edge cases (visible, no crash): no reference set yet → prompt to set one;
+  speech too short / silent → visible "need more audio" state; no mic → existing
+  F1 mic-error path.
 - Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
-`uv run pytest` → exit 0.
-- No new dependency without human-approved TECH-PICK recorded here +
-`memory/decisions.md`.
-
-
+  `uv run pytest` → exit 0.
+- No new dependency beyond the approved ECAPA stack without a fresh TECH-PICK.
 
 ## 5. Verification — definition of done (runnable)
 
-The exact commands the Gate runs. Each must exit 0. Two parts, both required.
-Harness rules find this section by its NAME ("Verification"), never by number —
-keep the word "Verification" in the heading if sections are added or reordered.
-(This FULL list gates the feature's LAST task; intermediate tasks gate on their
-`plan.md` done-criteria — see the universal [Done] rule.)
+The exact commands the Gate runs. Each must exit 0. Harness rules find this
+section by its NAME ("Verification"). Two parts, both required.
 
-Runtime budgets: any command expected to run longer than the 10-minute default
-must declare its budget here. The verifier waits in the foreground either way;
-exceeding the budget is a FAIL, never a kill.
+Runtime budget: `uv run pytest` loads torch + the vendored ECAPA model, which can
+take up to ~2 minutes on first run. Whole suite budget: **within the 10-minute
+default** (declare a longer budget here only if that proves false during build).
 
-Mode-scaled requirements: at Mode 2+, every command here must be runnable with
-pinned expectations — pinned means: the exact command, its exact expected exit
-code, and any expected output stated in the line (nothing left to judgment). At
-Modes 3–4, additionally every task's planned done-criteria must be runnable (no
-judgment-worded criteria), and this spec must state what the agent does with
-discovered out-of-scope work (default: record it in `.out-of-scope/`, never build).
-
-Standing (the project's full regression net, from `project.md`):
+Standing (project regression net, from `project.md`), pinned:
 
 - `uv run ruff check .` → exit 0 (stdout/stderr contain no ruff error findings)
 - `uv run pytest` → exit 0 (final summary reports 0 failed)
 
-Proof surface: feature-specific commands must prove behavior at the highest
-real surface the feature touches — the actual UI, CLI, or API (a script that
-drives the real thing counts). If that surface cannot be checked, record the
-exact limitation here; never let a proxy check silently stand in for it.
+Feature-specific (proves THIS feature works), pinned:
 
-Limitation (automated): the Gate does not drive the real pywebview window.
-Python outer-lock enroll/unlock/reject are proven with a temp Vault path; the
-live Booth path to `~/.voicelock/vault.vl` is proven only by the manual line
-below (required Verification check — not accepted risk).
+- `uv run pytest tests/test_voiceprint.py -q` → exit 0; final summary reports 0
+  failed. Must cover, using fixed audio fixtures + the **vendored** ECAPA model
+  loaded fully offline (`HF_HUB_OFFLINE`, no network):
+  (1) same-speaker fixtures → cosine distance ≤ the module's accept cutoff (lands
+  in the accept band); (2) different-speaker fixtures → cosine distance ≥ the
+  module's reject cutoff (lands in the reject band) — the test imports the same
+  cutoff constants the app uses, so the assertion is deterministic, not judgment;
+  (3) "Set reference" averages 3 per-utterance embeddings into a single
+  L2-normalized reference vector, and a too-short/silent take is rejected with the
+  "need more audio" signal (not averaged in); (4) with no reference file present,
+  the compare path surfaces a set-reference-first signal (no crash); (5) the model
+  loads from the vendored local path with no network call.
 
-Feature-specific (proves THIS feature works):
+Proof surface: the highest real surface F3 touches is the live pywebview Booth.
+Automated tests prove the Python voiceprint path on fixtures; they do **not** drive
+the real window or a live mic — that gap is covered by the required manual line
+below (a required check, not accepted risk).
 
-- `uv run pytest tests/test_vault.py tests/test_outer_lock.py -q` → exit 0;
-final summary reports 0 failed. These modules must cover, with a temp Vault
-path (not the live home path): (1) enroll with name + passphrase writes a
-sealed file whose header starts with magic `VLCK`; (2) unlock with the right
-passphrase returns the display name; (3) unlock with a wrong passphrase
-REJECTS (auth failure / error state — no plaintext); (4) enroll with empty
-name or empty passphrase refuses and does not write a vault; (5) unlock when
-no vault file exists surfaces a no-vault error suitable for the Booth copy
-"No vault yet — enroll first".
-- Manual (required for F2 done — Verification check): run `uv run voicelock`,
-then Enroll (name + passphrase) → confirm
-`Path.home() / ".voicelock" / "vault.vl"` exists and is non-empty → Unlock
-with the right passphrase (profile name appears / success status) → Unlock
-attempt with a wrong passphrase shows visible REJECT (status / chip).
-Observable: sealed on-disk Vault; right passphrase opens; wrong passphrase
-REJECT in the live Booth.
+- Manual (required for F3 done — Verification check): run `uv run voicelock`, use
+  **Set reference** and speak 3 sentences to store a reference → the same person
+  reads a sentence → live meter shows a small distance / **accept (green)** → a
+  **different** person reads → meter shows a large distance / **reject (red)**.
+  Observable: real-mic Set reference works, the live 3-band meter updates, and a
+  real same-vs-different speaker separates into accept vs reject.
+
+Out-of-scope discoveries during build (Mode 3 default): record in `.out-of-scope/`,
+never build.
 
 ---
 
-*Spec-anchored: if requirements change mid-build with human approval, this is
-the amendment path — ALL of it, in order: (1) update this file, (2) re-run the
-ambiguity scan on the changed sections, (3) the human re-checks box 2 (an
-amended spec is a new contract — the old approval does not carry over),
-(4) re-plan the affected tasks via the* `plan` *skill before building against
-the change.*
+*Spec-anchored: amendments follow the path in the closing note of the F2 spec —
+update this file, re-scan changed sections, human re-checks box 2, re-plan.*

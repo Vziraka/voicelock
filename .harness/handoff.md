@@ -1,50 +1,46 @@
-# Handoff — Roadmap pivoted (voice + face + lips); next: /spec F3
+# Handoff — F3 spec drafted (CLEAR, Mode 3); awaits human box 2 → /plan
 
 ## Session
 - Date: 2026-07-22
-- Feature: none active — `/design` session (idea → roadmap), not a feature build
-- Phase: design complete, roadmap approved by human
-- Mode: n/a until F3's spec sets one (Mode 2 default unless human states otherwise)
+- Feature: F3 — Voiceprint on screen (`spec.md`)
+- Phase: spec complete — Grilling record `CLEAR`, box 1 checked, **box 2 (human) open**
+- Mode: **Mode 3** (set in the spec Approval gate; human confirms by checking box 2)
 
 ## Done this session
-- Tidy: removed untracked `harness-v1/`; confirmed `Notes on testing V5.md` already gone.
-  Working tree clean of clutter. Confirmed session-start git snapshot was stale
-  (HEAD is `4b2391a`, F2 wrap-up); F1-T5 verdict is legit committed F1 history.
-- Ran `/design` for the human's pivot: **augment to three biometric factors —
-  voice + face + lip-liveness** on top of the typed passphrase.
-- Grilling decisions (all human-approved, logged in `memory/decisions.md`):
-  1. Augment (not replace voice) → 3 factors.
-  2. **Three nested locks**: passphrase (outer) → voice (middle) → face (inner).
-  3. Passphrase stays **typed** (exact secret; F2 untouched).
-  4. Liveness = **audio-visual lip-sync** to a spoken random challenge.
-  5. Build **Order A**: voice fully, then face, then liveness, then reliability.
-- Rewrote `roadmap.md` (idea in user's words · Approach B′ · new diagram ·
-  F1–F9 features + parked F10 · out-of-scope). Seeded `CONTEXT.md` (Middle/Inner
-  lock, Faceprint, FaceView, Lip-sync, AV capture) and the `codebase-map.md`
-  diagram (planned camera/face/lip boxes). New `adr/0002-three-nested-locks.md`
-  supersedes 0001.
+- Ran `/design` (earlier) → pivot roadmap committed (`60d1d33`, `76c40c5`).
+- Ran `/spec` on F3. Full ambiguity scan → all rows Clear. Grilling decisions
+  (human-approved, one at a time):
+  1. **Voiceprint method = SpeechBrain ECAPA** (`spkrec-ecapa-voxceleb`) —
+     human-approved TECH-PICK. Research: `memory/research/2026-07-22-f3-voiceprint-embedding.md`.
+     Rejected Resemblyzer (liveness FAIL/abandoned) + librosa DIY (muddier).
+  2. **Model provisioning = vendored in-repo** at `src/voicelock/models/ecapa/`
+     (Apache-2.0, redistribution OK) + `HF_HUB_OFFLINE` → offline runtime + hermetic Gate.
+  3. **Reference voiceprint** = Booth "Set reference" records **3 sentences**,
+     embeds each, **averages** (L2-norm mean) → `~/.voicelock/voiceprint.ref`
+     (plaintext vector, not in vault; F4 supersedes). Multi-sample averaging
+     deliberately overlaps F9; full quality gate stays F9.
+  4. **Meter = cosine distance, 3-band** (accept/borderline/reject); cutoffs tuned
+     on fixtures during build, pinned via deterministic fixture assertions.
+  5. **Blind spot → required manual Booth demo** (real mic Set reference + real
+     same-vs-different separation), not accepted risk. Mirrors F1/F2.
+- Wrote runnable Verification (§5): standing ruff+pytest exit 0; `tests/test_voiceprint.py`
+  on fixtures + vendored offline model; required manual Booth line. Budget within 10-min default.
 
 ## Next action
-1. Run `/spec` on **F3 — Voiceprint on screen** (blocked-by F1 only; F1+F2 done).
-   Fresh session; grilling gate must reach `CLEAR`; human sets the Mode + checks box 2.
-2. F5 will need a **TECH-PICK** for the offline face detect/landmark/embedding
-   stack — research + human approval when that feature is specced. Not now.
-3. Open nice-to-have: product **rename** from "VoiceLock" (parked in roadmap
-   out-of-scope) — human decides if/when.
-
-## Roadmap at a glance (build order)
-F1 ✅ booth · F2 ✅ outer lock · F3 voiceprint · F4 voice middle lock ·
-F5 camera booth · F6 faceprint · F7 face inner lock · F8 lip-sync liveness ·
-F9 demo reliability · (F10 parked robotic heuristic).
-Full impostor arc (wrong passphrase / voice / face / replay) reachable at F8.
+1. **Human:** in `spec.md`, read Outcome (§1) + Verification (§5), confirm the
+   `Mode: Mode 3` line, and type the `x` in **box 2** of the Approval gate.
+2. Then run `/plan` (fresh session) to break F3 into small ordered tasks. Likely
+   task shape: (a) add ECAPA deps + vendor model offline; (b) voiceprint engine
+   (embed + average + cosine + cutoffs) with fixtures; (c) Booth Set-reference +
+   live 3-band meter wiring; (d) end-to-end + manual Booth demo.
+3. Do NOT plan or build until box 2 is checked (universal [Startup]/[Approval]).
 
 ## Commit checkpoint
-- Base (session start): `4b2391a`
-- Head: `60d1d33` (design commit) + this bookkeeping commit
+- Base (spec session): `76c40c5`
+- Head: this spec commit (hash recorded in the follow-up bookkeeping commit)
 - Remote: none — local history only, no push
-- Files: `roadmap.md`, `CONTEXT.md`, `memory/codebase-map.md`,
-  `memory/decisions.md`, `adr/0002-three-nested-locks.md`, `handoff.md`
-- `spec.md` / `plan.md` intentionally untouched — stay F2-complete until `/spec` F3.
+- Files: `spec.md`, `memory/decisions.md`, `memory/research/2026-07-22-f3-voiceprint-embedding.md`
+- `plan.md` intentionally still F2-complete — rewritten by `/plan` after box 2.
 
 ## Pending
-- Human: start `/spec F3` in a fresh session when ready.
+- Human: check box 2, then start `/plan` for F3 in a fresh session.

@@ -17,6 +17,12 @@ Format:
 
 <!-- entries go below this line -->
 
+- 2026-07-22 · **F3 voiceprint method: SpeechBrain ECAPA-TDNN (`spkrec-ecapa-voxceleb`)**
+  - why: best-quality + actively-maintained speaker embedding for crisp same-vs-different separation; human chose quality over offline-friction
+  - rejected: Resemblyzer (liveness FAIL — abandoned 2023 — + unconfirmed Py3.11/torch install); librosa DIY MFCC (maintained + offline but muddier separation)
+  - cost accepted: weights must be **vendored locally + `HF_HUB_OFFLINE`** so no runtime network (SpeechBrain downloads from HuggingFace at first use); heaviest install (torch 2.1 + torchaudio)
+  - link: `roadmap.md` F3 · `memory/research/2026-07-22-f3-voiceprint-embedding.md` · `spec.md` Constraints (F3)
+
 - 2026-07-22 · **Pivot: augment to three biometric factors (voice + face + lips), not replace voice**
   - why: richest demo arc — wrong passphrase / voice / face / replay each fail a distinct factor
   - rejected: face+lips replacing voice (loses the voice work); face for liveness only (weaker identity story)
