@@ -2,8 +2,11 @@
 
 ## Active context
 - Updated: 2026-07-22
-- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Tasks 1–3 DONE; Task 4 REVIEW — automated built; manual Booth demo needs human attestation)
+- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: verifying
+  (Tasks 1–3 DONE; Task 4 REVIEW — verifier ESCALATE_HUMAN: automated Gate + both
+  Review axes PASS, ONLY the required manual Booth demo is outstanding. NOT DONE,
+  F3 NOT complete until a human runs `uv run voicelock` and attests same→accept /
+  different→reject. On attestation → wrap-up + Mode-3 completion report.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -83,6 +86,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 - [ ] **Task 4** — Bridge Set-reference + live compare to the engine; `uv run voicelock` end-to-end + manual Booth demo
   - state: REVIEW
   - rejects: 0
+  - verify: 2026-07-22 verifier (subagent) → GATE automated all exit 0 (`ruff`; `pytest` 33 passed; `test_voiceprint` 9 passed); REVIEW both axes APPROVE. Verdict = **ESCALATE_HUMAN** on the required manual Booth demo only (a headless verifier can't drive a real mic). Awaiting human attestation; then wrap-up + Mode-3 completion report. No verdict file yet (written by wrap-up on APPROVE).
   - build-notes: `BoothApi` gained injectable `ref_path` + `set_reference` (banks the last captured take; validates via `voiceprint.embed`, rejects short/silent with `need_more_audio`, averages+persists on the 3rd via `voiceprint.set_reference`) and `compare` (→ `{distance, band}`; `no_reference`/`need_more_audio` errors). JS: Set-reference handler handles progressive `{progress,done}`; `updateVoiceprintMeter` runs after each Stop (record branch) → `renderDistance` / `showSetReferenceFirst` / `showNeedMoreAudio`. Enroll/Unlock + Record/Stop/Play unchanged. `tests/test_booth_api.py` +3 (stub capture + real fixtures): same→accept, different→reject, short-take rejected, no-reference. Packaging: `uv run voicelock` uses the EDITABLE install (resolves to `src/voicelock/`), so the vendored `models/ecapa/` is found at runtime — no wheel force-include needed for the demo (noted for any future wheel build).
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: Add `BoothApi` methods that call the Task-2 engine: `set_reference`
@@ -104,8 +108,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F3 Tasks 1–3 DONE (Mode 3). T1: ECAPA stack + vendored model. T2: `voiceprint.py` engine + fixtures + tests (§5 cases 1–5). T3: Booth voiceprint chrome (Set reference + 3-band meter, JS render-only). All Reviewer APPROVE; full suite 30 passed.
-2. Next: `/implement` Task 4 (LAST task) — `BoothApi.set_reference` (3 takes → `voiceprint.set_reference`) + live `compare` → wire to the Task-3 JS hooks; `tests/test_booth_api.py` (temp ref path). Done-criterion = FULL spec §5 incl. human-attested manual Booth demo.
+1. 2026-07-22 — F3 Tasks 1–4 built (Mode 3). T1–T3 DONE (APPROVE). T4 (bridge + end-to-end) REVIEW: verifier ESCALATE_HUMAN — automated Gate + both Review axes PASS (full suite 33 passed), ONLY the required manual Booth demo outstanding.
+2. NEXT = HUMAN: run `uv run voicelock`, Set reference (3 sentences), same→accept/green, different→reject/red, attest the result. Then wrap-up marks T4 DONE + writes the Mode-3 completion report. F3 is code-complete; not DONE until the manual attestation.
 3. Diagnostic only — no lock/key derivation (that is F4). Reference = 3-take averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext, injectable path, not the vault). Cutoffs pinned `ACCEPT=0.45`/`REJECT=0.65` (module constants).
 4. Offline load solved (`pretrained_path` override + `LocalStrategy.NO_LINK`, encapsulated in `voiceprint._load_classifier`). JS hooks on `window.voicelockBooth`: `renderDistance`/`showNeedMoreAudio`/`showSetReferenceFirst`/`showReferenceReady`/`setReferenceProgress`.
 5. ⚠ Task-4 packaging: wheel `force-include` ships only `ui/index.html` → `models/ecapa/` must be force-included (or editable install) or `uv run voicelock` won't find the model for the manual demo. Also: Task-3 DOING-commit was skipped (deviations.md F3-T3) — commit DOING first on Task 4.
