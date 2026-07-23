@@ -2,13 +2,11 @@
 
 ## Active context
 - Updated: 2026-07-23
-- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: spec-amendment
-  (Tasks 1–3 DONE; Task 4 REVIEW — automated PASS/APPROVE, manual demo outstanding.
-  **AMENDMENT PENDING (2026-07-23):** Reset control drafted in `spec.md` §1/§4/§5;
-  box 2 re-opened `[ ]`, awaiting human re-approval. This ledger is NOT re-planned
-  yet — on box-2 approval: add Task 5 (Reset) as the new LAST task, reclassify
-  Task 4 to intermediate + close it DONE on its passed automated verification
-  [approved by human 2026-07-23], then build Task 5, then ONE combined manual demo.)
+- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
+  (Amendment approved 2026-07-23 — box 2 re-checked. Tasks 1–4 DONE; Task 4 closed
+  as intermediate on its passed automated verification. Next: `/implement` Task 5
+  — the Reset control, now the LAST task; its done = FULL amended §5 incl. the
+  human-attested manual demo with the reset step.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -85,10 +83,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
 
-- [ ] **Task 4** — Bridge Set-reference + live compare to the engine; `uv run voicelock` end-to-end + manual Booth demo
-  - state: REVIEW
+- [x] **Task 4** — Bridge Set-reference + live compare to the engine; `uv run voicelock` end-to-end
+  - state: DONE
   - rejects: 0
-  - verify: 2026-07-22 verifier (subagent) → GATE automated all exit 0 (`ruff`; `pytest` 33 passed; `test_voiceprint` 9 passed); REVIEW both axes APPROVE. Verdict = **ESCALATE_HUMAN** on the required manual Booth demo only (a headless verifier can't drive a real mic). Awaiting human attestation; then wrap-up + Mode-3 completion report. No verdict file yet (written by wrap-up on APPROVE).
+  - verify: 2026-07-22 verifier (subagent) → GATE automated all exit 0 (`ruff`; `pytest` 33 passed; `test_voiceprint` 9 passed); REVIEW both axes APPROVE; overall ESCALATE_HUMAN on the manual demo only. The 2026-07-23 Reset amendment moved the FULL-§5 manual demo to **Task 5** (new last task), so Task 4 is now **intermediate** and closed DONE on its passed automated criteria (verdict `memory/verdicts/2026-07-22-F3-T4.json`, APPROVE). Human approved this closure path 2026-07-23.
   - build-notes: `BoothApi` gained injectable `ref_path` + `set_reference` (banks the last captured take; validates via `voiceprint.embed`, rejects short/silent with `need_more_audio`, averages+persists on the 3rd via `voiceprint.set_reference`) and `compare` (→ `{distance, band}`; `no_reference`/`need_more_audio` errors). JS: Set-reference handler handles progressive `{progress,done}`; `updateVoiceprintMeter` runs after each Stop (record branch) → `renderDistance` / `showSetReferenceFirst` / `showNeedMoreAudio`. Enroll/Unlock + Record/Stop/Play unchanged. `tests/test_booth_api.py` +3 (stub capture + real fixtures): same→accept, different→reject, short-take rejected, no-reference. Packaging: `uv run voicelock` uses the EDITABLE install (resolves to `src/voicelock/`), so the vendored `models/ecapa/` is found at runtime — no wheel force-include needed for the demo (noted for any future wheel build).
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: Add `BoothApi` methods that call the Task-2 engine: `set_reference`
@@ -100,18 +98,43 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     in the Gate). This is the feature's LAST task — its done-criterion is the FULL
     Verification list from `spec.md` (standing + feature-specific + the required
     manual Booth demo line).
-  - done-criteria: FULL list from `spec.md` **Verification** section:
-    - `uv run ruff check .` → exit 0 (no ruff error findings)
-    - `uv run pytest` → exit 0 (final summary reports 0 failed)
-    - `uv run pytest tests/test_voiceprint.py -q` → exit 0; final summary reports 0 failed (spec §5 cases 1–5)
-    - **Manual (required, human-attested):** run `uv run voicelock` → **Set reference** and speak 3 sentences to store a reference → the same person reads a sentence → live meter shows a small distance / **accept (green)** → a **different** person reads → meter shows a large distance / **reject (red)**. Observable: real-mic Set reference works, the live 3-band meter updates, and a real same-vs-different speaker separates into accept vs reject.
+  - done-criteria: (was the FULL §5 when T4 was the last task) — the automated
+    subset ran green in verification (`ruff`; `pytest` 33 passed; `test_voiceprint`
+    9 passed); the FULL-§5 manual demo moved to Task 5 by the 2026-07-23 amendment.
+  - feedback: (none)
+
+- [ ] **Task 5** — Reset control: clear the stored reference + restart the 3-take flow (LAST task, F3 amendment 2026-07-23)
+  - state: TODO
+  - rejects: 0
+  - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
+  - notes: Add a `BoothApi.reset_reference()` bridge method that **deletes**
+    `~/.voicelock/voiceprint.ref` (the injectable `ref_path`; no-op if absent)
+    **and** clears any in-progress `_reference_takes`, returning `{ok: true}`.
+    Add a **Reset** button to the `.voiceprint` panel in `ui/index.html` that
+    calls it and renders the reset state (`showSetReferenceFirst` + empty the
+    3 take-dots via `setReferenceProgress(0)`). **No confirm prompt.** Python
+    owns the clear; JS renders only. Keep Set reference / Record/Stop/Play /
+    Enroll/Unlock unchanged. This is the feature's LAST task — its done-criterion
+    is the FULL `spec.md` **Verification** list (incl. the reset automated test +
+    the human-attested manual demo, now with the reset step).
+  - done-criteria: FULL list from `spec.md` **Verification** section (amended):
+    - `uv run ruff check .` → exit 0
+    - `uv run pytest` → exit 0 (0 failed)
+    - `uv run pytest tests/test_voiceprint.py -q` → exit 0 (spec §5 cases 1–5)
+    - `uv run pytest tests/test_booth_api.py -q` → exit 0; must cover: after a
+      reference is set, `reset_reference` clears it so a subsequent `compare`
+      surfaces `no_reference` again and the ref file no longer exists.
+    - **Manual (required, human-attested):** `uv run voicelock` → Set reference
+      (3 sentences) → same person → **accept (green)** → different person →
+      **reject (red)** → **Reset** → meter returns to "set reference first" and a
+      fresh reference can be set again.
   - feedback: (none)
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F3 Tasks 1–4 built (Mode 3). T1–T3 DONE (APPROVE). T4 (bridge + end-to-end) REVIEW: verifier ESCALATE_HUMAN — automated Gate + both Review axes PASS (full suite 33 passed), ONLY the required manual Booth demo outstanding.
-2. NEXT = HUMAN: run `uv run voicelock`, Set reference (3 sentences), same→accept/green, different→reject/red, attest the result. Then wrap-up marks T4 DONE + writes the Mode-3 completion report. F3 is code-complete; not DONE until the manual attestation.
-3. Diagnostic only — no lock/key derivation (that is F4). Reference = 3-take averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext, injectable path, not the vault). Cutoffs pinned `ACCEPT=0.45`/`REJECT=0.65` (module constants).
-4. Offline load solved (`pretrained_path` override + `LocalStrategy.NO_LINK`, encapsulated in `voiceprint._load_classifier`). JS hooks on `window.voicelockBooth`: `renderDistance`/`showNeedMoreAudio`/`showSetReferenceFirst`/`showReferenceReady`/`setReferenceProgress`.
-5. ⚠ Task-4 packaging: wheel `force-include` ships only `ui/index.html` → `models/ecapa/` must be force-included (or editable install) or `uv run voicelock` won't find the model for the manual demo. Also: Task-3 DOING-commit was skipped (deviations.md F3-T3) — commit DOING first on Task 4.
+1. 2026-07-23 — F3 Tasks 1–4 DONE (Mode 3). T1 deps+model · T2 engine+tests · T3 chrome · T4 bridge+end-to-end. T4 closed as intermediate on its passed automated verification (verifier: ruff/pytest 33/test_voiceprint 9 all 0, both Review axes APPROVE).
+2. Amendment approved 2026-07-23: added a **Reset** control. Task 5 (Reset) is the new LAST task — `BoothApi.reset_reference` (delete injectable `ref_path` + clear in-progress takes) + a Reset button (JS renders reset state) + a `test_booth_api` reset test. No confirm prompt.
+3. NEXT: `/implement` Task 5 (commit DOING first). Its done = FULL amended §5 incl. the human-attested manual demo (set reference · same→accept · different→reject · reset).
+4. Diagnostic only — no lock/key derivation (F4). Reference = 3-take averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext, injectable, not the vault). Cutoffs `ACCEPT=0.45`/`REJECT=0.65`. Offline load = `pretrained_path` override + `NO_LINK`.
+5. `uv run voicelock` is an EDITABLE install → vendored `models/ecapa/` resolves at runtime (no wheel force-include needed for the demo). Roadmap F11 parked (manage enrollment from inside the vault, post-F7).

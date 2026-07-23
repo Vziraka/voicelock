@@ -1,0 +1,24 @@
+{
+  "task": "T4",
+  "spec": "spec.md@bbeafd2",
+  "change": "fb248ec..1f59982",
+  "gate": {
+    "commands": [
+      "uv run ruff check .",
+      "uv run pytest",
+      "uv run pytest tests/test_voiceprint.py -q"
+    ],
+    "exit": 0,
+    "note": "Verifier (subagent) ran the full pipeline: ruff 0, full suite 33 passed, test_voiceprint 9 passed. The FULL-§5 human-attested manual Booth demo was reassigned to Task 5 by the 2026-07-23 Reset amendment (Task 5 is now the last task), so this task closed on its automated (intermediate) criteria."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Verifier returned automated Gate PASS + both Review axes APPROVE; its overall ESCALATE_HUMAN was solely the manual demo. After the Reset amendment made Task 5 the last task, Task 4 is intermediate and its automated criteria are met. Human explicitly approved this closure path 2026-07-23. Not a softening of the escalation — the manual line moved, it was not waived."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-23"
+}

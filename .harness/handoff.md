@@ -1,52 +1,42 @@
-# Handoff — F3 spec amended (Reset control); next: HUMAN re-checks box 2
+# Handoff — F3 amendment approved; Task 4 DONE; next: /implement Task 5 (Reset)
 
 ## Session
 - Date: 2026-07-23
-- Feature: F3 — Voiceprint on screen (`spec.md`)
-- Phase: **spec amendment** — Reset control drafted; awaiting box-2 re-approval
-- Mode: **Mode 3** (unchanged)
+- Feature: F3 — Voiceprint on screen (`spec.md`, amended 2026-07-23)
+- Phase: Task 4 DONE (intermediate close); Task 5 (Reset, LAST task) TODO
+- Mode: **Mode 3**
 
-## What changed this turn (spec amendment only — no code)
-- `spec.md`: added a **Reset** control to F3.
-  - §0 Approval gate: **box 2 un-checked `[ ]`** + a dated amendment note. Grilling
-    box 1 stays `[x]` (Status still CLEAR; `[NEEDS-CLARIFICATION:` scan = 0).
-  - §1 Outcome: Reset clears the reference → no-reference state.
-  - §2 Interaction/UX row: updated to include the Reset action.
-  - §4 Constraints: new "Reset reference" bullet — deletes
-    `~/.voicelock/voiceprint.ref` + discards any half-finished take run, empties
-    the 3-take progress, returns the meter to "set reference first"; **no confirm
-    prompt**; Python owns the clear, JS renders only.
-  - §5 Verification: new automated check (`tests/test_booth_api.py` —
-    `reset_reference` clears the reference so `compare` → `no_reference` again,
-    file gone) + a Reset step added to the manual demo line.
-- `roadmap.md`: parked **F11 — Manage enrollment from inside the vault**
-  (post-F7; human-requested 2026-07-23; not yet specced).
-- No `plan.md` re-plan yet, no code — those wait for box-2 re-approval.
+## Done this turn
+- Human re-approved the Reset amendment (spec `b0eaad8`, box 2 `[x]`).
+- Closed **Task 4** as an intermediate DONE on its passed automated verification
+  (verifier: `ruff` 0, full `pytest` 33 passed, `test_voiceprint` 9 passed, both
+  Review axes APPROVE; overall ESCALATE was only the manual demo). Verdict:
+  `memory/verdicts/2026-07-22-F3-T4.json` (APPROVE). The FULL-§5 manual demo moved
+  to Task 5 (new last task). Human-approved closure path.
+- Re-planned: added **Task 5 — Reset control** as the LAST task.
 
-## Two UX decisions baked into the amendment (change before approving if you disagree)
-- Reset needs **no confirmation prompt** (low-stakes, re-settable).
-- Reset **also discards a half-finished 1-or-2-take run** (always a clean slate).
-
-## Next action
-1. **HUMAN:** in `spec.md` §0, review the amendment + the changed sections
-   (§1/§4/§5), then **re-type the `x` in box 2** (Approved by human). The agent
-   never checks it.
-2. On approval → **re-plan** (this session or a fresh one):
-   - Add **Task 5 — Reset control** as the new LAST task; its done-criterion =
-     the FULL §5 Verification (now incl. the reset test + the reset manual step).
-   - Reclassify **Task 4** to intermediate and **close it DONE** on its already-
-     passed automated verification (verifier: Gate exit 0 + both Review axes
-     APPROVE; the ESCALATE was only the manual line, which moves to Task 5).
-     Human approved this closure path 2026-07-23.
-   - Build Task 5 (commit DOING first) → verify → the human runs ONE combined
-     manual Booth demo (set reference · same→accept · different→reject · reset).
+## next_action
+- `/implement` **Task 5** (commit DOING first):
+  - `src/voicelock/app.py`: `BoothApi.reset_reference()` → delete the injectable
+    `ref_path` (no-op if absent) + clear `_reference_takes`; return `{ok: true}`.
+  - `src/voicelock/ui/index.html`: a **Reset** button in the `.voiceprint` panel
+    → calls the bridge → `showSetReferenceFirst()` + `setReferenceProgress(0)`.
+    JS renders only; no confirm prompt. Keep everything else unchanged.
+  - `tests/test_booth_api.py`: after a reference is set, `reset_reference` clears
+    it → `compare` returns `no_reference` again + the file is gone.
+  - Done-criterion = FULL amended §5 (ruff · full pytest · test_voiceprint ·
+    test_booth_api · human-attested manual demo incl. the reset step).
+- After the automated Gate passes, the manual demo needs the HUMAN (real mic) —
+  expect verifier ESCALATE_HUMAN on the manual line; the human runs ONE combined
+  demo, then wrap-up marks Task 5 DONE + writes the Mode-3 completion report,
+  completing F3.
 
 ## Where the rest lives
-- Task ledger + spine: `plan.md` (not re-planned yet — Task 4 still shows REVIEW).
-  Requirements: `spec.md`. Deviations: `memory/deviations.md`.
+- Task ledger + spine: `plan.md`. Requirements: `spec.md` (amended). Deviations:
+  `memory/deviations.md`. Roadmap F11 parked (vault-side enrollment management).
 
 ## Commits
-- This turn: spec amendment + roadmap park + state (see git log after commit).
+- Amendment: `2d99487` · approval: `b0eaad8` · Task 4 close + re-plan: this commit.
 - Remote: none — local history only, no push.
 
 ## Pending guardrail
