@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Tasks 1–3 DONE — Gate PASS + Reviewer APPROVE; next: `/implement` Task 4 — the LAST task)
+  (Tasks 1–3 DONE; Task 4 DOING — bridge + end-to-end + manual demo, the LAST task)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -81,7 +81,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 4** — Bridge Set-reference + live compare to the engine; `uv run voicelock` end-to-end + manual Booth demo
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: Add `BoothApi` methods that call the Task-2 engine: `set_reference`
