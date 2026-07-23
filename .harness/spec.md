@@ -7,7 +7,7 @@ Feature: Feature 3 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [ ] Approved by human
+- [x] Approved by human
 
 - **Mode:** Mode 3
 
@@ -28,16 +28,18 @@ speaks → distance large / reject-colored.
 
 **Status: CLEAR**
 
-| Category | Verdict | Resolved by |
-| --- | --- | --- |
-| Functional scope & behavior | Clear | compute voiceprint · show live distance vs reference · accept/reject color |
-| Domain & data model | Clear | reference = 3-sentence averaged ECAPA embedding, persisted to `~/.voicelock/voiceprint.ref` (plaintext vector, not in vault) |
-| Interaction & UX flow | Clear | "Set reference" action + live 3-band meter (green/amber/red) in the Booth |
-| Non-functional (perf, security) | Clear | model vendored in-repo + HF_HUB_OFFLINE; pytest model-load budget declared in §5 |
-| Integration & dependencies | Clear | SpeechBrain ECAPA (human-approved TECH-PICK) |
-| Edge cases & failure modes | Clear | no reference → prompt to set; short/silent → "need more audio"; no mic → F1 error path |
-| Completion signals | Clear | 3-band cosine meter; fixtures assert same→accept / different→reject; manual Booth check |
-| Terminology (matches `CONTEXT.md`) | Clear | Voiceprint · Booth · Impostor |
+
+| Category                           | Verdict | Resolved by                                                                                                                  |
+| ---------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Functional scope & behavior        | Clear   | compute voiceprint · show live distance vs reference · accept/reject color                                                   |
+| Domain & data model                | Clear   | reference = 3-sentence averaged ECAPA embedding, persisted to `~/.voicelock/voiceprint.ref` (plaintext vector, not in vault) |
+| Interaction & UX flow              | Clear   | "Set reference" action + live 3-band meter (green/amber/red) in the Booth                                                    |
+| Non-functional (perf, security)    | Clear   | model vendored in-repo + HF_HUB_OFFLINE; pytest model-load budget declared in §5                                             |
+| Integration & dependencies         | Clear   | SpeechBrain ECAPA (human-approved TECH-PICK)                                                                                 |
+| Edge cases & failure modes         | Clear   | no reference → prompt to set; short/silent → "need more audio"; no mic → F1 error path                                       |
+| Completion signals                 | Clear   | 3-band cosine meter; fixtures assert same→accept / different→reject; manual Booth check                                      |
+| Terminology (matches `CONTEXT.md`) | Clear   | Voiceprint · Booth · Impostor                                                                                                |
+
 
 ## 3. Non-goals
 
@@ -45,53 +47,53 @@ speaks → distance large / reject-colored.
 - No face, camera, liveness, or challenge (F5+).
 - No change to the vault file or F2 enroll/unlock behavior.
 - No tolerance-tuning UI and no enrollment-quality gate (F9) — F3 uses a fixed
-  provisional threshold only.
+provisional threshold only.
 - No multi-profile; a single reference voiceprint is enough for F3.
 - Out-of-scope discoveries during build: record in `.out-of-scope/`, never build.
 
 ## 4. Constraints
 
 - Honor `constitution/project.md` + conventions: Python 3.11 + uv; engine code in
-  `src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; Python owns the
-  voiceprint compute, JS renders the meter only; **offline-only — no network at runtime**.
+`src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; Python owns the
+voiceprint compute, JS renders the meter only; **offline-only — no network at runtime**.
 - Entry point remains `uv run voicelock` (Booth window).
 - Voiceprint method: **SpeechBrain ECAPA-TDNN** (`spkrec-ecapa-voxceleb`),
-  human-approved TECH-PICK. Research: `memory/research/2026-07-22-f3-voiceprint-embedding.md`.
-  New deps added via `uv` at build time: `speechbrain`, `torch`, `torchaudio`.
+human-approved TECH-PICK. Research: `memory/research/2026-07-22-f3-voiceprint-embedding.md`.
+New deps added via `uv` at build time: `speechbrain`, `torch`, `torchaudio`.
 - **Offline enforcement (from the TECH-PICK):** the ECAPA weights are **vendored
-  in the repo** at `src/voicelock/models/ecapa/` (model is Apache-2.0 — its
-  LICENSE/NOTICE retained alongside the files; redistribution permitted). The app
-  and the Gate load ECAPA from that local path with `HF_HUB_OFFLINE=1` (SpeechBrain
-  pointed at the local dir), so there is **no runtime network**. The Gate is
-  self-contained: `uv run pytest` loads the vendored model offline, no setup step.
-  One-time developer action during build: download the official files once and
-  commit them (~20 MB in git; plain git, no LFS for this local project).
+in the repo** at `src/voicelock/models/ecapa/` (model is Apache-2.0 — its
+LICENSE/NOTICE retained alongside the files; redistribution permitted). The app
+and the Gate load ECAPA from that local path with `HF_HUB_OFFLINE=1` (SpeechBrain
+pointed at the local dir), so there is **no runtime network**. The Gate is
+self-contained: `uv run pytest` loads the vendored model offline, no setup step.
+One-time developer action during build: download the official files once and
+commit them (~20 MB in git; plain git, no LFS for this local project).
 - Reference voiceprint: a Booth **"Set reference"** action records **3 separate
-  short sentences**, computes an ECAPA embedding for each, and **averages** them
-  (mean of the L2-normalized embeddings, then re-normalized) into one reference
-  vector. It persists **just that averaged vector** to `~/.voicelock/voiceprint.ref`
-  — a small sibling file, **not** inside the vault. Persists across runs;
-  re-settable by setting again. A take that is too short/silent is rejected with
-  "need more audio" and re-recorded (that take only), not averaged in. Keeps F3
-  decoupled from the lock; F4 later supersedes this with vault-stored voice helper
-  data. This multi-sample averaging deliberately overlaps F9's territory (human
-  chose robustness); the **full** enrollment-quality gate + tolerance UI remain
-  F9. Honest limitation: the reference vector is stored in **plaintext** —
-  acceptable for an F3 diagnostic (real sealing is F4).
+short sentences**, computes an ECAPA embedding for each, and **averages** them
+(mean of the L2-normalized embeddings, then re-normalized) into one reference
+vector. It persists **just that averaged vector** to `~/.voicelock/voiceprint.ref`
+— a small sibling file, **not** inside the vault. Persists across runs;
+re-settable by setting again. A take that is too short/silent is rejected with
+"need more audio" and re-recorded (that take only), not averaged in. Keeps F3
+decoupled from the lock; F4 later supersedes this with vault-stored voice helper
+data. This multi-sample averaging deliberately overlaps F9's territory (human
+chose robustness); the **full** enrollment-quality gate + tolerance UI remain
+F9. Honest limitation: the reference vector is stored in **plaintext** —
+acceptable for an F3 diagnostic (real sealing is F4).
 - Match distance + coloring: **cosine distance** between the live ECAPA embedding
-  and the reference, shown with **three-band coloring** — accept (green) /
-  borderline (amber) / reject (red). The concrete accept and reject cutoffs are
-  chosen **empirically during build** from the test fixtures and pinned in §5 once
-  measured; the borderline band sits between them. The Gate asserts same-speaker
-  distance lands in the accept band and different-speaker distance lands in the
-  reject band on fixed fixtures. Tolerance-tuning UI is F9, not F3.
+and the reference, shown with **three-band coloring** — accept (green) /
+borderline (amber) / reject (red). The concrete accept and reject cutoffs are
+chosen **empirically during build** from the test fixtures and pinned in §5 once
+measured; the borderline band sits between them. The Gate asserts same-speaker
+distance lands in the accept band and different-speaker distance lands in the
+reject band on fixed fixtures. Tolerance-tuning UI is F9, not F3.
 - Booth UX: reuse the existing mock chrome; add a live distance readout + accept/
-  reject color; keep Record/Stop/Play and F2 Enroll/Unlock unchanged.
+reject color; keep Record/Stop/Play and F2 Enroll/Unlock unchanged.
 - Edge cases (visible, no crash): no reference set yet → prompt to set one;
-  speech too short / silent → visible "need more audio" state; no mic → existing
-  F1 mic-error path.
+speech too short / silent → visible "need more audio" state; no mic → existing
+F1 mic-error path.
 - Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
-  `uv run pytest` → exit 0.
+`uv run pytest` → exit 0.
 - No new dependency beyond the approved ECAPA stack without a fresh TECH-PICK.
 
 ## 5. Verification — definition of done (runnable)
@@ -111,17 +113,17 @@ Standing (project regression net, from `project.md`), pinned:
 Feature-specific (proves THIS feature works), pinned:
 
 - `uv run pytest tests/test_voiceprint.py -q` → exit 0; final summary reports 0
-  failed. Must cover, using fixed audio fixtures + the **vendored** ECAPA model
-  loaded fully offline (`HF_HUB_OFFLINE`, no network):
-  (1) same-speaker fixtures → cosine distance ≤ the module's accept cutoff (lands
-  in the accept band); (2) different-speaker fixtures → cosine distance ≥ the
-  module's reject cutoff (lands in the reject band) — the test imports the same
-  cutoff constants the app uses, so the assertion is deterministic, not judgment;
-  (3) "Set reference" averages 3 per-utterance embeddings into a single
-  L2-normalized reference vector, and a too-short/silent take is rejected with the
-  "need more audio" signal (not averaged in); (4) with no reference file present,
-  the compare path surfaces a set-reference-first signal (no crash); (5) the model
-  loads from the vendored local path with no network call.
+failed. Must cover, using fixed audio fixtures + the **vendored** ECAPA model
+loaded fully offline (`HF_HUB_OFFLINE`, no network):
+(1) same-speaker fixtures → cosine distance ≤ the module's accept cutoff (lands
+in the accept band); (2) different-speaker fixtures → cosine distance ≥ the
+module's reject cutoff (lands in the reject band) — the test imports the same
+cutoff constants the app uses, so the assertion is deterministic, not judgment;
+(3) "Set reference" averages 3 per-utterance embeddings into a single
+L2-normalized reference vector, and a too-short/silent take is rejected with the
+"need more audio" signal (not averaged in); (4) with no reference file present,
+the compare path surfaces a set-reference-first signal (no crash); (5) the model
+loads from the vendored local path with no network call.
 
 Proof surface: the highest real surface F3 touches is the live pywebview Booth.
 Automated tests prove the Python voiceprint path on fixtures; they do **not** drive
@@ -129,11 +131,11 @@ the real window or a live mic — that gap is covered by the required manual lin
 below (a required check, not accepted risk).
 
 - Manual (required for F3 done — Verification check): run `uv run voicelock`, use
-  **Set reference** and speak 3 sentences to store a reference → the same person
-  reads a sentence → live meter shows a small distance / **accept (green)** → a
-  **different** person reads → meter shows a large distance / **reject (red)**.
-  Observable: real-mic Set reference works, the live 3-band meter updates, and a
-  real same-vs-different speaker separates into accept vs reject.
+**Set reference** and speak 3 sentences to store a reference → the same person
+reads a sentence → live meter shows a small distance / **accept (green)** → a
+**different** person reads → meter shows a large distance / **reject (red)**.
+Observable: real-mic Set reference works, the live 3-band meter updates, and a
+real same-vs-different speaker separates into accept vs reject.
 
 Out-of-scope discoveries during build (Mode 3 default): record in `.out-of-scope/`,
 never build.

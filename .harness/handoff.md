@@ -1,46 +1,43 @@
-# Handoff — F3 spec drafted (CLEAR, Mode 3); awaits human box 2 → /plan
+# Handoff — F3 planned (4 tasks, all TODO); next: /implement Task 1
 
 ## Session
 - Date: 2026-07-22
 - Feature: F3 — Voiceprint on screen (`spec.md`)
-- Phase: spec complete — Grilling record `CLEAR`, box 1 checked, **box 2 (human) open**
-- Mode: **Mode 3** (set in the spec Approval gate; human confirms by checking box 2)
+- Phase: plan complete — `plan.md` holds 4 ordered tasks, all `TODO`, `rejects: 0`
+- Mode: **Mode 3** (spec Approval gate, box 2 checked)
 
 ## Done this session
-- Ran `/design` (earlier) → pivot roadmap committed (`60d1d33`, `76c40c5`).
-- Ran `/spec` on F3. Full ambiguity scan → all rows Clear. Grilling decisions
-  (human-approved, one at a time):
-  1. **Voiceprint method = SpeechBrain ECAPA** (`spkrec-ecapa-voxceleb`) —
-     human-approved TECH-PICK. Research: `memory/research/2026-07-22-f3-voiceprint-embedding.md`.
-     Rejected Resemblyzer (liveness FAIL/abandoned) + librosa DIY (muddier).
-  2. **Model provisioning = vendored in-repo** at `src/voicelock/models/ecapa/`
-     (Apache-2.0, redistribution OK) + `HF_HUB_OFFLINE` → offline runtime + hermetic Gate.
-  3. **Reference voiceprint** = Booth "Set reference" records **3 sentences**,
-     embeds each, **averages** (L2-norm mean) → `~/.voicelock/voiceprint.ref`
-     (plaintext vector, not in vault; F4 supersedes). Multi-sample averaging
-     deliberately overlaps F9; full quality gate stays F9.
-  4. **Meter = cosine distance, 3-band** (accept/borderline/reject); cutoffs tuned
-     on fixtures during build, pinned via deterministic fixture assertions.
-  5. **Blind spot → required manual Booth demo** (real mic Set reference + real
-     same-vs-different separation), not accepted risk. Mirrors F1/F2.
-- Wrote runnable Verification (§5): standing ruff+pytest exit 0; `tests/test_voiceprint.py`
-  on fixtures + vendored offline model; required manual Booth line. Budget within 10-min default.
+- Entry gate re-checked and PASSED (quoted): §2 `**Status: CLEAR**`; token scan for
+  `[NEEDS-CLARIFICATION:` → zero hits; approval boxes 1 & 2 both `[x]`; `Mode: Mode 3`.
+- Note on the gate: an earlier uncommitted edit to `spec.md` had bundled box-2
+  approval with an accidental revert of §2 to `DRAFT` (plus stripped indents).
+  Flagged it; the human restored `**Status: CLEAR**` before this /plan run.
+- Broke F3 into 4 tracer-bullet tasks (each names its files + a runnable done):
+  1. ECAPA deps (`speechbrain`/`torch`/`torchaudio`) + vendor model offline at
+     `src/voicelock/models/ecapa/` (Apache-2.0, one-time build download, committed).
+  2. Voiceprint engine (`src/voicelock/voiceprint.py`) — embed · L2-avg reference
+     (injectable path) · cosine · `ACCEPT/REJECT_CUTOFF` 3-band · offline load —
+     plus fixtures + `tests/test_voiceprint.py` covering spec §5 cases (1)–(5).
+  3. Booth chrome (`ui/index.html`) — Set reference + live 3-band meter + distance
+     readout + "need more audio"/"set reference first" states; JS renders only.
+  4. Bridge (`app.py` BoothApi) + wire JS + `tests/test_booth_api.py`; LAST task →
+     done-criterion is the FULL spec §5 Verification incl. the required manual demo.
+- Refreshed the memory spine in `plan.md`.
 
 ## Next action
-1. **Human:** in `spec.md`, read Outcome (§1) + Verification (§5), confirm the
-   `Mode: Mode 3` line, and type the `x` in **box 2** of the Approval gate.
-2. Then run `/plan` (fresh session) to break F3 into small ordered tasks. Likely
-   task shape: (a) add ECAPA deps + vendor model offline; (b) voiceprint engine
-   (embed + average + cosine + cutoffs) with fixtures; (c) Booth Set-reference +
-   live 3-band meter wiring; (d) end-to-end + manual Booth demo.
-3. Do NOT plan or build until box 2 is checked (universal [Startup]/[Approval]).
+1. `/implement` **Task 1** in a **fresh session**. Mode 3: the approved spec's
+   `Mode:` line is the standing "go" for tasks inside F3 — no further human "go"
+   needed to start. Implement builds ONE task (commits `DOING` first), then hands
+   to a clean-context verifier.
+2. Watch-outs for Task 1: `uv add` (never bare pip); the model download is the
+   only network step and is a build-time developer action (runtime stays offline);
+   commit the ~20 MB model files plainly (no LFS); keep LICENSE/NOTICE alongside.
 
 ## Commit checkpoint
-- Base (spec session): `76c40c5`
-- Head: `5d242ad` (spec commit) + this bookkeeping commit
+- Base (this /plan session): `616e543`
+- Head: this planning commit (see git log after commit)
 - Remote: none — local history only, no push
-- Files: `spec.md`, `memory/decisions.md`, `memory/research/2026-07-22-f3-voiceprint-embedding.md`
-- `plan.md` intentionally still F2-complete — rewritten by `/plan` after box 2.
+- Files: `plan.md`, `handoff.md`, `spec.md` (human's box-2 + status-restore edit)
 
 ## Pending
-- Human: check box 2, then start `/plan` for F3 in a fresh session.
+- None blocking. F3 ready to build at Task 1.
