@@ -1,0 +1,39 @@
+Vendored model: ECAPA-TDNN speaker embedding
+=============================================
+
+This directory contains a redistributed copy of the pretrained SpeechBrain
+ECAPA-TDNN speaker-embedding model, vendored so VoiceLock can compute
+voiceprints fully offline (no runtime network; loaded with HF_HUB_OFFLINE=1).
+
+Source
+------
+- Repository: https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
+- Model id:   speechbrain/spkrec-ecapa-voxceleb
+- Revision:   0f99f2d0ebe89ac095bcc5903c4dd8f72b367286
+- Retrieved:  2026-07-22
+- Trained on: VoxCeleb 1 + 2
+
+License
+-------
+Apache License 2.0 (declared as `license: apache-2.0` in the model card).
+The full license text is in the sibling LICENSE file. Redistribution is
+permitted under those terms; these files are unmodified copies of the
+official release.
+
+Vendored files
+--------------
+- hyperparams.yaml        SpeechBrain load recipe (defines the pretrainer)
+- embedding_model.ckpt    ECAPA-TDNN embedding network weights
+- mean_var_norm_emb.ckpt  global embedding normalization stats
+- classifier.ckpt         VoxCeleb speaker classifier head (loaded by the recipe)
+- label_encoder.txt       speaker label mapping (loaded by the recipe)
+- config.json             model config metadata
+
+VoiceLock uses only the speaker-embedding path (embedding_model +
+mean_var_norm_emb); classifier.ckpt and label_encoder.txt are retained
+because the official hyperparams.yaml pretrainer loads them.
+
+Attribution
+-----------
+SpeechBrain: Ravanelli et al., "SpeechBrain: A General-Purpose Speech Toolkit."
+Please cite SpeechBrain if you use this model. See the source repository above.
