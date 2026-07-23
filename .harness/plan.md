@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Task 1 DONE — Gate PASS + Reviewer APPROVE; next: `/implement` Task 2; Tasks 3–4 TODO)
+  (Task 1 DONE; Task 2 DOING — voiceprint engine + fixtures + tests; Tasks 3–4 TODO)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -35,7 +35,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — Voiceprint engine (embed · average · cosine · 3-band cutoffs · persist) + fixtures + tests
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/voiceprint.py`, `tests/test_voiceprint.py`, `tests/fixtures/voiceprint/` (fixed audio fixtures)
   - notes: Engine owns all voiceprint DSP; JS never computes. Functions: `embed(audio)`
