@@ -386,6 +386,82 @@
     gap: 10px;
     width: 100%;
   }
+  .voiceprint {
+    width: 100%;
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    animation: vlFade 0.35s ease;
+  }
+  .vp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .vp-label {
+    font-size: 10.5px;
+    color: #5f6673;
+    letter-spacing: 0.12em;
+  }
+  .vp-distance {
+    font-size: 12px;
+    color: #8a8f99;
+  }
+  .vp-distance.accept { color: #8fe0a0; }
+  .vp-distance.borderline { color: #f0d0a0; }
+  .vp-distance.reject { color: #f0a0a0; }
+  .vp-meter {
+    position: relative;
+    width: 100%;
+    height: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Decorative 3-band scale (accept / borderline / reject). The match band is
+       decided in Python and applied via the readout color — JS never judges. */
+    background: linear-gradient(90deg,
+      rgba(90, 210, 130, 0.85) 0%, rgba(90, 210, 130, 0.85) 38%,
+      rgba(240, 200, 120, 0.85) 38%, rgba(240, 200, 120, 0.85) 54%,
+      rgba(240, 110, 110, 0.85) 54%, rgba(240, 110, 110, 0.85) 100%);
+  }
+  .vp-needle {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: 0%;
+    width: 3px;
+    border-radius: 2px;
+    background: #f4f6fb;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.65);
+    transition: left 0.12s ease;
+  }
+  .vp-needle.idle { opacity: 0.25; }
+  .vp-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .vp-take-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .vp-take-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .vp-take-dot.filled {
+    background: #8fe0a0;
+  }
+  .vp-hint {
+    font-size: 11px;
+    color: #8a8f99;
+    min-height: 15px;
+  }
+  .vp-hint.warn { color: #f0d0a0; }
 </style>
 </head>
 <body>
@@ -491,6 +567,26 @@
           <span class="chip mono hidden" id="chip-no-vault">No vault yet — enroll first</span>
         </div>
 
+        <div class="voiceprint" id="voiceprint-panel">
+          <div class="vp-head">
+            <span class="vp-label mono">VOICEPRINT · LIVE MATCH</span>
+            <span class="vp-distance mono" id="vp-distance">distance —</span>
+          </div>
+          <div class="vp-meter" id="vp-meter" role="meter" aria-label="Voiceprint match distance meter"
+               aria-valuemin="0" aria-valuemax="1.2">
+            <div class="vp-needle idle" id="vp-needle"></div>
+          </div>
+          <div class="vp-row">
+            <button type="button" class="btn btn-secondary" id="btn-set-reference">Set reference</button>
+            <div class="vp-take-dots" id="vp-take-dots" aria-label="reference takes recorded">
+              <span class="vp-take-dot"></span>
+              <span class="vp-take-dot"></span>
+              <span class="vp-take-dot"></span>
+            </div>
+          </div>
+          <div class="vp-hint mono" id="vp-hint" aria-live="polite">set reference first — record 3 short sentences</div>
+        </div>
+
         <div class="inert-panel" aria-hidden="true">
           <div class="inert-label mono">DEMO — LATER FEATURES (INERT)</div>
           <div class="chips">
@@ -533,6 +629,12 @@
     const profileMeta = document.getElementById("profile-meta");
     const profileAvatar = document.getElementById("profile-avatar");
     const profileDot = document.getElementById("profile-dot");
+    const btnSetReference = document.getElementById("btn-set-reference");
+    const vpDistance = document.getElementById("vp-distance");
+    const vpNeedle = document.getElementById("vp-needle");
+    const vpHint = document.getElementById("vp-hint");
+    const vpTakeDots = document.getElementById("vp-take-dots");
+    const VP_DISPLAY_MAX = 1.2; // display-only scale for the needle; not a match decision
     let level = 0.11;
     let recording = false;
     let playing = false;
@@ -715,6 +817,46 @@
       sub.textContent = message || "Name and passphrase are required";
     }
 
+    /* Voiceprint meter — JS renders only; Python owns the embedding + band. */
+    function renderDistance(distance, band) {
+      const d = Number(distance);
+      if (!isFinite(d)) return;
+      const pct = Math.max(0, Math.min(1, d / VP_DISPLAY_MAX)) * 100;
+      vpNeedle.style.left = pct + "%";
+      vpNeedle.classList.remove("idle");
+      vpDistance.textContent = "distance " + d.toFixed(3);
+      vpDistance.classList.remove("accept", "borderline", "reject");
+      if (band) vpDistance.classList.add(band);
+    }
+
+    function setVoiceprintHint(text, warn) {
+      vpHint.textContent = text;
+      vpHint.classList.toggle("warn", !!warn);
+    }
+
+    function showNeedMoreAudio() {
+      setVoiceprintHint("need more audio — speak a little longer", true);
+    }
+
+    function showSetReferenceFirst() {
+      setVoiceprintHint("set reference first — record 3 short sentences", false);
+      vpDistance.textContent = "distance —";
+      vpDistance.classList.remove("accept", "borderline", "reject");
+      vpNeedle.classList.add("idle");
+    }
+
+    function setReferenceProgress(done) {
+      const dots = vpTakeDots.querySelectorAll(".vp-take-dot");
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle("filled", i < Number(done));
+      });
+    }
+
+    function showReferenceReady() {
+      setReferenceProgress(3);
+      setVoiceprintHint("reference set — speak to see the live match", false);
+    }
+
     async function call(name, payload) {
       if (!(window.pywebview && window.pywebview.api && window.pywebview.api[name])) {
         return { ok: false, error: "Bridge not ready" };
@@ -817,6 +959,29 @@
       passInput.value = "";
     });
 
+    btnSetReference.addEventListener("click", async function () {
+      /* Task 4 wires the 3-take capture + voiceprint.set_reference; the chrome
+         drives the control and renders the result / edge states only. */
+      setVoiceprintHint("recording reference — speak 3 short sentences", false);
+      const result = await call("set_reference");
+      if (!result || !result.ok) {
+        if (result && result.error === "need_more_audio") {
+          showNeedMoreAudio();
+          return;
+        }
+        if (result && result.progress != null) {
+          setReferenceProgress(result.progress);
+        }
+        if (!(window.pywebview && window.pywebview.api && window.pywebview.api.set_reference)) {
+          setVoiceprintHint("set reference — bridge not ready", true);
+          return;
+        }
+        setVoiceprintHint((result && result.error) || "set reference failed", true);
+        return;
+      }
+      showReferenceReady();
+    });
+
     btnRecord.addEventListener("click", async function () {
       const result = await call("start_record");
       if (!result || !result.ok) {
@@ -869,6 +1034,11 @@
         chipWrongPass: chipWrongPass,
         chipNoVault: chipNoVault,
         profileName: profileName,
+        setReference: btnSetReference,
+        vpDistance: vpDistance,
+        vpNeedle: vpNeedle,
+        vpHint: vpHint,
+        vpTakeDots: vpTakeDots,
       },
       setLevel: function (value) {
         level = Math.max(0, Math.min(1, Number(value) || 0));
@@ -885,6 +1055,12 @@
       showOverwriteConfirm: showOverwriteConfirm,
       hideOverwriteConfirm: hideOverwriteConfirm,
       showEnrollPanel: showEnrollPanel,
+      renderDistance: renderDistance,
+      setVoiceprintHint: setVoiceprintHint,
+      showNeedMoreAudio: showNeedMoreAudio,
+      showSetReferenceFirst: showSetReferenceFirst,
+      setReferenceProgress: setReferenceProgress,
+      showReferenceReady: showReferenceReady,
     };
 
     function onBridgeReady() {

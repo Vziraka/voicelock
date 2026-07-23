@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Tasks 1–2 DONE — Gate PASS + Reviewer APPROVE; next: `/implement` Task 3; Task 4 TODO)
+  (Tasks 1–2 DONE; Task 3 REVIEW — awaiting fresh-eyes verify; Task 4 TODO)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -63,8 +63,9 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — Booth chrome: "Set reference" action + live 3-band meter + distance readout (DOM + JS render only)
-  - state: TODO
+  - state: REVIEW
   - rejects: 0
+  - build-notes: Added `.voiceprint` panel to `ui/index.html` — VOICEPRINT·LIVE MATCH header + numeric `distance` readout, a decorative 3-band meter (green/amber/red) with a needle, a **Set reference** button + 3 take-dots, and a hint line carrying the "set reference first" / "need more audio" edge states. JS renders only (no embedding math): `renderDistance`, `showNeedMoreAudio`, `showSetReferenceFirst`, `setReferenceProgress`, `showReferenceReady` exposed on `window.voicelockBooth`; `btn-set-reference` calls the stubbed `set_reference` bridge (wired in Task 4). F1/F2 controls untouched; no network asset refs. Match band decided in Python, applied via readout color — JS never judges.
   - files: `src/voicelock/ui/index.html`
   - notes: Reuse the existing mock chrome. Add a **Set reference** control (records
     3 sentences) and a live **3-band meter** (green/amber/red) with a numeric
