@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Task 1 REVIEW — awaiting fresh-eyes verify; Tasks 2–4 TODO)
+  (Task 1 DONE — Gate PASS + Reviewer APPROVE; next: `/implement` Task 2; Tasks 3–4 TODO)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -13,8 +13,8 @@ A task is `DONE` only when the Gate exited 0 **and** the Reviewer approved.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — Add ECAPA dependency stack + vendor the model offline
-  - state: REVIEW
+- [x] **Task 1** — Add ECAPA dependency stack + vendor the model offline
+  - state: DONE
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`, `src/voicelock/models/ecapa/` (vendored model files + `LICENSE`/`NOTICE`)
   - notes: Human-approved TECH-PICK — SpeechBrain ECAPA-TDNN (`spkrec-ecapa-voxceleb`),
@@ -101,8 +101,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F3 PLANNED (Mode 3). Spec CLEAR + box 2 approved; 4 tasks written, all TODO.
-2. Shape: T1 ECAPA deps + vendor model offline · T2 voiceprint engine + fixtures + tests · T3 Booth Set-reference + 3-band meter chrome · T4 bridge + end-to-end + manual demo.
+1. 2026-07-22 — F3 Task 1 DONE (Mode 3): ECAPA stack (torch/torchaudio/speechbrain, CPU) + vendored Apache-2.0 model at `src/voicelock/models/ecapa/`. Gate PASS (21 passed), Reviewer APPROVE.
+2. Next: `/implement` Task 2 — voiceprint engine (`voiceprint.py`) + fixtures + `tests/test_voiceprint.py` (spec §5 cases 1–5). Then T3 Booth chrome · T4 bridge + manual demo.
 3. Diagnostic only — no lock/key derivation (that is F4). Reference = 3-sentence averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext sibling, not the vault).
-4. Offline enforced: vendored ECAPA at `src/voicelock/models/ecapa/` + `HF_HUB_OFFLINE`; cutoffs pinned as module constants the tests import.
-5. Next: `/implement` Task 1 in a fresh session (Mode 3 standing go — no further human "go" needed to start tasks inside F3).
+4. Offline enforced: vendored ECAPA (rev 0f99f2d) + `HF_HUB_OFFLINE`; cutoffs pinned as module constants the tests import. Task 2 must prove offline load (spec §5 case 5).
+5. Task-2 watch-outs (from T1 handoff): `.gitignore` excludes `*.wav`/`*.flac` → fixtures need `-f`; runtime wheel packaging of `models/ecapa/` is a Task-4 concern.

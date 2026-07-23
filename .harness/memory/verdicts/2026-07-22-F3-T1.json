@@ -1,0 +1,26 @@
+{
+  "task": "T1",
+  "spec": "spec.md@bbeafd2",
+  "change": "d93654f..2a6f19d",
+  "gate": {
+    "commands": [
+      "uv sync",
+      "uv run python -c \"import speechbrain, torch, torchaudio; print('ok')\"",
+      "uv run python -c \"<vendored-dir + LICENSE/NOTICE assertion>\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "21 passed; deps torch 2.13.0+cpu / torchaudio 2.11.0+cpu / speechbrain 1.1.0; vendored ECAPA present with LICENSE+NOTICE"
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "ECAPA stack + Apache-2.0 vendored model (rev 0f99f2d) offline; Task-1 scope excludes offline-load proof (Task 2). ~85MB vs spec ~20MB estimate logged in deviations.md (human-only spec fix)."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-22"
+}
