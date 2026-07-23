@@ -7,7 +7,7 @@ Feature: Feature 3 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [ ] Approved by human
+- [x] Approved by human
 
 - **Mode:** Mode 3
 
