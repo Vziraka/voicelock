@@ -3,9 +3,11 @@
 ## Active context
 - Updated: 2026-07-23
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: verifying
-  (Amendment approved 2026-07-23. Tasks 1–4 DONE; Task 5 REVIEW — Reset control
-  built, automated green locally; LAST task → verifier runs FULL amended §5, then
-  the human-attested manual demo.)
+  (Amendment approved 2026-07-23. Tasks 1–4 DONE; Task 5 REVIEW — verifier
+  ESCALATE_HUMAN: automated Gate (full suite 35 passed) + both Review axes PASS,
+  ONLY the required manual Booth demo outstanding. As the LAST task, F3 is NOT
+  complete until the human runs the combined demo and attests it → then wrap-up +
+  Mode-3 completion report.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -105,6 +107,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 - [ ] **Task 5** — Reset control: clear the stored reference + restart the 3-take flow (LAST task, F3 amendment 2026-07-23)
   - state: REVIEW
   - rejects: 0
+  - verify: 2026-07-23 verifier (subagent) → GATE automated all exit 0 (`ruff`; `pytest` 35 passed; `test_voiceprint` 9; `test_booth_api` 10 incl. both reset tests); REVIEW both axes APPROVE. Verdict = **ESCALATE_HUMAN** on the required manual Booth demo only. As the LAST task there is nothing to reassign it to — F3 is NOT done until the human runs the combined manual demo and attests it. Then wrap-up → DONE + Mode-3 completion report. No verdict file yet (written by wrap-up on APPROVE).
   - build-notes: `BoothApi.reset_reference()` clears `_reference_takes` + `ref_path.unlink(missing_ok=True)` → `{ok:true}`. `ui/index.html`: a **Reset** button (`btn-reset-reference`) next to Set reference → calls the bridge → `setReferenceProgress(0)` + `showSetReferenceFirst()`; no confirm. `tests/test_booth_api.py` +2: reset clears a set reference (compare→`no_reference`, file gone); reset is a no-op on a missing file and clears an in-progress take (progress restarts at 1). ruff clean; 10 booth tests pass locally.
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: Add a `BoothApi.reset_reference()` bridge method that **deletes**
