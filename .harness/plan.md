@@ -2,8 +2,8 @@
 
 ## Active context
 - Updated: 2026-07-22
-- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: planned
-  (F3 tasks 1–4 written, all TODO; next: `/implement` Task 1 in a fresh session)
+- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
+  (Task 1 DOING; Tasks 2–4 TODO)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -14,7 +14,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Add ECAPA dependency stack + vendor the model offline
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`, `src/voicelock/models/ecapa/` (vendored model files + `LICENSE`/`NOTICE`)
   - notes: Human-approved TECH-PICK — SpeechBrain ECAPA-TDNN (`spkrec-ecapa-voxceleb`),
