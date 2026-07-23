@@ -27,3 +27,6 @@ Thumbs.db
 *.flac
 *.vault
 vaults/
+
+# ...but committed test fixtures are the exception (Gate needs them on a clean checkout)
+!tests/fixtures/voiceprint/*.wav
