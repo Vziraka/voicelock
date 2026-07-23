@@ -1,0 +1,24 @@
+{
+  "task": "T2",
+  "spec": "spec.md@bbeafd2",
+  "change": "c6a1176..ab8b4c0",
+  "gate": {
+    "commands": [
+      "uv run ruff check .",
+      "uv run pytest tests/test_voiceprint.py -q",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "test_voiceprint 9 passed; full suite 30 passed. Spec §5 cases 1-5 covered on fixed fixtures with the vendored ECAPA model loaded offline."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Engine owns DSP (no JS); cutoffs ACCEPT=0.45/REJECT=0.65 pinned as the single source tests import; offline load via pretrained_path override + LocalStrategy.NO_LINK; soundfile is spec-sanctioned + transitive, not a new dep."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-22"
+}

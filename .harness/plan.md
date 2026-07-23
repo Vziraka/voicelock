@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-22
 - Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Task 1 DONE; Task 2 REVIEW — awaiting fresh-eyes verify; Tasks 3–4 TODO)
+  (Tasks 1–2 DONE — Gate PASS + Reviewer APPROVE; next: `/implement` Task 3; Task 4 TODO)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -34,8 +34,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed — existing suite still green)
   - feedback: (none)
 
-- [ ] **Task 2** — Voiceprint engine (embed · average · cosine · 3-band cutoffs · persist) + fixtures + tests
-  - state: REVIEW
+- [x] **Task 2** — Voiceprint engine (embed · average · cosine · 3-band cutoffs · persist) + fixtures + tests
+  - state: DONE
   - rejects: 0
   - build-notes: Cutoffs pinned `ACCEPT_CUTOFF=0.45` / `REJECT_CUTOFF=0.65` from measured fixture distances (same-speaker max ~0.29, different ~0.83). Fixtures = model-repo example clips (Apache-2.0, rev 0f99f2d): example1→speaker A (3 take-thirds + central live window), example2→speaker B; too_short = 0.15s of A. Offline load via `overrides={pretrained_path: <vendored dir>}` + `LocalStrategy.NO_LINK` (Windows symlink blocked). `.gitignore` given a `!tests/fixtures/voiceprint/*.wav` exception so fixtures commit.
   - files: `src/voicelock/voiceprint.py`, `tests/test_voiceprint.py`, `tests/fixtures/voiceprint/` (fixed audio fixtures)
@@ -102,8 +102,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-22 — F3 Task 1 DONE (Mode 3): ECAPA stack (torch/torchaudio/speechbrain, CPU) + vendored Apache-2.0 model at `src/voicelock/models/ecapa/`. Gate PASS (21 passed), Reviewer APPROVE.
-2. Next: `/implement` Task 2 — voiceprint engine (`voiceprint.py`) + fixtures + `tests/test_voiceprint.py` (spec §5 cases 1–5). Then T3 Booth chrome · T4 bridge + manual demo.
-3. Diagnostic only — no lock/key derivation (that is F4). Reference = 3-sentence averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext sibling, not the vault).
-4. Offline enforced: vendored ECAPA (rev 0f99f2d) + `HF_HUB_OFFLINE`; cutoffs pinned as module constants the tests import. Task 2 must prove offline load (spec §5 case 5).
-5. Task-2 watch-outs (from T1 handoff): `.gitignore` excludes `*.wav`/`*.flac` → fixtures need `-f`; runtime wheel packaging of `models/ecapa/` is a Task-4 concern.
+1. 2026-07-22 — F3 Tasks 1–2 DONE (Mode 3). T1: ECAPA stack + vendored Apache-2.0 model. T2: `voiceprint.py` engine + fixtures + tests (spec §5 cases 1–5), full suite 30 passed, Reviewer APPROVE.
+2. Next: `/implement` Task 3 — Booth chrome in `ui/index.html` (Set-reference control + live 3-band meter + distance readout + edge states); JS renders only, bridge stubbed. Then T4 bridge + end-to-end + manual demo.
+3. Diagnostic only — no lock/key derivation (that is F4). Reference = 3-take averaged ECAPA vector at `~/.voicelock/voiceprint.ref` (plaintext sibling, injectable path, not the vault). Cutoffs pinned `ACCEPT=0.45`/`REJECT=0.65` (module constants tests import).
+4. Offline load solved: `pretrained_path` override + `LocalStrategy.NO_LINK` under `HF_HUB_OFFLINE` (Windows symlink blocked); encapsulated in `voiceprint._load_classifier`.
+5. Open watch-out (Task 4): runtime wheel `force-include` currently only ships `ui/index.html` → `models/ecapa/` must be force-included (or editable install) for `uv run voicelock`.
