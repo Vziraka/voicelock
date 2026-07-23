@@ -1,77 +1,53 @@
-# Handoff — F3 Task 4 built (REVIEW, LAST task); next: fresh-eyes verify + human manual demo
+# Handoff — F3 spec amended (Reset control); next: HUMAN re-checks box 2
 
 ## Session
-- Date: 2026-07-22
+- Date: 2026-07-23
 - Feature: F3 — Voiceprint on screen (`spec.md`)
-- Phase: implement — Task 4 (the feature's LAST task) built, now `REVIEW`;
-  Tasks 1–3 DONE
-- Mode: **Mode 3**
+- Phase: **spec amendment** — Reset control drafted; awaiting box-2 re-approval
+- Mode: **Mode 3** (unchanged)
 
-## Changed (Task 4 — bridge + end-to-end)
-- `src/voicelock/app.py` — `BoothApi` gained an injectable `ref_path` and two
-  methods calling the Task-2 engine:
-  - `set_reference()` — banks the last captured take; validates it via
-    `voiceprint.embed` (rejects too-short/silent with `{"error":"need_more_audio"}`,
-    not added); after 3 valid takes calls `voiceprint.set_reference` → persists the
-    averaged reference; returns `{ok, done, progress}`.
-  - `compare()` — `voiceprint.compare(buffer)` → `{ok, distance, band}`, or
-    `{"error":"no_reference"|"need_more_audio"}`.
-- `src/voicelock/ui/index.html` — Set-reference handler now handles the
-  progressive `{progress, done}` response; new `updateVoiceprintMeter()` runs
-  after each Stop (record branch) → `renderDistance` / `showSetReferenceFirst` /
-  `showNeedMoreAudio`. Enroll/Unlock + Record/Stop/Play unchanged.
-- `tests/test_booth_api.py` — +3 tests (stub capture fed the real fixtures,
-  temp ref path): reference→same-speaker accept / different-speaker reject;
-  short take rejected with `need_more_audio` (progress 0, no file); compare with
-  no reference → `no_reference`. 8 booth tests pass locally.
-- Packaging: confirmed `uv run voicelock` is an **editable** install (resolves to
-  `src/voicelock/`), so the vendored `models/ecapa/` is found at runtime — no
-  wheel `force-include` change needed for the demo (kept the diff surgical;
-  a future real wheel build would still need the force-include).
+## What changed this turn (spec amendment only — no code)
+- `spec.md`: added a **Reset** control to F3.
+  - §0 Approval gate: **box 2 un-checked `[ ]`** + a dated amendment note. Grilling
+    box 1 stays `[x]` (Status still CLEAR; `[NEEDS-CLARIFICATION:` scan = 0).
+  - §1 Outcome: Reset clears the reference → no-reference state.
+  - §2 Interaction/UX row: updated to include the Reset action.
+  - §4 Constraints: new "Reset reference" bullet — deletes
+    `~/.voicelock/voiceprint.ref` + discards any half-finished take run, empties
+    the 3-take progress, returns the meter to "set reference first"; **no confirm
+    prompt**; Python owns the clear, JS renders only.
+  - §5 Verification: new automated check (`tests/test_booth_api.py` —
+    `reset_reference` clears the reference so `compare` → `no_reference` again,
+    file gone) + a Reset step added to the manual demo line.
+- `roadmap.md`: parked **F11 — Manage enrollment from inside the vault**
+  (post-F7; human-requested 2026-07-23; not yet specced).
+- No `plan.md` re-plan yet, no code — those wait for box-2 re-approval.
 
-## Measurement disclosure (step-5 exception)
-- Ran `uv run ruff check .` (clean) and `uv run pytest tests/test_booth_api.py -q`
-  (8 passed) locally as build sanity. Did NOT run the full `uv run pytest`,
-  `tests/test_voiceprint.py`, or the manual demo as the authoritative Gate —
-  reserved for fresh eyes.
+## Two UX decisions baked into the amendment (change before approving if you disagree)
+- Reset needs **no confirmation prompt** (low-stakes, re-settable).
+- Reset **also discards a half-finished 1-or-2-take run** (always a clean slate).
 
-## Next action — verify (this is the LAST task → FULL spec §5 Verification)
-1. **Fresh-eyes verify** Task 4 (clean context — subagent via
-   `formats/VERIFIER-PROMPT.md` verbatim, or a fresh session).
-   - Gate base..head: **`fb248ec..1f59982`** (DOING .. build; a bookkeeping
-     commit for this handoff is one ahead of the build commit).
-   - Task 4 done-criteria = the FULL `spec.md` **Verification** list:
-     - `uv run ruff check .` → 0
-     - `uv run pytest` → 0
-     - `uv run pytest tests/test_voiceprint.py -q` → 0 (spec §5 cases 1–5)
-     - **Manual (required, human-attested):** `uv run voicelock` → Set reference
-       (speak 3 sentences) → same person reads → meter small / **accept (green)**
-       → different person reads → meter large / **reject (red)**.
-2. **The manual line needs a HUMAN** — a subagent/CI cannot drive a real mic or
-   observe the meter. Expect the verifier to PASS the automated Gate + APPROVE
-   the automated axes and **ESCALATE_HUMAN for the manual demo** (same pattern as
-   F2-T4: "human attested manual Booth PASS after prior ESCALATE_HUMAN"). The
-   task is NOT DONE — and F3 is not complete — until a human runs the manual demo
-   and attests it. On that attestation → wrap-up marks Task 4 DONE and writes the
-   Mode-3 completion report.
-
-## Manual demo steps for the human
-- `uv run voicelock` → record a short sentence, click **Set reference** (dot 1),
-  repeat twice more (dots 2, 3) → hint shows "reference set".
-- Same person: record a sentence → the meter needle + readout should land
-  **accept (green)**, small distance.
-- Different person: record a sentence → **reject (red)**, large distance.
-- Edge checks (optional): click Set reference on a <0.4 s clip → "need more
-  audio"; compare before any reference → "set reference first".
+## Next action
+1. **HUMAN:** in `spec.md` §0, review the amendment + the changed sections
+   (§1/§4/§5), then **re-type the `x` in box 2** (Approved by human). The agent
+   never checks it.
+2. On approval → **re-plan** (this session or a fresh one):
+   - Add **Task 5 — Reset control** as the new LAST task; its done-criterion =
+     the FULL §5 Verification (now incl. the reset test + the reset manual step).
+   - Reclassify **Task 4** to intermediate and **close it DONE** on its already-
+     passed automated verification (verifier: Gate exit 0 + both Review axes
+     APPROVE; the ESCALATE was only the manual line, which moves to Task 5).
+     Human approved this closure path 2026-07-23.
+   - Build Task 5 (commit DOING first) → verify → the human runs ONE combined
+     manual Booth demo (set reference · same→accept · different→reject · reset).
 
 ## Where the rest lives
-- Task ledger + spine: `plan.md`. Requirements: `spec.md`. Deviations
-  (size + Task-3 DOING slip): `memory/deviations.md`.
+- Task ledger + spine: `plan.md` (not re-planned yet — Task 4 still shows REVIEW).
+  Requirements: `spec.md`. Deviations: `memory/deviations.md`.
 
 ## Commits
-- DOING: `fb248ec` · build (REVIEW): `1f59982` · bookkeeping: this commit.
-- Remote: none — local history only, no push. (Mode-3 feature-end checkpoint —
-  completion report + commit approval — is the human's.)
+- This turn: spec amendment + roadmap park + state (see git log after commit).
+- Remote: none — local history only, no push.
 
 ## Pending guardrail
 - None.

@@ -7,12 +7,21 @@ Feature: Feature 3 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [x] Approved by human
+- [ ] Approved by human
 
 - **Mode:** Mode 3
 
 The agent may NOT plan or build until BOTH boxes are checked.
 The second box is checked by the HUMAN typing the `x` — the agent never checks it.
+
+**Amendment (2026-07-23) — box 2 re-opened, needs fresh approval.** Added a
+**Reset** control to F3: clears the stored reference and restarts the 3-take
+flow from scratch. Human-requested. Changes are in §1 (Outcome), §4
+(Constraints — new "Reset reference" bullet), §5 (Verification — a bridge reset
+test + a reset step in the manual demo), and the §2 Interaction/UX row. Mode
+unchanged (Mode 3). Per the universal [Modes] rule an amendment needs a fresh
+box-2 approval — re-check the box above after reviewing the changed sections.
+Re-plan (adding Task 5 = Reset) happens only after that.
 
 ## 1. Outcome
 
@@ -23,6 +32,8 @@ stored **reference voiceprint** in the Booth, colored **accept** (close) vs
 derivation, no vault change.
 Demo: same person speaks → distance small / accept-colored; a different person
 speaks → distance large / reject-colored.
+A **Reset** action clears the stored reference and returns the Booth to the
+no-reference state, so a fresh reference can be recorded from scratch.
 
 ## 2. Grilling record — ambiguity scan
 
@@ -33,7 +44,7 @@ speaks → distance large / reject-colored.
 | ---------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Functional scope & behavior        | Clear   | compute voiceprint · show live distance vs reference · accept/reject color                                                   |
 | Domain & data model                | Clear   | reference = 3-sentence averaged ECAPA embedding, persisted to `~/.voicelock/voiceprint.ref` (plaintext vector, not in vault) |
-| Interaction & UX flow              | Clear   | "Set reference" action + live 3-band meter (green/amber/red) in the Booth                                                    |
+| Interaction & UX flow              | Clear   | "Set reference" action + **"Reset"** action (clears the reference + any in-progress takes, no confirm) + live 3-band meter (green/amber/red) in the Booth |
 | Non-functional (perf, security)    | Clear   | model vendored in-repo + HF_HUB_OFFLINE; pytest model-load budget declared in §5                                             |
 | Integration & dependencies         | Clear   | SpeechBrain ECAPA (human-approved TECH-PICK)                                                                                 |
 | Edge cases & failure modes         | Clear   | no reference → prompt to set; short/silent → "need more audio"; no mic → F1 error path                                       |
@@ -80,6 +91,15 @@ data. This multi-sample averaging deliberately overlaps F9's territory (human
 chose robustness); the **full** enrollment-quality gate + tolerance UI remain
 F9. Honest limitation: the reference vector is stored in **plaintext** —
 acceptable for an F3 diagnostic (real sealing is F4).
+- **Reset reference (amendment 2026-07-23):** a Booth **"Reset"** control clears
+the stored reference — deletes `~/.voicelock/voiceprint.ref` (a no-op if none
+exists) **and** discards any half-finished take run — then empties the 3-take
+progress and returns the meter to the "set reference first" state. **No
+confirmation prompt** (low-stakes diagnostic, freely re-settable). Re-setting a
+reference afterward is the normal 3-take flow. Python owns the clear (a bridge
+method deletes the file + resets in-progress takes); **JS renders only** the
+reset state — no embedding math in JS. Keep Record/Stop/Play and F2
+Enroll/Unlock unchanged.
 - Match distance + coloring: **cosine distance** between the live ECAPA embedding
 and the reference, shown with **three-band coloring** — accept (green) /
 borderline (amber) / reject (red). The concrete accept and reject cutoffs are
@@ -125,6 +145,12 @@ L2-normalized reference vector, and a too-short/silent take is rejected with the
 the compare path surfaces a set-reference-first signal (no crash); (5) the model
 loads from the vendored local path with no network call.
 
+- `uv run pytest tests/test_booth_api.py -q` → exit 0; final summary reports 0
+failed. Must cover (amendment 2026-07-23), using a temp ref path (no real mic):
+after a reference is set, the bridge **`reset_reference`** clears it — a
+subsequent `compare` surfaces the set-reference-first (`no_reference`) signal
+again, and the reference file no longer exists.
+
 Proof surface: the highest real surface F3 touches is the live pywebview Booth.
 Automated tests prove the Python voiceprint path on fixtures; they do **not** drive
 the real window or a live mic — that gap is covered by the required manual line
@@ -133,9 +159,12 @@ below (a required check, not accepted risk).
 - Manual (required for F3 done — Verification check): run `uv run voicelock`, use
 **Set reference** and speak 3 sentences to store a reference → the same person
 reads a sentence → live meter shows a small distance / **accept (green)** → a
-**different** person reads → meter shows a large distance / **reject (red)**.
-Observable: real-mic Set reference works, the live 3-band meter updates, and a
-real same-vs-different speaker separates into accept vs reject.
+**different** person reads → meter shows a large distance / **reject (red)** →
+click **Reset** → the meter returns to "set reference first" and a fresh
+reference can be set again.
+Observable: real-mic Set reference works, the live 3-band meter updates, a
+real same-vs-different speaker separates into accept vs reject, and Reset clears
+the reference back to the no-reference state.
 
 Out-of-scope discoveries during build (Mode 3 default): record in `.out-of-scope/`,
 never build.

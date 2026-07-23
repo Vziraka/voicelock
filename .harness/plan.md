@@ -1,12 +1,14 @@
 # Plan — F3 — Voiceprint on screen
 
 ## Active context
-- Updated: 2026-07-22
-- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: verifying
-  (Tasks 1–3 DONE; Task 4 REVIEW — verifier ESCALATE_HUMAN: automated Gate + both
-  Review axes PASS, ONLY the required manual Booth demo is outstanding. NOT DONE,
-  F3 NOT complete until a human runs `uv run voicelock` and attests same→accept /
-  different→reject. On attestation → wrap-up + Mode-3 completion report.)
+- Updated: 2026-07-23
+- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: spec-amendment
+  (Tasks 1–3 DONE; Task 4 REVIEW — automated PASS/APPROVE, manual demo outstanding.
+  **AMENDMENT PENDING (2026-07-23):** Reset control drafted in `spec.md` §1/§4/§5;
+  box 2 re-opened `[ ]`, awaiting human re-approval. This ledger is NOT re-planned
+  yet — on box-2 approval: add Task 5 (Reset) as the new LAST task, reclassify
+  Task 4 to intermediate + close it DONE on its passed automated verification
+  [approved by human 2026-07-23], then build Task 5, then ONE combined manual demo.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 

@@ -187,6 +187,13 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   Optional exploration only; never claimed as deepfake-proof. Revisit after F9
   if you still want it.
 
+- **F11 — Manage enrollment from inside the vault** · blocked-by: F7
+  Once unlocked, let the user change the passphrase and re-enroll voice/face
+  from inside their profile (edit/reset any of the three factors). Profile
+  management — only meaningful after all three factors are real locks (post-F7),
+  likely bundled with or after F9. Human-requested 2026-07-23; not yet specced,
+  parked here so it isn't lost.
+
 ## Out of scope
 
 - Not a real security product — no FAR/FRR guarantees, no certification.
