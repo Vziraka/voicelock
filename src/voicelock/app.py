@@ -132,6 +132,12 @@ class BoothApi:
             return {"ok": False, "error": "need_more_audio"}
         return {"ok": True, "distance": distance, "band": band}
 
+    def reset_reference(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Clear the stored reference voiceprint and any half-finished take run."""
+        self._reference_takes = []
+        self.ref_path.unlink(missing_ok=True)
+        return {"ok": True}
+
     def start_record(self) -> dict[str, Any]:
         if self.playback.is_playing:
             self.stop_playback()

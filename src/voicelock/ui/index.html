@@ -578,6 +578,7 @@
           </div>
           <div class="vp-row">
             <button type="button" class="btn btn-secondary" id="btn-set-reference">Set reference</button>
+            <button type="button" class="btn btn-secondary" id="btn-reset-reference">Reset</button>
             <div class="vp-take-dots" id="vp-take-dots" aria-label="reference takes recorded">
               <span class="vp-take-dot"></span>
               <span class="vp-take-dot"></span>
@@ -630,6 +631,7 @@
     const profileAvatar = document.getElementById("profile-avatar");
     const profileDot = document.getElementById("profile-dot");
     const btnSetReference = document.getElementById("btn-set-reference");
+    const btnResetReference = document.getElementById("btn-reset-reference");
     const vpDistance = document.getElementById("vp-distance");
     const vpNeedle = document.getElementById("vp-needle");
     const vpHint = document.getElementById("vp-hint");
@@ -1004,6 +1006,16 @@
       setVoiceprintHint("live match — " + result.band, false);
     }
 
+    btnResetReference.addEventListener("click", async function () {
+      const result = await call("reset_reference");
+      if (!result || !result.ok) {
+        setVoiceprintHint("reset — bridge not ready", true);
+        return;
+      }
+      setReferenceProgress(0);
+      showSetReferenceFirst();
+    });
+
     btnRecord.addEventListener("click", async function () {
       const result = await call("start_record");
       if (!result || !result.ok) {
@@ -1060,6 +1072,7 @@
         chipNoVault: chipNoVault,
         profileName: profileName,
         setReference: btnSetReference,
+        resetReference: btnResetReference,
         vpDistance: vpDistance,
         vpNeedle: vpNeedle,
         vpHint: vpHint,

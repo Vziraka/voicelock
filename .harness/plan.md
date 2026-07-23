@@ -2,9 +2,10 @@
 
 ## Active context
 - Updated: 2026-07-23
-- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: implementing
-  (Amendment approved 2026-07-23. Tasks 1–4 DONE; Task 5 DOING — Reset control,
-  the LAST task; its done = FULL amended §5 incl. the human-attested manual demo.)
+- Spec: `spec.md` · Feature: Feature 3 from `roadmap.md` · Mode: Mode 3 · Phase: verifying
+  (Amendment approved 2026-07-23. Tasks 1–4 DONE; Task 5 REVIEW — Reset control
+  built, automated green locally; LAST task → verifier runs FULL amended §5, then
+  the human-attested manual demo.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -102,8 +103,9 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — Reset control: clear the stored reference + restart the 3-take flow (LAST task, F3 amendment 2026-07-23)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
+  - build-notes: `BoothApi.reset_reference()` clears `_reference_takes` + `ref_path.unlink(missing_ok=True)` → `{ok:true}`. `ui/index.html`: a **Reset** button (`btn-reset-reference`) next to Set reference → calls the bridge → `setReferenceProgress(0)` + `showSetReferenceFirst()`; no confirm. `tests/test_booth_api.py` +2: reset clears a set reference (compare→`no_reference`, file gone); reset is a no-op on a missing file and clears an in-progress take (progress restarts at 1). ruff clean; 10 booth tests pass locally.
   - files: `src/voicelock/app.py`, `src/voicelock/ui/index.html`, `tests/test_booth_api.py`
   - notes: Add a `BoothApi.reset_reference()` bridge method that **deletes**
     `~/.voicelock/voiceprint.ref` (the injectable `ref_path`; no-op if absent)
