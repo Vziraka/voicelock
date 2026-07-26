@@ -314,6 +314,21 @@
     background: linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
+  /* Camera preview. Python delivers a 172px square with the overlay already
+     drawn and already mirrored, so this element does no cropping, no scaling
+     maths and no CSS flip — it only masks the square to the disk's circle. */
+  .face-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: none;
+  }
+  .face-frame.is-live {
+    display: block;
+  }
   .prompt {
     text-align: center;
     min-height: 58px;
@@ -590,13 +605,14 @@
         <div class="face-wrap" aria-hidden="true">
           <div class="face-glow"></div>
           <div class="face-disk"></div>
-          <svg viewBox="0 0 100 100" width="118" height="118" style="position:relative;overflow:visible">
+          <svg id="face-smiley" viewBox="0 0 100 100" width="118" height="118" style="position:relative;overflow:visible">
             <g style="animation:vlBlink 5.4s infinite;transform-origin:50px 44px">
               <rect x="33.5" y="35" width="7" height="18" rx="3.5" fill="#eef0f5"></rect>
               <rect x="59.5" y="35" width="7" height="18" rx="3.5" fill="#eef0f5"></rect>
             </g>
             <path d="M37 63 Q50 68 63 63" fill="none" stroke="#eef0f5" stroke-width="6" stroke-linecap="round"></path>
           </svg>
+          <img id="face-frame" class="face-frame" alt="">
         </div>
 
         <div class="prompt">
@@ -671,6 +687,8 @@
     const btnStop = document.getElementById("btn-stop");
     const btnPlay = document.getElementById("btn-play");
     const micError = document.getElementById("mic-error");
+    const faceFrame = document.getElementById("face-frame");
+    const faceSmiley = document.getElementById("face-smiley");
     const prompt = document.getElementById("prompt-text");
     const sub = document.getElementById("sub-text");
     const status = document.getElementById("status-line");
@@ -770,6 +788,24 @@
       btnStop.disabled = !(recording || playing);
       btnRecord.disabled = playing;
       btnPlay.disabled = recording || playing || !hasTake;
+    }
+
+    // FaceView. The page renders what Python pushes and holds no camera state
+    // of its own: no frame counter, no "is the camera on" flag. Python owns the
+    // camera because file:// documents get no secure context, so the browser's
+    // media-capture API is absent here; Python composites and mirrors each
+    // frame before sending it.
+    function setFaceFrame(dataUri) {
+      if (!dataUri) return;
+      faceFrame.src = dataUri;
+      faceFrame.classList.add("is-live");
+      faceSmiley.style.display = "none";
+    }
+
+    function setFaceIdle() {
+      faceFrame.classList.remove("is-live");
+      faceFrame.removeAttribute("src");
+      faceSmiley.style.display = "";
     }
 
     function setRecording(active) {
@@ -1256,6 +1292,8 @@
         play: btnPlay,
         canvas: canvas,
         micError: micError,
+        faceFrame: faceFrame,
+        faceSmiley: faceSmiley,
         prompt: prompt,
         sub: sub,
         status: status,
@@ -1278,6 +1316,8 @@
         level = Math.max(0, Math.min(1, Number(value) || 0));
       },
       setRecording: setRecording,
+      setFaceFrame: setFaceFrame,
+      setFaceIdle: setFaceIdle,
       setPlaying: setPlaying,
       onCaptureEnded: onCaptureEnded,
       showMicError: showMicError,
