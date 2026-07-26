@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Tasks 1–2 `DONE`, Task 3 `REVIEW` — the LAST task, carrying the FULL spec §5 list.**
+- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Tasks 1–2 `DONE`. Task 3 `REVIEW` — verified, Gate `ESCALATE_HUMAN`, BLOCKED ON THE HUMAN'S LIVE-DEMO ATTESTATION.**
   (Spec approved at box 2 by the human 2026-07-26. Mode 3 is the standing "go":
   Task 2's wrap-up completed, so the session takes Task 3 without a further
   human word — but Task 3 carries the FULL spec §5 list and will reach the Gate
@@ -149,16 +149,29 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       The automated tests prove the fix's logic against fakes; they do **not**
       prove `sd.CallbackStop` unwinds cleanly through sounddevice's CFFI boundary
       on real hardware — that is what this line covers.)
-  - feedback: (none)
+  - feedback: (no REJECT — `rejects:` stays 0)
+  - verification 2026-07-26: **Gate ESCALATE_HUMAN · Review APPROVE (Spec pass,
+    Standards pass), conditional on the human's attestation.** Six automated
+    commands from the FULL spec §5 list all exit 0 — `uv run ruff check .`
+    (`All checks passed!`), `uv run pytest` (`88 passed in 50.42s`),
+    `uv run pytest tests/test_capture.py -q` (`10 passed in 0.32s`), and the
+    three pinned one-liners (`_on_audio` source assertion, the `soundfile`
+    manifest assertion, the `callback` tripwire). The seventh — spec §5's
+    required 31-second live Booth check — **cannot be run by an agent** and is
+    NOT RUN. Task 3 therefore stays `REVIEW`: no `DONE`, no verdict file, until
+    the human attests (F3-T5 / F4-T5 precedent). Verified by clean-context
+    subagent via `formats/VERIFIER-PROMPT.md` verbatim; no findings on either
+    axis.
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **Tasks 1 and 2 are `DONE`, both APPROVE on the first pass via
-   subagent (verdicts `2026-07-26-F4.5-T1.json`, `-T2.json`). `soundfile>=0.14.0`
-   is declared; `FakeStream` now delivers through the real callback and trips on
-   re-entrant teardown. Only Task 3 — the actual `capture.py` fix — remains, and
-   it carries the FULL spec §5 list plus the human-attested live check.**
+1. 2026-07-26 — **All three tasks are built and verified; the feature is one
+   human action from done.** Tasks 1–2 `DONE` (verdicts `-F4.5-T1.json`,
+   `-T2.json`, both APPROVE first pass). Task 3 is `REVIEW` with Gate
+   ESCALATE_HUMAN and Review APPROVE: 6/6 automated §5 commands exit 0, and the
+   only thing outstanding is the human running the 31-second live Booth check.
+   Nothing to build. `rejects: 0` on every task.
 2. What F4.5 closes: the PortAudio callback **self-deadlock** (`_on_audio` calls
    `_close_stream()` → `stream.stop()`, which blocks until the callback returns —
    the code does the opposite of its own comment), the **zero coverage** of that
