@@ -4,8 +4,13 @@
 - Updated: 2026-07-26
 - Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1
   `DONE` (verdict `memory/verdicts/2026-07-26-F5-T1.json`, APPROVE first pass,
-  `rejects: 0`). **Task 2 `DOING`** — vendoring the model bundle, with its
-  licence-at-download escalation point. Tasks 3–7 `TODO`.**
+  `rejects: 0`). **Task 2 `BLOCKED` — the designed licence STOP condition
+  fired: the bundle's licence is `unconfirmed`, so it was NOT committed.
+  Awaiting a human decision (evidence:
+  `memory/research/2026-07-26-f5-face-landmarker-licence.md`).** Tasks 3–7
+  `TODO`. Task 3 is independently startable — the plan split the two asset
+  tasks precisely so a blocked model would not also block the fixture — but
+  Tasks 4–7 all depend on Task 2.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -91,7 +96,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — Vendor the Face Landmarker `.task` bundle, licence verified at download
-  - state: DOING
+  - state: BLOCKED
   - rejects: 0
   - files: `src/voicelock/models/face_landmarker/face_landmarker.task`,
     `src/voicelock/models/face_landmarker/LICENSE` (+ `NOTICE` if the source
@@ -124,7 +129,40 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run python -c "import mediapipe as mp; from mediapipe.tasks.python import vision, BaseOptions; o = vision.FaceLandmarkerOptions(base_options=BaseOptions(model_asset_path='src/voicelock/models/face_landmarker/face_landmarker.task'), running_mode=vision.RunningMode.VIDEO); lm = vision.FaceLandmarker.create_from_options(o); lm.close(); print('bundle loads')"` → exit 0 (the bundle is a real, loadable Face Landmarker in **VIDEO** mode — not merely a file of the right size; no network is involved, `model_asset_path` is local)
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (final summary reports 0 failed — adding an asset regresses nothing)
-  - feedback: (none)
+  - feedback:
+    - **2026-07-26 — `BLOCKED` at the designed STOP condition. This is the
+      planned behaviour, not a defect: the licence check ran and did not
+      clear.** `rejects:` is deliberately left at 0 — the 3-attempt retry
+      budget counts *failed fix attempts*, and nothing here is fixable by
+      building differently.
+      **Finding: the bundle's licence is `unconfirmed`, not "permissive".**
+      Full evidence with sources and dates:
+      `memory/research/2026-07-26-f5-face-landmarker-licence.md`. In short —
+      the artifact carries no licence text (all four zip entries scanned, zero
+      hits); the hosting bucket has no `LICENSE` (404 at three paths); the
+      official guide states a licence only for *page content and code
+      samples*; the `mediapipe` wheel is Apache-2.0 but ships **zero** model
+      files; the `google-ai-edge/mediapipe` repo is Apache-2.0 but ships only
+      `.pbtxt` graphs for this module and **zero** `.task` bundles; Kaggle's
+      page is JS-gated; and web results trace back to Apache-2.0 headers in
+      *code samples* — the exact evidence class `spec.md` §4 rules
+      insufficient ("it comes from Google's MediaPipe project" is NOT
+      sufficient evidence).
+      The bundle **was downloaded** (3 758 596 bytes, SHA-256
+      `64184E22…4E0BC9FF` — the size clears §5's `> 1_000_000` assertion) but
+      was **not committed**, and was moved out of the repo tree so no
+      `git add -A` can vendor it accidentally.
+      **Most likely resolution, and it needs a human, not another tool call:**
+      the three linked model cards are image-only PDFs with no extractable
+      text and no OCR available here. They are downloaded and ready to read;
+      a human opening them settles this in a minute. Second avenue: the Kaggle
+      model page in a real browser.
+      Substituting a different model is **forbidden** (`spec.md` §4), and
+      changing the vendoring approach (e.g. fetching to `~/.voicelock/` at
+      first run instead of committing) would be a **spec amendment** — §4
+      mandates vendoring into the repo and §5 asserts the file exists at
+      `src/voicelock/models/face_landmarker/face_landmarker.task`. Human-only
+      in every mode.
 
 - [ ] **Task 3** — Vendor the `portrait.jpg` face fixture + its provenance README, licence verified at download
   - state: TODO
@@ -393,11 +431,16 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    (30 fps worker, drop-don't-queue, release tripwire, throughput floor) → **6**
    the Booth `<img>` → **7** `BoothApi` wiring + window close (**LAST**, FULL §5,
    human-attested manual check).
-3. **Two designed STOP points, Tasks 2 and 3**: each vendored asset's licence is
-   verified **at download**, before commit. Not permissive → `BLOCKED` +
-   escalate. Substituting a different model or image silently is forbidden
-   (`spec.md` §4); replacing the real-model test with a written limitation is a
-   **spec amendment**, human-only.
+3. **The FIRST designed STOP point fired (Task 2, 2026-07-26).** The Face
+   Landmarker bundle's licence is **`unconfirmed`** against every primary
+   source checked — the artifact, the bucket, the docs, the wheel, the repo,
+   Kaggle — so it was **not** committed and Task 2 is `BLOCKED` awaiting a
+   human. Evidence: `memory/research/2026-07-26-f5-face-landmarker-licence.md`.
+   Likeliest fix: a human reads the three already-downloaded model-card PDFs
+   (image-only, no OCR here). Task 3's own licence STOP point is still ahead
+   and unrelated. Substituting a different model or image silently is forbidden
+   (`spec.md` §4); changing the vendoring approach, or replacing the real-model
+   test with a written limitation, is a **spec amendment** — human-only.
 4. **F4.5's fake-stream shape is what Tasks 4–5 inherit**, translated to a
    polling device: `cv2.VideoCapture` has no callback, so **`read()` is the real
    path** the fake must deliver through and **`release()` is the teardown** it
