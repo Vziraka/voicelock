@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1 `DOING`, Tasks 2–3 `TODO`**
+- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Task 1 `REVIEW` (awaiting fresh-eyes verification), Tasks 2–3 `TODO`**
   (Spec approved at box 2 by the human 2026-07-26. Mode 3 is the standing "go":
   implement starts Task 1 in a fresh session without a further human word. The
   feature closes calibration findings 1–3; findings 3-as-`voiceprint.py`-surface
@@ -18,7 +18,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Declare `soundfile` as a main dependency (manifest only, no code change)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`
   - notes: `uv add soundfile` — nothing else. The TECH-PICK is already run and
