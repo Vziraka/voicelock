@@ -19,11 +19,13 @@
   `rejects: 0`) — `facedetect.py` exists: the per-frame composite path on
   injectable fakes, 14 new tests, suite at **102 passed**. `TARGET_FPS` and the
   camera lifecycle are deliberately NOT there — they are **Task 5's**, so no
-  constant lands without a caller. **Task 5 `REVIEW`** — the lifecycle exists:
-  daemon worker, `stop()` ordering (halt → join → release), drop-don't-queue
-  pacing, and the `BaseException` release tripwire. **Throughput measured at
-  8.1 ms/frame** against the 33 ms budget, so `TARGET_FPS` stays at **30** and
-  the fallback ladder was not needed. Suite: **111 passed**.
+  constant lands without a caller. **Task 5 `TODO`, `rejects: 1`** — the
+  lifecycle was built and **REJECTED** on review: `_loop`'s falsy-read branch is
+  untested dead surface (the first earned guardrail), and the drop-don't-queue
+  behaviour was pinned only as a pure function, so deleting it from the loop
+  still passed every test. Retry in progress, feedback-first. The Gate itself
+  passed 6/6 — **throughput 8.2 ms/frame** against the 33 ms budget, so
+  `TARGET_FPS` stays at **30** and the fallback ladder is not needed.
   Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
   the enforcement check for the per-asset licence guardrail; (2) the fixture
   change.**
@@ -347,8 +349,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — `facedetect.py`: camera lifecycle — 30 fps worker, drop-don't-queue, release tripwire
-  - state: REVIEW
-  - rejects: 0
+  - state: TODO
+  - rejects: 1
   - measured: **throughput floor 8.1 ms/frame** against the 33 ms budget
     (~123 fps engine-side, ~4x headroom). **`TARGET_FPS` stays at 30** — the
     fallback ladder was not needed. This measures the engine only; the
@@ -409,6 +411,41 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       plus: **frames are dropped, not queued** — with a fake clock or a deliberately slow frame path, the engine skips the overrun frame rather than accumulating a backlog, and the callback receives the **latest** frame;
       and every Task 4 test still passes unchanged
     - `uv run python -c "import pathlib; t = pathlib.Path('tests/test_facedetect.py').read_text(encoding='utf-8'); assert 'release' in t, 'the camera tests never mention release'; assert 'read' in t, 'the camera tests never drive the real read path'"` → exit 0 (`spec.md` §5's pinned command, verbatim — the per-module analog of F4.5's `assert 'callback' in <test file>`, adapted honestly to a **polling** device)
+  - feedback:
+    - **2026-07-26 — REJECT #1** (Gate PASS 6/6 incl. throughput 8.2 ms/frame;
+      Review REJECT on both axes). Two findings, both accepted without
+      argument:
+      **(1) `_loop`'s falsy-read branch is untested dead surface.**
+      `facedetect.py:194-196` breaks on `not ok or frame is None`, but every
+      `engine.start(...)` in the suite either uses a `repeat=True` fake that can
+      never return falsy or fails at `isOpened()` so no thread starts. This is
+      the **first earned guardrail** — the one that cost F4 three REJECTs — and
+      `spec.md` §4 binds F5 to it verbatim ("every branch added here must have a
+      caller and a test", explicitly including the no-face branch). It also has
+      a real consequence I flagged the semantics of but not the coverage gap:
+      the `break` leaves `status == RUNNING` with `_camera` still held, so a
+      transient read failure kills the preview silently, with no ERROR and no
+      recovery path — and `start()` would then leak the held camera.
+      **Fix:** drive `start()` with a finite-frame `repeat=False` fake, decide
+      the end state deliberately (ERROR, not a silent RUNNING), and make
+      `start()` unable to leak a stale camera.
+      **(2) The drop-don't-queue behaviour is not pinned at the loop level.**
+      `test_frames_are_dropped_not_queued...` tests `pacing_delay` as a pure
+      function only, and `test_worker_paces_itself_with_the_injected_clock`'s
+      sole pacing assertion (`read_count >= len(received)`) holds **by
+      construction** of `_loop`. The verifier proved the gap: replace
+      `self._stop_event.wait(pacing_delay(...))` with a fixed
+      `wait(FRAME_INTERVAL)` — deleting the drop behaviour outright — and all 23
+      tests still pass. Right shape, empty substance; the injected `clock`
+      existed with no test using it for its purpose.
+      **Fix:** discriminate on observed cadence — an overrun clock must produce
+      no wait, an under-budget clock must produce one — so a fixed-wait
+      implementation fails.
+      Non-blocking, recorded not actioned: `_wait_for` polling, `JOIN_TIMEOUT`
+      chosen rather than measured, tests touching `engine._thread`. And for
+      **Task 7**: if `stop()`'s join times out, `release()` runs anyway while
+      the worker may still be mid-read — a 5 s window that only opens if a frame
+      hangs.
     - `uv run python -c "import inspect; from voicelock import facedetect; s = inspect.getsource(facedetect); assert 'TARGET_FPS' in s, 'the frame rate is not a named constant'"` → exit 0 (pins §4's one-line-fallback requirement)
     - **Throughput floor**, against the **real** vendored model and the `portrait.jpg` fixture: `uv run python -c "import time, cv2, numpy as np; from voicelock import facedetect; eng = facedetect.FaceEngine(); frame = cv2.resize(cv2.imread('tests/fixtures/face/portrait.jpg'), (facedetect.CAPTURE_WIDTH, facedetect.CAPTURE_HEIGHT)); [eng.process_frame(frame) for _ in range(3)]; t0 = time.perf_counter(); [eng.process_frame(frame) for _ in range(30)]; ms = (time.perf_counter() - t0) / 30 * 1000; print(f'{ms:.1f} ms/frame'); assert ms < 33, f'engine cannot sustain the 30 fps target: {ms:.1f} ms/frame'"` → exit 0, and **the printed number goes in the completion report**. Covers detect + overlay + crop + flip + JPEG encode for 30 consecutive 640×480 frames, averaging under 33 ms
     - `uv run ruff check .` → exit 0
