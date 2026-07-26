@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, next is Task 4
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, Task 4 `DOING`
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -225,7 +225,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          write).
 
 - [ ] **Task 4** — Bridge: `BoothApi` 5-take voice enroll + voice unlock with distinct reject reasons
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
   - **scope REDUCED 2026-07-26:** Task 3 absorbed the bridge's signature-driven
