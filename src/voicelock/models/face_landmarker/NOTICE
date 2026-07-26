@@ -1,0 +1,73 @@
+Vendored model: MediaPipe Face Landmarker
+=========================================
+
+This directory contains a redistributed copy of Google's MediaPipe Face
+Landmarker task bundle, vendored so VoiceLock can detect faces and facial
+landmarks fully offline (no runtime network; loaded with
+BaseOptions(model_asset_path=...)).
+
+Source
+------
+- URL:        https://storage.googleapis.com/mediapipe-models/face_landmarker/
+              face_landmarker/float16/latest/face_landmarker.task
+- Retrieved:  2026-07-26
+- Size:       3,758,596 bytes
+- SHA-256:    64184E229B263107BC2B804C6625DB1341FF2BB731874B0BCC2FE6544E0BC9FF
+- Precision:  float16
+- Verified:   re-fetched from the URL above on the same day and compared;
+              byte-for-byte identical to the copy committed here.
+
+License
+-------
+Apache License 2.0. The full license text is in the sibling LICENSE file.
+
+Read this next paragraph before trusting the line above — the provenance here
+is less direct than for models/ecapa/, and pretending otherwise would defeat
+the point of writing it down.
+
+The .task bundle itself carries NO embedded license: all four of its entries
+were scanned for "Apache" / "licen" / "copyright" with zero hits, and the
+TFLite metadata license field is unpopulated. The hosting bucket serves no
+LICENSE file (HTTP 404 at three paths). The MediaPipe documentation licenses
+only "the content of this page" and "code samples", not model weights. The
+Apache-2.0 mediapipe wheel ships zero model files, and the Apache-2.0
+google-ai-edge/mediapipe repository ships only .pbtxt graph configs for this
+module -- no .tflite weights and no .task bundles at all.
+
+The license is established instead from Google's own MODEL CARDS for the three
+models this bundle repackages. Each of the three links to
+https://www.apache.org/licenses/LICENSE-2.0.html:
+
+  Model Card MediaPipe Face Mesh V2.pdf          -> face_landmarks_detector.tflite
+  MediaPipe BlazeFace Model Card (Short Range).pdf -> face_detector.tflite
+  Model Card Blendshape V2.pdf                   -> face_blendshapes.tflite
+
+(all three under https://storage.googleapis.com/mediapipe-assets/)
+
+Those cards are image-only PDFs. A human read them on 2026-07-26 and reported
+the Apache-2.0 license; that reading was then corroborated mechanically by
+extracting each PDF's link annotations, which are plain objects even when the
+page content is a flat image. What was machine-verified is the presence of the
+Apache-2.0 URL in all three cards -- not the sentence surrounding it.
+
+Full investigation, including the eight sources that said nothing:
+  .harness/memory/research/2026-07-26-f5-face-landmarker-licence.md          (blocked)
+  .harness/memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md (resolved)
+
+Vendored files
+--------------
+- face_landmarker.task    the bundle; a zip containing:
+                            face_detector.tflite                    (229,746 B)
+                            face_landmarks_detector.tflite        (2,553,590 B)
+                            face_blendshapes.tflite                 (955,312 B)
+                            geometry_pipeline_metadata_landmarks.binarypb (19,376 B)
+- LICENSE                 Apache License 2.0 (unmodified upstream text)
+
+VoiceLock (F5) uses the detector and the 478-point landmark model. The
+blendshape model ships inside the bundle and is not separately loaded here;
+F8's lip-sync liveness work may use it.
+
+Attribution
+-----------
+MediaPipe, by Google. See https://developers.google.com/edge/mediapipe and the
+model cards listed above.

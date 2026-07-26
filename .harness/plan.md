@@ -4,10 +4,10 @@
 - Updated: 2026-07-26
 - Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1
   `DONE` (verdict `memory/verdicts/2026-07-26-F5-T1.json`, APPROVE first pass,
-  `rejects: 0`). **Task 2 `DOING` — its licence STOP condition fired and was
-  then RESOLVED by the human 2026-07-26: the bundle is Apache-2.0 per Google's
-  three model cards (`memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`).
-  Vendoring proceeds.** Tasks 3–7 `TODO`.**
+  `rejects: 0`). **Task 2 `REVIEW` — its licence STOP condition fired, was
+  RESOLVED by the human 2026-07-26 (Apache-2.0 per Google's three model cards,
+  `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`), and the
+  bundle is now vendored with LICENSE + NOTICE.** Tasks 3–7 `TODO`.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -93,7 +93,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — Vendor the Face Landmarker `.task` bundle, licence verified at download
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/models/face_landmarker/face_landmarker.task`,
     `src/voicelock/models/face_landmarker/LICENSE` (+ `NOTICE` if the source
