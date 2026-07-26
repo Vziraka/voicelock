@@ -1,137 +1,143 @@
-# Handoff — F5 Task 5 rebuilt after REJECT #1, now `REVIEW`
+# Handoff — F5 Tasks 1–5 `DONE`; Task 6 (Booth UI) is next
 
-Session of 2026-07-26. Tasks 1–4 `DONE`. Task 5 was **rejected once** on review,
-both findings are fixed, and it is back at `REVIEW` with `rejects: 1`.
+Session of 2026-07-26. Five of seven tasks closed. Tasks 1–4 landed APPROVE on
+the first pass; **Task 5 took one REJECT** and is now `DONE` with `rejects: 1`.
 Tasks 6–7 `TODO`.
 
-## The REJECT, and what changed
+**Two guardrail proposals are parked below** and need a yes/no. Neither blocks
+Task 6.
 
-Gate passed 6/6 both times; the REJECT was on review, and both findings were
-correct. No part of the verdict was re-litigated.
+## Where the feature stands
 
-**Finding 1 — `_loop`'s falsy-read branch was untested dead surface.** The first
-earned guardrail, which `spec.md` §4 binds this feature to verbatim. It also had
-a real consequence: `break` left `status == RUNNING` with the camera still held,
-so a transient read failure killed the preview silently and a restart would have
-orphaned the device.
+| Task | State | Note |
+|---|---|---|
+| 1 — declare deps | `DONE` | `numpy`/`torch` provably unmoved |
+| 2 — vendor the bundle | `DONE` | Apache-2.0, hash-verified |
+| 3 — face fixture | `DONE` | fetched-not-committed + committed vendor reference |
+| 4 — per-frame composite | `DONE` | matches Google's published landmarks to 0.005645 |
+| 5 — camera lifecycle | `DONE` | `rejects: 1`; ~8 ms/frame vs the 33 ms budget |
+| 6 — Booth `<img>` | `TODO` | **next**, UI only |
+| 7 — `BoothApi` wiring | `TODO` | LAST; full §5 + the human-attested demo |
 
-Now:
+Suite: **114 passed**. Verdicts: `memory/verdicts/2026-07-26-F5-T1…T5.json`.
 
-```python
-self._fail("Camera stopped delivering frames")
-return
-```
+## Task 5's REJECT, because the lesson matters for what's left
 
-The status becomes ERROR, `stop()` releases the device and refuses to erase the
-error, and the next `start()` opens a fresh camera. **`start()` now calls
-`stop()` first**, so a camera that died mid-loop can never be orphaned by a
-restart — that is the leak the old `break` would have caused.
+Two findings, both earned. The second is the interesting one: the
+drop-don't-queue behaviour was tested only as a **pure function**, while the
+loop-level assertion (`read_count >= len(received)`) was true **by
+construction**. The verifier proved the gap by replacing
+`wait(pacing_delay(...))` with a flat `wait(FRAME_INTERVAL)` — deleting the
+behaviour outright — and watching all 23 tests still pass.
 
-**Finding 2 — the drop-don't-queue behaviour was not pinned at the loop level.**
-The verifier proved it: replacing `wait(pacing_delay(...))` with a flat
-`wait(FRAME_INTERVAL)` deleted the behaviour outright and all 23 tests still
-passed. Right shape, empty substance.
+Fixed with two tests that discriminate in **opposite** directions (an overrun
+must cost zero delay; an under-budget frame must actually be paced), then
+verified by **mutation** rather than assertion: 3/3 caught by me, and the
+verifier independently repeated and extended it to **4/4**, catching one I had
+not claimed.
 
-Replaced with two tests that discriminate in **opposite** directions:
+**`TARGET_FPS` stays at 30.** Measured 8.0–8.7 ms/frame across four runs against
+the 33 ms budget. The fallback ladder was not needed and the assertion was not
+loosened. This measures the **engine only** — the `evaluate_js` bridge half is
+Task 7's live check, and remains the one genuinely unmeasured risk in F5.
 
-- an **overrun** frame must cost **zero** extra delay — a flat-interval loop
-  would need ≥ 5 × 33 ms and fails;
-- an **under-budget** frame must actually be paced — a no-wait loop finishes
-  instantly and fails.
+## PENDING — two guardrail proposals, neither written
 
-Neither passes unless `_loop` consults `pacing_delay`, so the injected `clock`
-is finally used for its purpose.
+`project.md` has **not** been touched. Both need a human yes/no; declining is a
+fine answer and I will record it as declined.
 
-## Verified by mutation, not by assertion alone
+**A — from Task 5's scan (new).** Distinct from the existing "no unexercised
+branch" rule: that one catches surface with *no* test, this catches surface with
+a test whose assertion still holds if the behaviour is deleted.
 
-Because the whole finding was that passing tests can be hollow, I broke the
-implementation three ways and confirmed each test catches it. Source restored
-byte-identical afterwards.
+> - **[Forbidden]** A test must assert something that would **break if the
+>   behaviour were removed**. Before claiming a test covers behaviour X, delete
+>   or neuter X and confirm the test fails; an assertion that holds by
+>   construction of the code under test is not coverage. `warn` · expires:
+>   2027-01-31
+>   - _Evidence:_ F5 Task 5 (2026-07-26), REJECT #1. `drop-don't-queue` was
+>     pinned only as a pure function while the loop-level test asserted
+>     `read_count >= len(received)` — true by construction. Replacing
+>     `wait(pacing_delay(...))` with a flat `wait(FRAME_INTERVAL)`, i.e. deleting
+>     the behaviour entirely, still passed all 23 tests. Cost one full verify
+>     cycle. The fix — two tests discriminating in opposite directions, then a
+>     mutation run — caught 4/4 including one the implementor had not claimed.
+>   - _Added:_ 2026-07-26
+>
+> _Enforcement considered and rejected with reason:_ a real mutation-testing
+> tool (`mutmut`, `cosmic-ray`) is a new dependency needing a TECH-PICK and is
+> disproportionate here, and no lint rule can detect a vacuous assertion. Prose
+> is the honest fallback, with the cheap manual technique named in the rule.
 
-| Mutation | Result |
-|---|---|
-| flat `wait(FRAME_INTERVAL)` — deletes drop-don't-queue | **CAUGHT** |
-| `wait(0)` — deletes pacing entirely | **CAUGHT** |
-| `break` — the original rejected behaviour | **CAUGHT** |
+**B — from Task 3's scan (still parked).** An **update** to the existing
+`[Approval]` per-asset licence rule, not a new guardrail:
 
-`3/3 mutations caught`.
+> Append: **check the asset's own embedded metadata first (EXIF/XMP for images,
+> bundle metadata for models)** — the most authoritative statement available and
+> the cheapest to read.
+>
+> _Evidence:_ eight external sources were consulted for the model bundle before
+> the answer turned up in Google's model cards; for the image fixture the answer
+> was **inside the file** — two lines of EXIF settled it immediately, where the
+> bucket, the docs and the Apache-2.0 `BUILD` file all said nothing or the wrong
+> thing.
 
-## Changed
+## Carried forward into Task 6 (UI only)
 
-- **`src/voicelock/facedetect.py`** — the falsy-read path now fails loudly;
-  `start()` cleans up before acquiring.
-- **`tests/test_facedetect.py`** — **26** tests: the two discriminating pacing
-  tests, the mid-loop camera-death test, and the restart-releases-the-dead-camera
-  test replace the tautological one.
-- **`.harness/plan.md`** — Task 5 `REVIEW → TODO (rejects: 1) → DOING → REVIEW`,
-  with the full REJECT feedback recorded on the task.
+`src/voicelock/ui/index.html` — the page's **only** job is to assign the pushed
+data URI to an `<img>` inside `.face-wrap`, and swap back to the smiley SVG on
+`setFaceIdle()`. Both go on `window.voicelockBooth`, beside `setLevel` /
+`setRecording`.
 
-Suite: **114 passed** in 35.68 s. Throughput floor re-measured: **8.7 ms/frame**
-against the 33 ms budget, so **`TARGET_FPS` stays at 30** and the fallback ladder
-is still not needed. That measures the engine only — the `evaluate_js` bridge
-half is Task 7's live check.
+- The preview replaces the decorative smiley **in place**, in its existing
+  **172 px** circle, with **zero layout shift**.
+- Masked to the circle, filling the disk with **no letterboxing** — Python
+  already delivers a 172 px square, so the page does no cropping or scaling.
+- **The page holds no camera state** (third earned guardrail): no frame counter,
+  no "is the camera on" boolean. `setRecording()` already exists for recording
+  state; do not add a parallel camera flag.
+- **No `getUserMedia`** — `file://` has no secure context, which is why Python
+  owns the camera. **No CSS `scaleX(-1)`** — the flip belongs in Python, after
+  the overlay is drawn.
+- **No restyling and no expanded preview** — F9 polish and a deferred change
+  respectively.
+- Honest limit: this repo's Gate is **pytest with zero JS tests**, so Task 6's
+  criteria pin *presence and export*; the real proof is Task 7's live check.
+  Task 6 comes first so the page function exists before anything calls it.
 
-## Disclosure — exactly which Gate commands I ran (measurement exception)
+## Carried forward into Task 7 (LAST)
 
-`ruff` → 0; `pytest tests/test_facedetect.py -q` → 26 passed; `pytest` → 114
-passed; the throughput floor → 0 at 8.7 ms/frame; plus the mutation run above,
-which is failure evidence for the retry rather than a Gate command.
-
-## Doubts, flagged rather than buried
-
-1. **The two pacing tests are wall-clock timing tests.** Margins are wide (~25 ms
-   observed against a 99 ms bound; ~100 ms observed against a 66 ms bound), but
-   they are the one place in this suite where a heavily loaded machine could
-   cause a flake. I judged a discriminating timing test better than a
-   non-discriminating logical one — that was the whole finding — but a verifier
-   may want the margins wider still.
-2. **`test_a_camera_that_stops_delivering_mid_loop_surfaces_an_error` depends on
-   `acquire_camera` consuming exactly one probe frame** (it supplies two frames
-   and expects one delivered). If the probe read is ever removed, this test
-   changes meaning rather than failing loudly.
-3. **The mid-loop failure leaves the camera held until `stop()`.** That is
-   deliberate — releasing from inside the worker would race `stop()`'s
-   join-then-release ordering — but it means the device stays open between the
-   failure and whatever calls `stop()`. Task 7 owns that call.
-4. Carried from before, unchanged: `_wait_for` polls with a deadline;
-   `JOIN_TIMEOUT = 5.0` was chosen rather than measured; tests read
-   `engine._thread`.
-5. **For Task 7, from the verifier:** if `stop()`'s join times out, `release()`
-   runs anyway while the worker may still be mid-read — a 5 s window that only
-   opens if a frame hangs.
-
-## Carried forward into Tasks 6–7
-
-- **Task 6 is UI-only**: an `<img>` in `.face-wrap`, `setFaceFrame` /
-  `setFaceIdle` on `window.voicelockBooth`, **no camera state in JS**, **no
-  `getUserMedia`**, **no CSS `scaleX(-1)`**. Gate is pytest with zero JS tests,
-  so its criteria pin presence and export; the real proof is Task 7's live check.
-- **Task 7** wires `BoothApi` (`start_record` starts the camera, `stop_record`
-  stops it), must keep **audio recording working when the camera fails**, and
-  adds the window-close handler `main()` currently lacks. `ready()` stays
-  untouched — no startup probe.
-- **Task 7 is LAST**: its done-criterion is the FULL `spec.md` Verification list
-  and it will return `ESCALATE_HUMAN` on the manual demo. Do **not** mark it
+- `start_record` starts the camera, `stop_record` stops it; the engine's
+  `on_frame` pushes each data URI via the existing `_eval` path.
+- **A camera failure must NOT prevent audio recording** — the mic path survives
+  a broken webcam. Real branch, needs a test.
+- **`main()` has no close handler today** (`app.py:399-412`); Task 7 adds one
+  pointing at `stop()`. That is why `stop()` being safe to call twice is a real
+  requirement, not a theoretical one.
+- `ready()` untouched — **no startup camera probe**. `capture.py` untouched.
+- **From Task 5's verifiers, two things Task 7 owns:** if `stop()`'s join times
+  out, `release()` runs anyway while the worker may still be mid-read (a 5 s
+  window that only opens if a frame hangs); and a camera that dies mid-loop
+  leaves the device held until something calls `stop()`.
+- **Expect `ESCALATE_HUMAN`** on the manual demo line. Do **not** mark Task 7
   `DONE` until the human attests the live check.
 
 ## Also open
 
-- **A guardrail UPDATE is parked** (Task 3's `learn` scan): check an asset's own
-  embedded metadata (EXIF/XMP) first, as an update to the existing `[Approval]`
-  rule. **Not written.** Blocks nothing.
-- `project.md`'s Environment section is stale (*"Tool(s): Cursor only"*).
+- `project.md`'s Environment section is stale (*"Tool(s): Cursor only"*,
+  *"Setup run: 2026-07-21"*). Re-running `setup` refreshes it. Cosmetic.
 
 ## next_action
 
-**Re-verify Task 5** — clean-context verifier via `formats/VERIFIER-PROMPT.md`,
-verbatim, spawned by this session. `rejects: 1`, below the 3-cap.
+**`/implement` F5 Task 6 — the Booth `<img>` preview in the existing 172 px face
+disk.** `Mode: Mode 3` is the standing "go" and Task 5's wrap-up completed. The
+next required human touchpoint is Task 7's manual camera demo.
 
 ## Commits
 
 - Tasks 1–4: `878186c`…`fab7a30`
-- Task 5: `80a95ca` → `0eeac3f` (first build) → `571cfb8` (REJECT recorded) →
-  `f069fa0` (DOING, retry) → **`11d5a1d` (retry build)**
-- Base for the Gate diff: **`f069fa0`** · head: **`11d5a1d`**
-- Plus this bookkeeping commit, putting actual HEAD one ahead — expected.
+- Task 5: `80a95ca` → `0eeac3f` → `571cfb8` (REJECT) → `f069fa0` → `11d5a1d` →
+  `a0f44a0` → this wrap-up commit
+- Task 5's re-verify diff was `f069fa0..11d5a1d`
 
 Session base was `b718038`. Remote: **none** — local history only, nothing pushed.

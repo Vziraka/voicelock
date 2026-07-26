@@ -19,14 +19,14 @@
   `rejects: 0`) — `facedetect.py` exists: the per-frame composite path on
   injectable fakes, 14 new tests, suite at **102 passed**. `TARGET_FPS` and the
   camera lifecycle are deliberately NOT there — they are **Task 5's**, so no
-  constant lands without a caller. **Task 5 `REVIEW`, `rejects: 1`** — REJECTED
-  once (untested falsy-read branch; drop-don't-queue pinned only as a pure
-  function). Both fixed: the falsy-read path now raises an ERROR instead of
-  dying silently, `start()` can no longer orphan a held camera, and the pacing
-  tests were **mutation-checked 3/3** — including the exact `wait(FRAME_INTERVAL)`
-  mutation the verifier used to expose the original gap. **Throughput
-  8.7 ms/frame** against the 33 ms budget, so `TARGET_FPS` stays at **30**.
-  Suite: **114 passed**.
+  constant lands without a caller. **Task 5 `DONE`** (verdict `…-F5-T5.json`,
+  **`rejects: 1`** — the feature's first REJECT, earned: an untested falsy-read
+  branch, and drop-don't-queue pinned only as a pure function so deleting it
+  from the loop still passed). Both fixed and **mutation-checked 4/4 by the
+  verifier**, including the `wait(FRAME_INTERVAL)` mutation that exposed the
+  original gap. **Throughput ~8 ms/frame** against the 33 ms budget, so
+  `TARGET_FPS` stays at **30**. Suite: **114 passed**.
+  **Task 6 is next** — UI only, the `<img>` preview in the existing face disk.
   Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
   the enforcement check for the per-asset licence guardrail; (2) the fixture
   change.**
@@ -349,13 +349,15 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
 
-- [ ] **Task 5** — `facedetect.py`: camera lifecycle — 30 fps worker, drop-don't-queue, release tripwire
-  - state: REVIEW
+- [x] **Task 5** — `facedetect.py`: camera lifecycle — 30 fps worker, drop-don't-queue, release tripwire
+  - state: DONE
   - rejects: 1
-  - measured: **throughput floor 8.1 ms/frame** against the 33 ms budget
-    (~123 fps engine-side, ~4x headroom). **`TARGET_FPS` stays at 30** — the
-    fallback ladder was not needed. This measures the engine only; the
-    `evaluate_js` bridge half is Task 7's live check.
+  - measured: **throughput floor 8.0–8.7 ms/frame** across four runs (8.1 and
+    8.7 by the implementor, 8.2 and 8.0 by the two verifiers) against the 33 ms
+    budget — roughly **4x headroom**. **`TARGET_FPS` stays at 30**; the fallback
+    ladder was not needed and the assertion was not loosened. Task 7's
+    completion report pins the number from the final Gate run. This measures the
+    **engine only** — the `evaluate_js` bridge half is Task 7's live check.
   - files: `src/voicelock/facedetect.py`, `tests/test_facedetect.py`
   - notes: The stateful half: `start(on_frame)` opens the camera and runs a
     **daemon thread**; `stop()` halts the loop, **joins**, and only then calls
@@ -540,8 +542,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F5 is BUILDING: Tasks 1–4 `DONE`, 3 remain.** Every task so far
-   landed APPROVE on the first pass, `rejects: 0`. Dependencies declared
+1. 2026-07-26 — **F5 is BUILDING: Tasks 1–5 `DONE`, 2 remain.** Tasks 1–4 landed
+   APPROVE on the first pass; **Task 5 took one REJECT** (`rejects: 1`) for an
+   untested branch and a tautological pacing test, both since fixed and
+   mutation-checked. Dependencies declared
    (`mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`) with **nothing
    moved underneath F4** — `numpy` 2.2.6, `torch` 2.13.0 — so
    `CORRECTION_RADIUS = 110` and `ACCEPT_CUTOFF = 0.45` are undisturbed; the
@@ -549,9 +553,11 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    fixture is **fetched-not-committed** with its Apache-2.0 vendor reference
    committed beside it; and **`facedetect.py` now does the per-frame composite**
    — detect on the full frame, ellipse + landmarks, crop, flip last — verified
-   against MediaPipe's published coordinates at 0.005645 max deviation. Suite:
-   **102 passed**. Remaining: **5** camera lifecycle → **6** Booth `<img>` →
-   **7** wiring + the human-attested demo.
+   against MediaPipe's published coordinates at 0.005645 max deviation; and the
+   **camera lifecycle** runs on its own daemon thread with halt→join→release
+   ordering, drop-don't-queue pacing and a `BaseException` release tripwire, at
+   **~8 ms/frame** against the 33 ms budget. Suite: **114 passed**.
+   Remaining: **6** Booth `<img>` → **7** wiring + the human-attested demo.
    **Verification runs on the subagent path** for F5 — human-authorized
    2026-07-26, which closed the previous handoff's open item 1.
    **A guardrail UPDATE is parked in `handoff.md`**, unwritten pending human
