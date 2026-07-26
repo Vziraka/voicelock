@@ -349,7 +349,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — `facedetect.py`: camera lifecycle — 30 fps worker, drop-don't-queue, release tripwire
-  - state: TODO
+  - state: DOING
   - rejects: 1
   - measured: **throughput floor 8.1 ms/frame** against the 33 ms budget
     (~123 fps engine-side, ~4x headroom). **`TARGET_FPS` stays at 30** — the
