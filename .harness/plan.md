@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `REVIEW` (LAST task — full §5; manual demo needs the human)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `DOING` (retry 1 of 3 — enrollment-take reset defect)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -293,7 +293,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          **Fix: delete the branch.**
 
 - [ ] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
-  - state: REVIEW
+  - state: DOING
   - built 2026-07-26: `index.html` gains the enroll voice step (5 suggested
     sentences, per-take dots driven by `enroll_take()`, "need more audio" hint on
     a rejected take, **Enroll disabled until all 5 are banked**), an unlock
@@ -307,7 +307,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     voice — it never prompts for emotional/pitch variation (spec §3 rejected
     that). JS renders only; every decision still comes from the bridge. Also
     fixed the unused-fixture nit the Task 4 verifier flagged.
-  - rejects: 0
+  - rejects: 1
   - files: `src/voicelock/ui/index.html` (+ `src/voicelock/app.py` only if wiring gaps surface)
   - notes: Reuse the existing mock chrome (spec §4 Booth UX). Enroll panel gains a
     **voice-capture step**: the 5 suggested sentences shown to read, a per-take
@@ -347,7 +347,30 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       Each reject names its distinct cause. (Observable: real-mic enroll seals a v2
       vault at `~/.voicelock/vault.vl`, the genuine speaker unlocks live on a real
       cross-recording, and the two impostor classes separate visibly.)
-  - feedback: (none)
+  - feedback (newest first):
+    - **2026-07-26 · REJECT 1 of 3** (verifier subagent; GATE ESCALATE_HUMAN —
+      all five automated commands exit 0, only the human-attested manual line is
+      unrunnable — and the reviewer ran the axes anyway so the findings surface
+      BEFORE the human attests the demo):
+      1. **CORRECTNESS.** `resetEnrollVoiceStep()` resets only the JS half of the
+         enrollment-take state. The bridge's `self._enroll_voiceprints` is
+         appended by `enroll_take()` and cleared ONLY on a successful `enroll()`,
+         so an abandoned run silently contaminates the next one: bank 2 → Cancel
+         → re-open shows `0 / 5` while the bridge holds 2; the next bank returns
+         progress 3, the dots jump 0→3, sentences 2 and 3 are never read, and
+         `enroll` seals the vault from the two ABANDONED takes plus three new
+         ones. For a feature whose point is that the enrolled speaker's voice is
+         the key, binding it partly to whatever a discarded session recorded —
+         possibly a different person mid-demo — is a defect, not cosmetics. It is
+         reachable in the required manual demo. **Fix: give the bridge a real
+         reset and call it from open/cancel, with a test** (Task 5's `files:`
+         line pre-authorizes `app.py` "if wiring gaps surface", and the Task 3
+         verdict said "if Task 5's UI needs a 'start over' control, add it there
+         with its test").
+      2. *(Minor, same class as the last two rejects.)* The enroll "BRIDGE
+         MISSING" branch is now unreachable — `resetEnrollVoiceStep()` at load
+         disables Enroll, and without a bridge `enroll_take` can never advance
+         progress to re-enable it. Delete it or keep Enroll reachable.
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
