@@ -98,13 +98,23 @@ Verify Task 5 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, 
 `F4-T5`, base `09b4e39`, head `7ec2fb8`. It is the LAST task, so the Gate runs the
 FULL spec §5 list and will hit the manual line.
 
-## Pending guardrails — BOTH still await your approval, neither written
-1. *(Task 3)* **[Startup]** A task that changes a module's public signature owns
-   every in-repo caller of it — the plan must name those callers in `files:`, or
-   the done-criteria must not require a green full suite. `warn`
-2. *(Tasks 3+4)* **[Forbidden]** Do not add a helper, branch, or method that no
-   caller and no test exercises. `warn` — _Evidence:_ both of this session's
-   REJECTs were this defect.
+## Guardrails
+**APPROVED and written 2026-07-26** — `constitution/project.md` "Earned
+guardrails" now holds its first real rule:
+> **[Forbidden]** Never add a helper, method, or branch that no caller and no
+> test exercises… `warn` · expires: 2027-01-31
+
+Evidence is the three F4 REJECTs, all the same defect. Note the past verdict
+files for Tasks 3 and 4 still read `"lesson": "proposed — pending approval"` —
+`memory/verdicts/` is protected and append-only, so a recorded verdict is never
+edited after the fact. The approval lives in `project.md` and here, which is the
+correct place for it.
+
+**Still parked, NOT approved:** the Task 3 proposal about a signature change
+owning its in-repo callers. My own recommendation was to decline it as written —
+the real fix is a caller-scan step in the `plan` skill rather than a rule someone
+must remember, and it has only one occurrence of evidence. Left for a future
+`curate` or a `plan`-skill change.
 
 ## Commits (this session, on `main`)
 … → `df29337` (T4 done) → `09b4e39` (T5 DOING) → `6c0a908` (T5 build).

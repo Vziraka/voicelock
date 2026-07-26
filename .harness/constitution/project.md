@@ -40,10 +40,6 @@ Format:
   - _Evidence:_ the failure this came from (so it can be reviewed and retired).
   - _Added:_ {YYYY-MM-DD}
 
-<!-- example — delete when the first real rule lands
-- **[Forbidden]** Never set SSH ingress to 0.0.0.0/0 outside a lab. `block` · expires: 2026-12-31
-  - _Evidence:_ a session proposed open SSH as a convenient "default".
-  - _Added:_ 2026-06-28
--->
-
-(Empty until the harness learns something. Do not pre-fill.)
+- **[Forbidden]** Never add a helper, method, or branch that no caller and no test exercises — delete it and let the task that genuinely needs it introduce it. `warn` · expires: 2027-01-31
+  - _Evidence:_ three REJECTs in F4 (2026-07-26), all the same defect: `BoothApi.reset_enroll_takes()` added in Task 3 with zero callers and zero tests; `lock_voiceprint()`'s `hop == 0` branch in Task 4, reachable only for a take of exactly 19 200 samples and driven by no test; and an enroll "BRIDGE MISSING" branch in Task 5 that the same diff made unreachable. Each cost a full verify cycle. Note the rule is "introduce at the point of use", not "never add helpers" — the same `reset_enroll_takes()` was correctly restored in Task 5 once the UI called it in three places and two tests covered it.
+  - _Added:_ 2026-07-26 (human-approved)
