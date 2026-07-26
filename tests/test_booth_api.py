@@ -8,6 +8,8 @@ import numpy as np
 import pytest
 
 from voicelock.app import MIN_LOCK_SECONDS, BoothApi, lock_voiceprint
+from voicelock.capture import CaptureStatus
+from voicelock.facedetect import FaceStatus, FrameResult
 from voicelock.middlelock import ENROLLMENT_TAKES
 from voicelock.voiceprint import (
     ACCEPT_CUTOFF,
@@ -20,6 +22,62 @@ from voicelock.voiceprint import (
 )
 
 FIXTURES = Path(__file__).parent / "fixtures" / "voiceprint"
+
+
+class _StubFace:
+    """Stands in for FaceEngine — records lifecycle calls, opens no device."""
+
+    def __init__(self, *, fail: bool = False) -> None:
+        self.fail = fail
+        self.status = FaceStatus.IDLE
+        self.error_message: str | None = None
+        self.starts = 0
+        self.stops = 0
+        self.on_frame = None
+
+    def start(self, on_frame) -> None:
+        self.starts += 1
+        self.on_frame = on_frame
+        if self.fail:
+            self.status = FaceStatus.ERROR
+            self.error_message = "No camera available"
+            return
+        self.status = FaceStatus.RUNNING
+
+    def stop(self) -> None:
+        self.stops += 1
+        if self.status == FaceStatus.RUNNING:
+            self.status = FaceStatus.IDLE
+
+
+class _StubRecordingCapture:
+    """Capture surface the record path uses, with no microphone behind it."""
+
+    def __init__(self) -> None:
+        self.status = CaptureStatus.IDLE
+        self.error_message: str | None = None
+        self.levels: list[float] = []
+        self.started = 0
+        self.stopped = 0
+
+    @property
+    def is_recording(self) -> bool:
+        return self.status == CaptureStatus.RECORDING
+
+    def start(self) -> None:
+        self.started += 1
+        self.status = CaptureStatus.RECORDING
+
+    def stop(self) -> np.ndarray:
+        self.stopped += 1
+        self.status = CaptureStatus.IDLE
+        return np.zeros(320, dtype=np.float32)
+
+    def pump(self, frames: np.ndarray | None = None) -> None:
+        del frames
+
+    def pcm_buffer(self) -> np.ndarray:
+        return np.zeros(320, dtype=np.float32)
 
 
 class _StubCapture:
@@ -317,3 +375,109 @@ def test_bridge_reset_reference_is_noop_and_clears_in_progress(tmp_path: Path) -
 
     cap.set(_fx("speakerA_take1.wav"))
     assert api.set_reference()["progress"] == 1  # progress restarted from a clean slate
+
+
+# ---------------------------------------------------------------------------
+# F5 — camera wiring
+# ---------------------------------------------------------------------------
+
+
+def _recording_booth(tmp_path: Path, *, camera_fails: bool = False):
+    cap = _StubRecordingCapture()
+    face = _StubFace(fail=camera_fails)
+    api = BoothApi(
+        capture=cap,
+        vault_path=tmp_path / "vault.vl",
+        ref_path=tmp_path / "voiceprint.ref",
+        face=face,
+    )
+    return api, cap, face
+
+
+def test_start_record_starts_the_camera_and_stop_record_stops_it(tmp_path: Path) -> None:
+    api, cap, face = _recording_booth(tmp_path)
+
+    assert api.start_record()["ok"] is True
+    assert face.starts == 1
+    assert face.status == FaceStatus.RUNNING
+    assert cap.is_recording
+
+    assert api.stop_record()["ok"] is True
+    assert face.stops == 1
+    assert face.status == FaceStatus.IDLE
+    assert not cap.is_recording
+
+
+def test_a_camera_failure_does_not_prevent_audio_recording(tmp_path: Path) -> None:
+    """The microphone is the point of a take; the preview is a companion."""
+    api, cap, face = _recording_booth(tmp_path, camera_fails=True)
+
+    result = api.start_record()
+
+    assert result["ok"] is True, "a broken webcam must not fail the take"
+    assert cap.started == 1, "capture must still be running"
+    assert cap.is_recording
+    assert face.status == FaceStatus.ERROR
+
+    assert api.stop_record()["ok"] is True
+    assert face.stops == 1, "a failed camera must still be stopped/released"
+
+
+def test_a_second_record_after_stop_starts_the_camera_again(tmp_path: Path) -> None:
+    api, _, face = _recording_booth(tmp_path)
+
+    api.start_record()
+    api.stop_record()
+    api.start_record()
+    api.stop_record()
+
+    assert face.starts == 2
+    assert face.stops == 2
+
+
+def test_shutdown_releases_the_camera(tmp_path: Path) -> None:
+    """Closing the window must not leave the webcam light on."""
+    api, _, face = _recording_booth(tmp_path)
+    api.start_record()
+
+    api.shutdown()
+
+    assert face.stops == 1
+    assert face.status == FaceStatus.IDLE
+
+
+def test_shutdown_is_safe_when_nothing_was_ever_started(tmp_path: Path) -> None:
+    api, _, face = _recording_booth(tmp_path)
+
+    api.shutdown()
+
+    assert face.stops == 1  # stop() is safe to call cold
+
+
+def test_shutdown_does_not_cancel_the_window_close(tmp_path: Path) -> None:
+    """pywebview's `closing` event cancels the close if a handler returns False.
+
+    `Event.set` collects handler return values and cancels on `v is False`, so a
+    handler that returned False would trap the user in a window it also just
+    released the camera out from under. Returning None is the contract.
+    """
+    api, _, _ = _recording_booth(tmp_path)
+
+    assert api.shutdown() is not False
+
+
+def test_frames_are_pushed_to_the_page_as_a_data_uri(tmp_path: Path) -> None:
+    """The engine's callback is what reaches the page, unaltered."""
+    api, _, face = _recording_booth(tmp_path)
+    scripts: list[str] = []
+    api._eval = scripts.append  # type: ignore[method-assign]
+
+    api.start_record()
+    face.on_frame(FrameResult(data_uri="data:image/jpeg;base64,AAAA", landmarks=[]))
+
+    pushed = [s for s in scripts if "setFaceFrame" in s]
+    assert pushed, "no frame reached the page"
+    assert "data:image/jpeg;base64,AAAA" in pushed[0]
+
+    api.stop_record()
+    assert any("setFaceIdle" in s for s in scripts), "the smiley never came back"

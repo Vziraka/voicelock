@@ -12,6 +12,7 @@ import webview
 
 from voicelock import voiceprint
 from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, SAMPLE_RATE
+from voicelock.facedetect import FaceEngine, FaceStatus, FrameResult
 from voicelock.middlelock import ENROLLMENT_TAKES
 from voicelock.playback import PlaybackEngine
 from voicelock.vault import (
@@ -78,6 +79,7 @@ class BoothApi:
         playback: PlaybackEngine | None = None,
         vault_path: Path | None = None,
         ref_path: Path | None = None,
+        face: FaceEngine | None = None,
     ) -> None:
         self.capture = capture or CaptureEngine()
         self.playback = playback or PlaybackEngine()
@@ -92,6 +94,7 @@ class BoothApi:
         self._pumping = False
         self._pump_thread: threading.Thread | None = None
         self._play_watch: threading.Thread | None = None
+        self.face = face if face is not None else FaceEngine()
 
     def bind_window(self, window: Any) -> None:
         self._window = window
@@ -263,6 +266,7 @@ class BoothApi:
             self._push_mic_error(error)
             return {"ok": False, "error": error}
         self._start_pump()
+        self._start_camera()
         self._eval(
             "window.voicelockBooth && window.voicelockBooth.setRecording && "
             "window.voicelockBooth.setRecording(true)"
@@ -273,6 +277,7 @@ class BoothApi:
         if self.playback.is_playing:
             return self.stop_playback()
         self._stop_pump()
+        self._stop_camera()
         buf = self.capture.stop()
         self._eval(
             "window.voicelockBooth && window.voicelockBooth.setRecording && "
@@ -379,6 +384,42 @@ class BoothApi:
             "window.voicelockBooth.setPlaying(false)"
         )
 
+    def _start_camera(self) -> None:
+        """Start the FaceView preview. A camera failure must NOT fail the take.
+
+        The microphone is the point of a recording; the preview is a companion.
+        A broken or missing webcam surfaces its message the way a mic error
+        does and leaves capture running.
+        """
+        self.face.start(self._push_face_frame)
+        if self.face.status == FaceStatus.ERROR:
+            self._push_mic_error(self.face.error_message or "No camera available")
+
+    def _stop_camera(self) -> None:
+        self.face.stop()
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setFaceIdle && "
+            "window.voicelockBooth.setFaceIdle()"
+        )
+
+    def _push_face_frame(self, result: FrameResult) -> None:
+        # The data URI is base64 — no quote or backslash can appear in it, so it
+        # needs no escaping the way a free-text error message does.
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setFaceFrame && "
+            f"window.voicelockBooth.setFaceFrame('{result.data_uri}')"
+        )
+
+    def shutdown(self) -> None:
+        """Release devices when the window closes.
+
+        A webcam light still on after the app exits is the same defect as one
+        that never turned off on Stop. `FaceEngine.stop()` is safe to call twice
+        and after a failed start, which is what lets this run unconditionally.
+        """
+        self._stop_pump()
+        self.face.stop()
+
     def _push_mic_error(self, message: str) -> None:
         safe = message.replace("\\", "\\\\").replace("'", "\\'")
         self._eval(
@@ -409,6 +450,9 @@ def main() -> None:
         min_size=(900, 600),
     )
     api.bind_window(window)
+    # Closing the window must release the camera too — a stuck webcam light
+    # after the app exits is the same defect as one that never went out on Stop.
+    window.events.closing += api.shutdown
     webview.start()
 
 
