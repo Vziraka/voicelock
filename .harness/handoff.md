@@ -19,7 +19,31 @@ first pass, `rejects: 0`. Verdict: `memory/verdicts/2026-07-26-F5-T2.json`.
 The verifier re-derived the SHA-256 itself and re-ran the "the artifact embeds no
 licence" scan rather than taking the `NOTICE`'s word — both held.
 
-## PENDING GUARDRAIL — needs your approval before it is written
+## ⚠ BUILDING IS PAUSED — `spec.md` box 2 needs your `x`
+
+You approved **both** halves of the `learn` proposal (2026-07-26). The prose
+guardrail is written into `project.md`. The enforcement check went into
+`spec.md`'s Verification **Standing** list — and editing the spec is a **spec
+amendment**, so per the spec's own footer and the universal `[Approval]` rule
+("the standing go … never reaches past an amendment"), **box 2 is re-opened and
+I stopped rather than starting Task 3.**
+
+**What you do:** open `.harness/spec.md`, and in the Approval gate change
+`- [ ] Approved by human` to `- [x] Approved by human`. I may never check that
+box myself. Then say go and I continue at Task 3.
+
+The amendment is narrow and is described in a note directly under the box: one
+line added to the Standing list, nothing else — no scope, outcome, non-goal or
+constraint changed. Re-scan of the changed section: **zero** clarification
+markers, Grilling record stays `CLEAR`. Tasks 1–2 are unaffected (the new check
+passes against both vendored model dirs today, verified before pinning).
+
+If you would rather not amend mid-feature, the clean alternative is to revert the
+spec line and let the check land in **F6's** spec instead — F6 adds the second
+vendored model dir for SFace, which is arguably where it earns its keep anyway.
+Say the word and I will back it out.
+
+## The guardrail that was approved (now written)
 
 The `learn` scan produced a lesson that cleared the bar. **Nothing has been
 written to `project.md`**; that needs a human in every mode.
@@ -103,10 +127,12 @@ Say yes/no to each. Declining is a fine answer and I will record it as declined.
 
 ## next_action
 
-**`/implement` F5 Task 3 — "Vendor the `portrait.jpg` face fixture + its
-provenance README, licence verified at download".** `Mode: Mode 3` is the
-standing "go" and Task 2's wrap-up completed, so no further human "go" is needed
-to start. Expect a possible second escalation.
+**BLOCKED on the human re-checking `spec.md`'s box 2** (see the top of this
+file). The approved `Mode:` line does not reach past an amendment.
+
+Once checked: **`/implement` F5 Task 3 — "Vendor the `portrait.jpg` face fixture
++ its provenance README, licence verified at download".** Expect a possible
+second escalation — and note Task 2's outcome is **not** precedent for it.
 
 ## Commits
 

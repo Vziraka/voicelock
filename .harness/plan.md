@@ -10,8 +10,11 @@
   `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`), and the
   bundle is vendored with LICENSE + NOTICE. Tasks 3–7 `TODO`; next is Task 3,
   which carries the **second, unrelated** licence STOP point.
-  **A guardrail proposal is parked in `handoff.md` awaiting human approval** —
-  nothing was written to `project.md`.**
+  **Both halves of F5 Task 2's `learn` proposal were human-approved 2026-07-26:**
+  the prose guardrail is written into `project.md`, and its enforcement check is
+  added to `spec.md`'s Verification Standing list — which makes that a **spec
+  amendment**, so `spec.md`'s box 2 is re-opened and **building is paused at
+  Task 3 until the human re-checks it**.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -410,6 +413,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run python -c "import pathlib; p = pathlib.Path('src/voicelock/models/face_landmarker/face_landmarker.task'); assert p.is_file(), 'the model bundle is not vendored'; assert p.stat().st_size > 1_000_000, f'vendored bundle is implausibly small: {p.stat().st_size} bytes'"` → exit 0
     - `uv run python -c "import tomllib, pathlib; deps = tomllib.loads(pathlib.Path('pyproject.toml').read_text(encoding='utf-8'))['project']['dependencies']; low = [d.replace(' ', '').lower() for d in deps]; assert any(d.startswith('mediapipe') for d in low), 'mediapipe is not a declared dependency'; assert any(d.startswith('opencv-contrib-python') for d in low), 'opencv-contrib-python is not a declared dependency'; assert not any(d.startswith('opencv-python') for d in low), 'opencv-python is declared alongside the contrib build — two cv2 installs shadow each other'"` → exit 0
     - `uv run python -c "import pathlib; t = pathlib.Path('tests/test_facedetect.py').read_text(encoding='utf-8'); assert 'release' in t, 'the camera tests never mention release'; assert 'read' in t, 'the camera tests never drive the real read path'"` → exit 0
+    - `uv run python -c "import pathlib; dirs = [d for d in pathlib.Path('src/voicelock/models').iterdir() if d.is_dir()]; assert dirs, 'no vendored model dirs found'; missing = [f'{d.name}/{n}' for d in dirs for n in ('LICENSE', 'NOTICE') if not (d / n).is_file() or (d / n).stat().st_size <= 100]; assert not missing, f'vendored model dir missing a non-stub LICENSE/NOTICE: {missing}'"` → exit 0 (**added by the 2026-07-26 spec amendment** — the enforcement half of `project.md`'s per-asset licence-provenance guardrail; standing, so it is part of the full list this task runs)
     - **Throughput floor** (Task 5's pinned command, re-run here as part of the full list) → exit 0, averaging **under 33 ms/frame**; the measured number goes in the completion report
     - **Manual (required for F5 done, human-attested):** run `uv run voicelock` → press **Record**. The smiley is replaced by a live, **circular** camera image in the same 172 px disk, with an oval outline and landmarks **tracking your face as you move**, and the preview looks like smooth video rather than a slideshow. The image fills the disk with **no letterboxing**. It is **mirrored**: raising your right hand moves the hand on the right of the picture, and leaning left moves you left — the way a mirror behaves, not the way a stranger's camera does. The preview must also stay **in step with you** — no drifting behind, no growing lag the longer it runs. Press **Stop**: the smiley returns, **the webcam light goes out**, and pressing **Record a second time** brings the preview back. Close the window while recording: **the webcam light goes out.** (Observable: the camera is genuinely opened, genuinely drawn on, and genuinely released. The automated tests prove the pipeline's logic against fakes; they do **not** prove the composited frames reach the page fast enough to look like video, nor that a real Windows webcam device is genuinely freed — that is what this line covers.)
   - feedback: (none)

@@ -7,7 +7,22 @@ Feature: Feature 5 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [x] Approved by human
+- [ ] Approved by human
+
+> **AMENDMENT 2026-07-26 — box 2 re-opened, awaiting the human's `x`.**
+> One line was added to the **Verification** section's Standing list: a check
+> that every `src/voicelock/models/*/` dir carries a non-stub `LICENSE` and
+> `NOTICE`. It is the enforcement half of the per-asset licence-provenance
+> guardrail added to `project.md` the same day, both approved by the human in
+> the F5 Task 2 wrap-up. Nothing else in this spec changed — no scope, no
+> outcome, no non-goal, no constraint.
+> Re-scan of the changed section: **zero** clarification markers; Grilling
+> record stays `CLEAR`.
+> Tasks 1 and 2 are already `DONE` under the pre-amendment spec and are
+> unaffected (the new check passes against both vendored model dirs today).
+> Building resumes at Task 3 once this box is checked — the approved `Mode:`
+> line is a standing "go" for tasks inside the feature, but it never reaches
+> past an amendment.
 
 - **Mode:** Mode 3 (Spec-to-done). Set by the human 2026-07-26. The two
 dependencies this feature introduces were locked by a TECH-PICK + human
@@ -374,6 +389,15 @@ Standing (project regression net, from `project.md`), pinned:
 - `uv run ruff check .` → exit 0 (stdout/stderr contain no ruff error findings)
 - `uv run pytest` → exit 0 (final summary reports 0 failed — the whole existing
 suite, including all F1–F4.5 tests, still green)
+- `uv run python -c "import pathlib; dirs = [d for d in pathlib.Path('src/voicelock/models').iterdir() if d.is_dir()]; assert dirs, 'no vendored model dirs found'; missing = [f'{d.name}/{n}' for d in dirs for n in ('LICENSE', 'NOTICE') if not (d / n).is_file() or (d / n).stat().st_size <= 100]; assert not missing, f'vendored model dir missing a non-stub LICENSE/NOTICE: {missing}'"`
+→ exit 0. **Added by amendment 2026-07-26** (human-approved) — the enforcement
+half of `project.md`'s new per-asset licence-provenance guardrail. Every
+directory under `src/voicelock/models/*/` must carry a non-stub `LICENSE` **and**
+`NOTICE`. It pins the *artifact*; whether the evidence behind a licence claim is
+*sufficient* still needs judgment, which is why the guardrail itself stays prose.
+Verified passing at amendment time against `ecapa` and `face_landmarker`. Scoped
+to `models/` on purpose — test fixtures live under `tests/fixtures/` and are
+covered by their own provenance-README criteria.
 
 Feature-specific (proves THIS feature works), pinned:
 
