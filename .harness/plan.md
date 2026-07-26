@@ -2,13 +2,14 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DOING`
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `REVIEW`
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
   human` — so the gate is closed and Mode 3 is the standing "go" for the tasks
   inside F4. Grilling re-scanned after the amendment — still zero markers.
-  Task 1 is `DOING`; Tasks 2–5 stay `TODO` under WIP=1.)
+  Task 1 is `REVIEW`, awaiting a clean-context verifier; Tasks 2–5 stay `TODO`
+  under WIP=1.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -19,9 +20,21 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — 5-take speaker-A enrollment fixtures + measured same/different separation
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `tests/fixtures/voiceprint/speakerA_enroll1..5.wav`, `tests/fixtures/voiceprint/README.md`
+  - built 2026-07-26: five **1.600 s** windows (25 600 samples) at hop 0.415 s over
+    the reassembled 3.261 s speaker-A source. Window length was chosen by
+    measurement, not by the "~1.0 s" sketch: 1.6 s is the LONGEST window at which
+    takes 1 and 5 still share zero audio, and genuine sign-BER plateaus at ~8 %
+    from there on, so going longer only buys fake stability from takes overlapping
+    each other. Measured (vendored ECAPA): 5-take mean → same-speaker probe
+    **0.0583** (accept ≤0.45), → impostor **0.8451** (reject ≥0.65); cross-take
+    pairwise max 0.6241 / mean 0.3062; raw 192-dim sign bits **98/192 unanimous**
+    across the five takes; genuine sign-BER **7.8 %**, impostor **43.2 %**. The
+    full comparison table and the honest caveats live in the fixtures README —
+    that file is the durable "build-notes" Task 2 should read before pinning its
+    tolerance constants.
   - notes: F4's enrollment is a **5-sentence averaged capture** (spec §4 Accuracy
     levers) but the F3 fixture set only has 3 speaker-A takes. Derive **five** new
     fixed WAVs from the SAME committed speaker-A audio (`speakerA_take1/2/3.wav`
@@ -223,8 +236,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4 amended, then APPROVED: box 2 re-checked by the human, so building is unblocked.** Task 1 (`DOING`) builds the 5-take enrollment fixtures; Tasks 2–5 `TODO`. Grilling re-scanned after the amendment (zero markers). Mode 3 is the standing "go" for the remaining tasks inside F4.
+1. 2026-07-26 — **F4 amended, then APPROVED: box 2 re-checked by the human, so building is unblocked.** Task 1 is `REVIEW` (5-take enrollment fixtures built + measured); Tasks 2–5 `TODO`. Grilling re-scanned after the amendment (zero markers). Mode 3 is the standing "go" for the remaining tasks inside F4.
 2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
 3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
 4. Main build risk: raw ECAPA sign-bits carry ~25 % genuine bit-error, and the research's binomial numbers assume independent flips that correlated LSH bits will not deliver — measured results will be worse than theory. Task 2 must separate genuine from impostor **with a margin** or report `BLOCKED`; never loosen the radius to force a pass.
-5. If Task 2 blocks, suspect the FIXTURES first: the source audio is ~3.3 s total so fixture takes are ~1 s, far shorter than a real 3–5 s enrollment. Escalation order: better fixture audio → accept higher false-reject → revisit the declined `komm` dependency. Open human item from F3: spec's "~20 MB" model-size wording is wrong (actual ~85 MB).
+5. If Task 2 blocks, suspect the FIXTURES first: the source audio is ~3.3 s total so fixture takes are 1.6 s (measured-best; longer only adds fake overlap), still far shorter than a real 3–5 s enrollment. Escalation order: better fixture audio → accept higher false-reject → revisit the declined `komm` dependency. Open human item from F3: spec's "~20 MB" model-size wording is wrong (actual ~85 MB).
