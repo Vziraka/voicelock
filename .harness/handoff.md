@@ -1,173 +1,119 @@
-# Handoff — F5 spec APPROVED, ready for `/plan`
+# Handoff — F5 planned, ready for `/implement` Task 1
 
-Session of 2026-07-26 (after F4.5 closed). Ran `/spec` for **F5 — Camera booth**.
-No code was written and **nothing was installed** — `pyproject.toml` and
-`uv.lock` are untouched.
+Session of 2026-07-26 (after the F5 spec was approved). Ran `/plan` for **F5 —
+Camera booth**. No code was written and **nothing was installed** —
+`pyproject.toml` and `uv.lock` are untouched.
 
-**Approval gate: BOTH boxes checked 2026-07-26.** `Status: CLEAR`, zero
-clarification markers, `Mode: Mode 3`. The gate is satisfied, so `/plan` is
-unblocked.
+**Entry gate, verified and quoted before planning:** `spec.md`'s Grilling record
+says `Status: CLEAR`, a mechanical scan for the bracketed `NEEDS-CLARIFICATION`
+colon token returns **zero** hits, and both approval boxes are checked with
+`Mode: Mode 3` set by the human.
 
-**Repair recorded honestly:** the human's editor reformatted `spec.md` on
-approval and, alongside harmless table/wrap changes, **deleted the 8-line
-"that check has teeth" licence paragraph** in §4 — the entire content of commit
-`beb21b3`, which the human had explicitly approved one message earlier. It was
-restored verbatim on the human's instruction before the approval was committed.
-The same formatter transposed backtick/asterisk in three places
-(`` `**BaseException` ``, `` `**VIDEO**` ``, `` `**opencv-contrib-python` ``),
-breaking emphasis without losing content; all three were corrected. A
-word-level diff against `beb21b3` was used to confirm **nothing else** was lost —
-not an eyeball pass.
-
-> F4.5's completion report was previously here. It is closed and its evidence
-> lives in `memory/verdicts/2026-07-26-F4.5-T1/-T2/-T3.json` and in git
-> (`93bc887`, the feature-end commit).
+> F4.5's completion report and the F5 spec-session report were previously here.
+> Both are closed; their evidence lives in
+> `memory/verdicts/2026-07-26-F4.5-T1/-T2/-T3.json` and in git (`93bc887`, the
+> F4.5 feature-end commit; `cf97c77` and `0fdb90e`, the F5 spec and its
+> approval).
 
 ## What this session produced
 
-- **`spec.md`** — F5, `Status: CLEAR`, zero clarification markers, box 1 checked,
-  **box 2 open for the human**. `Mode: Mode 3`, set by the human.
-- **`memory/research/2026-07-26-f5-face-stack.md`** — the TECH-PICK research:
-  four candidates, registry dates quoted, two ruled out on evidence.
-- **`memory/research/2026-07-26-f5-camera-preview-transport.md`** — why the
-  camera cannot be opened from JavaScript in this Booth.
-- **`memory/decisions.md`** — two new entries (the TECH-PICK; the FaceView
-  architecture), newest first.
-- **`plan.md`** — memory-spine bullet 5 and the Active-context line updated to say
-  the ledger is still F4.5's and is replaced by `/plan` after approval.
+- **`plan.md`** — rewritten from F4.5's ledger to **F5's**: 7 tasks, all `TODO`,
+  `rejects: 0`, ordered so dependencies come first. Every task has runnable
+  done-criteria (Mode 3 requires it for **every** task, not just the last).
+- **The module contract is pinned in `plan.md`'s Active context** —
+  `FaceEngine` / `FrameResult` / `FaceStatus` / `TARGET_FPS` — because several
+  later done-criteria name that surface, so it had to be fixed at plan time
+  rather than discovered at build time.
 
-## The decisions the human made this session
+## The task shape
 
-1. **TECH-PICK → `mediapipe` + `opencv-contrib-python>=4.13,<5`** (candidate A).
-   The discriminator was **F8**, not F5: MediaPipe gives 478 landmarks with a
-   full lip contour and a `jawOpen` blendshape, where OpenCV's YuNet gives 5
-   points — two mouth *corners*, which cannot express whether a mouth is open.
-   InsightFace was blocked on a **non-commercial-research-only** model licence;
-   facenet-pytorch failed the liveness bar (2024-04-29, ~27 months) **and** pins
-   `torch<2.3.0` / `numpy<2.0.0` against this repo's `torch>=2.13.0` /
-   `numpy>=2.0`.
-2. **Python owns the camera; it composites the overlay and pushes one JPEG per
-   frame.** The JS-owned alternative was eliminated on Microsoft's own WebView2
-   docs, not on preference — `getUserMedia` is unavailable to `file://`
-   documents, and `app.py:405` loads the Booth from a `file://` URL.
-3. **FaceView replaces the Booth's decorative smiley in its existing 172 px
-   disk, while recording.** The human's placement. Expanding it to a 440 px
-   rectangle was explicitly **deferred, not refused** — "we can try 172px and we
-   can expand if i want".
-4. **The preview is round, and the face is outlined with an ellipse.** The human
-   asked at the commit checkpoint whether it would be "a circle not a camera
-   box", which caught that the draft's phrase "face box" blurred two shapes: the
-   *container* (a circle, since `.face-disk` is `border-radius: 50%`) and the
-   *drawn outline* (a rectangle, which would clip its corners against that mask).
-   Resolved to an ellipse. The 4:3 frame is centre-cropped to a square, but
-   **detection runs on the full frame first**, so an edge-of-frame face is still
-   found.
-4. **Mode 3**, and for the mandatory Mode-3 blind-spot question the human chose
-   **both** mitigations: a required human-attested live check **and** an
-   automated camera-release tripwire, plus a Gate-measurable throughput floor.
+1. Declare `mediapipe` + `opencv-contrib-python` (manifest only)
+2. Vendor the `face_landmarker.task` bundle — **licence checked at download**
+3. Vendor `portrait.jpg` + provenance README — **licence checked at download**
+4. `facedetect.py` — the per-frame composite path, on injectable fakes
+5. `facedetect.py` — camera lifecycle: 30 fps worker, drop-don't-queue, release
+   tripwire, throughput floor
+6. Booth UI — the `<img>` preview in the existing 172 px face disk
+7. `BoothApi` wiring + release on window close — **LAST task, FULL §5, including
+   the human-attested manual check**
+
+## Judgment calls this session made, so they are reviewable
+
+- **Tasks 2 and 3 are split** (model bundle / face fixture) although both are
+  "download an asset and check its licence". They escalate **independently**: a
+  blocked fixture must not also block the engine work, and the two remedies are
+  different — a bad model licence has no fallback at all, while a bad image
+  licence has a spec-amendment path (`spec.md` §4).
+- **Tasks 4 and 5 split one new module** into the pure per-frame transform and
+  the threaded device lifecycle. They are separately verifiable, and it keeps the
+  release/teardown work — the F4.5 defect class — in a diff small enough to
+  actually review.
+- **The UI task (6) comes before the bridge task (7)**, so the page function
+  exists before anything calls it. `_eval`'s existing
+  `window.voicelockBooth && …` guard would make the reverse order a silent
+  no-op, which is exactly why it would be the wrong order.
+- **The throughput floor lives in Task 5, not Task 4**, because the named
+  constant it justifies is introduced there — a constant with no caller in
+  Task 4 would be precisely the unexercised surface the first earned guardrail
+  forbids.
+- **`FrameResult.landmarks` returns all 478 while only a subset is drawn.** This
+  looks like unexercised surface and is not: `spec.md` §4 requires it (F6/F8
+  prefactor) and §5 item (3) pins it with a test. Called out in Task 4's notes so
+  a verifier does not reject it under the earned guardrail.
 
 ## Open items for the human
 
-1. **Check box 2 in `spec.md`** — the agent never checks it.
-2. **Five defaults the agent pinned rather than asked about.** None is
-   architectural, all are reversible before `/plan`, and none was dropped
-   silently — say the word on any and the spec is amended before planning:
-   - capture at 640×480, downscale the composited image to 172 px;
-   - target ~15 fps on a dedicated daemon thread, not `app.py`'s 50 ms pump loop;
-   - draw the face box plus a landmark **subset** (face oval, eyes, lip contour)
-     rather than all 478 dots on a 172 px disk;
-   - MediaPipe `VIDEO` running mode, not `LIVE_STREAM` — synchronous and
-     deterministic, so Gate tests cannot go flaky;
-   - **no startup camera probe** — a missing camera surfaces on Record, so the
-     app does not stall for seconds on every launch. This diverges from
-     `_probe_mic` deliberately.
-3. **A face-photo fixture with a permissive licence** is wanted so one test runs
-   the **real** vendored model rather than an injected fake. Spec §4 says that if
-   no suitably licensed image can be obtained, the limitation is **written into
-   the Verification section** — never replaced by a silent proxy. Worth deciding
-   before `/plan`.
+1. **A tool mismatch worth resolving before `/implement`.**
+   `constitution/project.md`'s Environment section says *"Tool(s): Cursor only ·
+   Verifier path: subagent · Signposts: AGENTS.md only"*, and this session ran in
+   **Claude Code**, where the harness skills are not installed as slash commands
+   (`.claude/skills/` does not exist in this repo — they were invoked by reading
+   `.harness/skills/<name>/SKILL.md` directly, the documented fallback).
+   That is cosmetic. What is **not** cosmetic: the constitution requires a
+   **clean-context verifier**, and this Claude Code session runs under a standing
+   instruction not to spawn subagents unless explicitly asked. Under Mode 3 the
+   build session is supposed to spawn the template verifier itself. So either:
+   - the human explicitly authorizes subagent verification for this feature, or
+   - each task's verify step degrades to a **fresh session** — the implement
+     session commits state, writes the handoff, and stops, per
+     `universal.md`'s BUILD gate ("if the host tool has no clean-context
+     subagent, it does NOT self-verify").
+   Either is legitimate; the second is slower but needs no decision. **Not
+   deciding means the second happens by default.** Re-running `setup` would also
+   refresh the stale Environment section.
+2. **Two escalations are scheduled, not accidental.** Tasks 2 and 3 will stop and
+   ask if either asset's licence does not check out. If the `portrait.jpg`
+   licence fails, the spec's remedy (replace the real-model test with a written
+   limitation in the Verification section) is a **spec amendment** — human-only,
+   needing a fresh box-2 approval.
+3. **Nothing else is parked.** No guardrail proposal is outstanding; the third
+   earned guardrail from F4.5 was approved and written into `project.md` last
+   session.
 
-## Two things carried in from F4.5, both honored
+## Two things carried in from F4.5, both honored in the ledger
 
-- **Task 2's fake-stream shape is the pattern F5's camera fake must copy.**
-  Spec §4 says how that reads for a **polling** device: `cv2.VideoCapture` has no
+- **Task 2's fake-stream shape is the pattern F5's camera fake must copy.** The
+  plan states how it reads for a **polling** device: `cv2.VideoCapture` has no
   callback, so `read()` **is** the real path the fake must deliver through, and
   `release()` is the teardown it must trip on — with a `BaseException` subclass,
-  as F4.5 proved is necessary against blanket `except Exception` handlers.
+  since F4.5 proved a plain `Exception` is swallowed by blanket handlers.
 - **A per-module tripwire in the Verification section.** F4.5's was
   `assert 'callback' in <test file>`; F5's pins `release` and `read` in
-  `tests/test_facedetect.py`, for the same reason and adapted to the real API.
+  `tests/test_facedetect.py`, carried verbatim into Tasks 5 and 7.
 
 ## next_action
 
-**`/plan` in a fresh session. Box 2 is checked — the gate is open.**
+**`/implement` Task 1 — "Declare `mediapipe` + `opencv-contrib-python`" — in a
+fresh session.** `Mode: Mode 3` is the standing "go" for tasks inside this
+feature, so no further human "go" is needed to start; the planning session ends
+here regardless (the plan skill never builds).
 
-Expect roughly this task shape (the plan session decides for real): declare the
-two dependencies · vendor the `.task` bundle and check its licence at download ·
-build `facedetect.py` on an injectable fake camera · wire `BoothApi` to the
-Record/Stop path · swap the smiley for the `<img>` in the Booth · land the live
-check last, since it is the one Gate line an agent cannot run.
-
-**Known risk to carry into the build:** nobody has measured what frame rate
-`evaluate_js` sustains across pywebview's WebView2 bridge on this machine, and it
-cannot be measured without installing the dependency. The 172 px preview is the
-mitigation (~8 KB per frame); the required live check is the detector. If it is
-choppy, the fallback ladder is: lower the frame rate → lower the JPEG quality →
-reconsider the loopback MJPEG transport (rejected here, and the rejection is
-recorded with its reason in `memory/decisions.md`).
+Carry into the build: item 1 above (who verifies), and the unmeasured
+`evaluate_js` bridge throughput — the one thing in this feature that cannot be
+measured until it is built.
 
 ## Commits
 
-Base for this session: `a114a49` → head `cf97c77` (the spec commit), plus this
-bookkeeping commit recording the pair.
+Base for this session: `0fdb90e` (the F5 spec approval) → head: the plan commit
+recorded below.
 Remote: **none** — local history only, nothing pushed.
-
-## The eight defaults — four changed after review, four kept
-
-Listed so none was dropped silently (the `grilling` skill's step 5). All were put
-to the human; four were changed before approval, so they are plain edits, not
-amendments.
-
-**Changed:**
-
-1. **Preview is now mirrored** (selfie view). `cv2.flip(img, 1)` runs **after**
-   the overlay is drawn, so pixels flip and **no landmark coordinate does** — the
-   cheap way, and the way that avoids mirror bugs. Detection stays on the
-   unflipped frame, so F6/F7/F8 data is unaffected. Text, if ever added, must be
-   drawn after the flip.
-2. **Frame rate 15 → 30 fps** (human: 15 was too choppy). Two conditions carry
-   more weight than the number: the rate is a **named constant**, and frames are
-   **dropped, never queued** — a queueing pipeline drifts progressively behind
-   reality, which looks like a freeze rather than a low frame rate. The Gate's
-   throughput floor moved to **<33 ms/frame, set AT the target**, with an
-   evidence-driven fallback to 20 then 15 if the hardware cannot meet it.
-3. **Gate fixture pinned: MediaPipe's own `portrait.jpg`**, plus its published
-   `portrait_expected_face_landmarks.pbtxt` as a vendor reference where practical.
-   Same shape as F3's precedent. Explicitly **not** the owner's face — see below.
-4. **The engine returns all 478 landmarks** while drawing only the subset, so F8
-   does not have to reopen `facedetect.py` for the lip points.
-
-**Kept as-is:** 640×480 capture (the bridge is the bottleneck, not the sensor) ·
-MediaPipe `VIDEO` mode (deterministic Gate tests) · no startup camera probe ·
-camera device index 0.
-
-## The fixture-vs-identity distinction, since it came up
-
-The human asked how they would verify it is *them* if the fixture is a stock
-portrait. The two never meet, and the repo already works this way for voice:
-
-| | Committed (the Gate) | Live, never committed (the human) |
-|---|---|---|
-| Voice | `speakerA_*.wav` / `speakerB.wav` — VoxCeleb strangers | their voice → `~/.voicelock/vault.vl` at runtime |
-| Face | `portrait.jpg` — MediaPipe's test image | their face → the live check, and the vault at F7 |
-
-The fixture proves the **model detects a face** with no camera and no human
-present. **Identity** is proven by the required manual check and, from F7, by a
-real enrollment. Committing the owner's photo would not make enrollment more
-theirs — it would put their biometrics in git and make the fixture withdrawable,
-i.e. a test that breaks later.
-
-**Flagged for F6, not solved here:** F6 needs *two* faces (same-person-close,
-different-person-far) and `portrait.jpg` is one image. F3 hit the same wall and
-solved it by windowing one recording — a photo cannot be split that way. **F6's
-spec must say where face B comes from.**
