@@ -1,76 +1,77 @@
-# Handoff — F4 Task 3 · DONE · 2026-07-26
+# Handoff — F4 Task 4 (lever 5 capture quality) · /implement session · 2026-07-26
 
 ## Where we are
-**Tasks 1–3 are `DONE`**; Feature 4 is 3/5. The vault is genuinely two-locked.
-Task 3 was `BLOCKED` on a plan contradiction (human-resolved), then REJECTed once
-on the Standards axis and APPROVEd on retry 1 — `rejects: 1`. Tasks 4–5 `TODO`.
+Tasks 1–3 `DONE`. **Task 4 is `REVIEW`.** Task 5 remains `TODO` — it is the
+feature's LAST task and carries the FULL spec §5 list including the
+**human-attested manual demo**, which an agent cannot perform.
+
+- base: `f41f669` (Task 4 `DOING`, committed before building)
+- head: `0fc073d` (build commit — this handoff's own commit is one after it)
 
 ## Changed
-- `src/voicelock/vault.py` — v2 nested layout, `VoiceAuthError`, `LegacyVaultError`
-- `src/voicelock/app.py` — `enroll_take()` banking, banked takes → `vault.enroll`,
-  unlock embeds the last capture, distinct `auth_outer` / `auth_voice` /
-  `legacy_vault` / `need_more_audio` error mapping
-- `tests/test_middlelock.py` — spec §5 vault cases (1)(2)(3)(4)(6)(7)
-- `tests/test_vault.py`, `tests/test_outer_lock.py`, `tests/test_booth_api.py` —
-  new signature; booth tests bank five takes and assert the distinct rejects
-- `.harness/memory/deviations.md` — the block, the human's decision, and the
-  honest note that "no new bridge behaviour" was unachievable
+- `src/voicelock/app.py` — `MIN_LOCK_SECONDS = 1.2`, `LOCK_WINDOWS = 3`,
+  `LOCK_WINDOW_FRACTION = 0.7`, and `lock_voiceprint()`; wired into `enroll_take`
+  and `unlock`
+- `tests/test_booth_api.py` — three lever-5 cases
+- Nothing else. `voiceprint.py` untouched, so F3's diagnostic keeps its own floor.
 
-## Failed + lesson
-**One REJECT, both findings accepted without argument:** `reset_enroll_takes()`
-was speculative, uncalled and untested (deleted — the suite still reports 78
-passed, confirming it was dead code), and `plan.md`'s `files:` line contradicted
-its own scope-extension paragraph (corrected). Recorded in Task 3's feedback log.
-Verdict: `memory/verdicts/2026-07-26-F4-T3.json`.
+## Scope note for the verifier
+Task 4's ledger entry was **reduced** on 2026-07-26: Task 3 absorbed the bridge's
+signature-driven half (`enroll_take` banking, banked takes → `vault.enroll`,
+`unlock` embedding, the `auth_outer`/`auth_voice`/`legacy_vault`/`need_more_audio`
+mapping) because the vault change broke those call sites and Task 3's
+done-criteria demanded a green full suite. See `memory/deviations.md`
+(2026-07-26, F4-T3) and Task 4's own "scope REDUCED" paragraph. What remained,
+and what this diff is, is **lever 5 only**. Task 4's original done-criteria
+(a)-(g) are all still satisfied — most were met in Task 3 and are asserted in
+`tests/test_booth_api.py`; this task adds the capture-quality half.
 
-## THE THING THAT MATTERS MOST RIGHT NOW
-**The feature is not demo-able yet.** `src/voicelock/ui/index.html` still tests
-`error === "auth"` and its fallback renders "wrong passphrase" for *any* error, so
-in the live Booth today the two rejects collapse into one message and enrollment
-cannot bank voice takes at all. The engine is correct; the window is not wired.
-Task 5 owns this, and its criterion is the §5 manual demo. Do not judge the
-feature by the green suite until Task 5 lands.
+## Doubts the verifier should weigh
+1. **`MIN_LOCK_SECONDS = 1.2` is bounded above by the fixtures, not chosen freely.**
+   Spec §3 asks for "meaningfully more" than 0.4 s; a real enrollment sentence is
+   3-5 s. The enrollment fixtures are 1.6 s (Task 1 pinned that as the longest
+   window keeping takes 1 and 5 disjoint), so any floor above 1.6 s would make
+   the fixtures unusable. 1.2 s is 3x F3's floor with headroom under 1.6 s. In a
+   live demo the real constraint is the spoken sentence, not this floor.
+2. **`lock_voiceprint` lives in `app.py`, not `voiceprint.py`.** Deliberate: spec
+   §4 says keep the F3 voiceprint engine unchanged as the identity source, and
+   Task 4's `files:` line is `app.py` + its test. The cost is that a DSP-ish
+   helper sits in the bridge module. If you would rather it lived in the engine,
+   that is a spec question, not a build one.
+3. **Runtime tripled per lock take** (3 embeds instead of 1); whole suite 25s ->
+   47s. Inside spec §5's 10-minute budget with room, but worth knowing before
+   Task 5 adds more.
+4. **The hop-0 branch** (a take barely over the floor) embeds once instead of
+   averaging three identical windows. It is reachable only for takes between
+   1.2 s and ~1.71 s of which the fixtures' 1.6 s enrollment takes are one — so it
+   IS exercised by the suite, via every `_enrolled_booth` call.
+
+## What I ran (measurement-exception disclosure)
+- `uv run ruff check .` → exit 0 (`All checks passed!`)
+- `uv run pytest tests/test_booth_api.py -q` → exit 0 (17 passed)
+- `uv run pytest` → exit 0 (**81 passed in 46.95s**)
 
 ## next_action
-**Task 4** — the reduced scope: lever 5 (embed each take as the average of 2–3
-overlapping windows, plus an F4-specific raised minimum speech length as a module
-constant; F3's `compare` floor stays untouched) and any remaining booth-api
-done-criteria coverage. Not started. *(curate due — 17 verdicts)*
+Verify Task 4 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, task
+`F4-T4`, base `f41f669`, head `0fc073d`. On APPROVE → wrap-up, then **Task 5**.
 
-## Where the rest lives
-- the block, the decision, the honest correction → `memory/deviations.md` (2026-07-26, F4-T3)
-- v2 on-disk layout diagram → `src/voicelock/vault.py` module docstring
-- middle-lock constants + measured basis → `src/voicelock/middlelock.py`
-- why the commitment costs a KDF → `adr/0003-middle-lock-commitment-costs-a-kdf.md`
+**Read this before starting Task 5:** it is F4's LAST task, so its done-criterion
+is the FULL spec §5 Verification list — which includes a **manual, human-attested
+live demo** (real mic, enroll, unlock, wrong passphrase, and a *different person*
+speaking). No agent can attest that. Expect the Gate to return ESCALATE_HUMAN on
+that line, exactly as F3 Task 5 did (`memory/verdicts/2026-07-23-F3-T5.json`
+records the same pattern: automated PASS, manual attested by the human afterward).
+The UI wiring itself is automatable and must land first: `index.html` still tests
+`error === "auth"` and cannot bank enrollment takes.
+
+## Pending guardrail
+Unchanged from Task 3's wrap-up and still awaiting your approval — the
+"a task that changes a public signature owns its callers" rule. Full text in the
+Task 3 wrap-up handoff (git: `2f5662b`).
 
 ## Commits (this session, on `main`)
-`a13d891` → `01667e1` → `a671db3` → `72b6743` (T1 done) → `4a16acc` → `469a4cd` →
-`c2310ef` → `0fa8e8a` (T2 done) → `3a88ed3` → `2706679` (BLOCKED) → `d583749`
-(decision) → `1488925` (rejected build) → `16c01fb` (reject recorded) → `eb7d4ce`
-(retry-1 build, APPROVEd) → `b832bed` / `18bcef6` (handoff) → this wrap-up commit.
+… → `2f5662b` (T3 done) → `f41f669` (T4 DOING) → `0fc073d` (T4 build).
 Remote: **none** — local history only, no push.
-
-## Pending guardrail — NEEDS YOUR APPROVAL, not written
-The `learn` scan found a lesson that clears the bar (it cost a `BLOCKED` stop, a
-human touchpoint, and a REJECT — and it will recur, since Tasks 4–5 and every
-future feature change APIs). Proposed for `constitution/project.md`:
-
-> - **[Startup]** A task that changes a module's public signature owns every
->   in-repo caller of it — the plan must name those callers in the task's `files:`
->   line, or the task's done-criteria must not require a green full suite.
->   `warn` · expires: 2027-01-31
->   - _Evidence:_ F4 Task 3 (2026-07-26) declared three files but changed
->     `vault.enroll`/`vault.unlock`, which `app.py`, `test_outer_lock.py` and
->     `test_booth_api.py` all call. Its done-criteria demanded `uv run pytest`
->     exit 0, so the two requirements were mutually exclusive and the task
->     stopped `BLOCKED` mid-session.
->   - _Added:_ 2026-07-26
-
-Considered enforcing it mechanically instead of remembering it (the `learn`
-skill's first question): the honest answer is that this belongs in the `plan`
-skill as a caller-scan step rather than in a lint rule, which is a harness change
-outside this feature's scope. Prose guardrail is the fallback; say the word and I
-will write it, or decline it and it disappears.
 
 ## Notes for the human (carried)
 - `spec.md` §0's amendment paragraph still says "awaiting the human's `x`" though
