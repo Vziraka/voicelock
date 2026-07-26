@@ -89,11 +89,6 @@ class BoothApi:
             "needed": ENROLLMENT_TAKES,
         }
 
-    def reset_enroll_takes(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Discard any half-finished enrollment run."""
-        self._enroll_voiceprints = []
-        return {"ok": True, "progress": 0, "needed": ENROLLMENT_TAKES}
-
     def enroll(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         """Seal (or overwrite) the Vault with name + passphrase + the banked voice."""
         data = payload or {}
