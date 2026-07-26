@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1 `DONE`, Task 2 `DOING`, Task 3 `TODO`.**
+- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Task 1 `DONE`, Task 2 `REVIEW` (awaiting fresh-eyes verification), Task 3 `TODO`.**
   (Spec approved at box 2 by the human 2026-07-26. Mode 3 is the standing "go":
   Task 1's wrap-up completed, so the session takes Task 2 without a further
   human word. The feature closes calibration findings 1–3; findings
@@ -42,7 +42,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — `FakeStream` delivers frames through the REAL callback + a re-entrant-teardown tripwire
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `tests/test_capture.py`
   - notes: Test-harness only — **`capture.py` is not touched in this task.** This is
