@@ -10,11 +10,12 @@
   `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`), and the
   bundle is vendored with LICENSE + NOTICE. Tasks 3–7 `TODO`; next is Task 3,
   which carries the **second, unrelated** licence STOP point.
-  **Both halves of F5 Task 2's `learn` proposal were human-approved 2026-07-26:**
-  the prose guardrail is written into `project.md`, and its enforcement check is
-  added to `spec.md`'s Verification Standing list — which makes that a **spec
-  amendment**, so `spec.md`'s box 2 is re-opened and **building is paused at
-  Task 3 until the human re-checks it**.**
+  **Task 3 `DOING`** — the `portrait.jpg` fixture, carrying the **second,
+  independent** licence STOP point.
+  Both halves of F5 Task 2's `learn` proposal were human-approved 2026-07-26:
+  the prose guardrail is in `project.md`, and its enforcement check is in
+  `spec.md`'s Verification Standing list. That was a **spec amendment**, so box 2
+  was re-opened and **the human re-approved it the same day** — gate closed.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -169,7 +170,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       in every mode.
 
 - [ ] **Task 3** — Vendor the `portrait.jpg` face fixture + its provenance README, licence verified at download
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `tests/fixtures/face/portrait.jpg`, `tests/fixtures/face/README.md`,
     optionally `tests/fixtures/face/portrait_expected_face_landmarks.pbtxt`

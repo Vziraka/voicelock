@@ -7,9 +7,10 @@ Feature: Feature 5 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [ ] Approved by human
+- [x] Approved by human
 
-> **AMENDMENT 2026-07-26 — box 2 re-opened, awaiting the human's `x`.**
+> **AMENDMENT 2026-07-26 — box 2 was re-opened and the human RE-APPROVED it
+> the same day. Gate closed; building resumed at Task 3.**
 > One line was added to the **Verification** section's Standing list: a check
 > that every `src/voicelock/models/*/` dir carries a non-stub `LICENSE` and
 > `NOTICE`. It is the enforcement half of the per-asset licence-provenance
@@ -20,9 +21,8 @@ Feature: Feature 5 from `roadmap.md`
 > record stays `CLEAR`.
 > Tasks 1 and 2 are already `DONE` under the pre-amendment spec and are
 > unaffected (the new check passes against both vendored model dirs today).
-> Building resumes at Task 3 once this box is checked — the approved `Mode:`
-> line is a standing "go" for tasks inside the feature, but it never reaches
-> past an amendment.
+> The approved `Mode:` line is a standing "go" for tasks inside the feature, but
+> it never reaches past an amendment — which is why this pause happened at all.
 
 - **Mode:** Mode 3 (Spec-to-done). Set by the human 2026-07-26. The two
 dependencies this feature introduces were locked by a TECH-PICK + human
@@ -142,6 +142,8 @@ fix and its tests stay exactly as they are.
 - Out-of-scope discoveries during build (Mode 3 default): record in
 `.out-of-scope/`, never build.
 
+
+
 ## 4. Constraints
 
 - Honor `constitution/project.md` + conventions: Python 3.11 + uv (no bare pip);
@@ -169,7 +171,7 @@ Apache-2.0.
 - `opencv-contrib-python` — camera frames via `cv2.VideoCapture`, plus the JPEG
 encode and the overlay drawing. Liveness quoted: 4.13.0.92 released
 2026-02-05, 8,487,096 downloads last month.
-- **`opencv-contrib-python`, never `opencv-python`.** Both install a top-level
+- `opencv-contrib-python`**, never** `opencv-python`**.** Both install a top-level
 `cv2` and installing both shadows. MediaPipe pulls the contrib build as a
 transitive, so declaring *that* one keeps a single `cv2` **and** closes the
 undeclared-transitive gap before it bites — the F4.5 `soundfile` lesson applied
@@ -195,7 +197,7 @@ time** (not at runtime, ever):
 spec time — the model page states neither. **Both must be checked at download,
 before the file is committed.** If the licence is not permissive, STOP and
 escalate; do not vendor it and do not substitute a different model silently.
-- Running mode is **`VIDEO`** (`detect_for_video`), not `LIVE_STREAM`.
+- Running mode is `VIDEO` (`detect_for_video`), not `LIVE_STREAM`.
 `LIVE_STREAM` is asynchronous and would deliver through a `result_callback`,
 which reads closer to the earned guardrail's wording — but it makes frame
 ordering nondeterministic and can drop frames, which turns a Gate test into a
@@ -277,7 +279,9 @@ rejection is recorded with its reason in `memory/decisions.md`.
 throughput across pywebview's WebView2 bridge is the one thing in this feature
 that cannot be measured until it is built.
 
-**The engine (`src/voicelock/facedetect.py`), shaped after `capture.py`:**
+
+
+**The engine (**`src/voicelock/facedetect.py`**), shaped after** `capture.py`**:**
 injectable `open_camera` (default `cv2.VideoCapture`) and an injectable
 landmarker, so **no Gate test ever touches a real webcam** — the same contract
 `CaptureEngine`'s `open_input` established in F1. A status enum with an ERROR
@@ -311,13 +315,13 @@ oversight.
 the earned guardrail says a test double "must deliver data through the **real
 callback it was handed**". `cv2.VideoCapture` has **no callback** — it is a
 polling API (`read()`). The equivalent, and what this feature must do, is: the
-fake camera delivers frames through the **real `read()` the engine calls**, and
+fake camera delivers frames through the **real** `read()` **the engine calls**, and
 those frames must flow through the engine's real frame-handling path into the
 real composited output. A test that fabricates landmarks and skips the engine's
 frame path is exactly the hole F4.5 was inserted to close, in a different shape.
 The fake must additionally **raise immediately** if `read()` is called after
 `release()` — the release tripwire the human required. As in F4.5, that tripwire
-must raise a **`BaseException` subclass** if the engine's teardown path wraps
+must raise a `BaseException` **subclass** if the engine's teardown path wraps
 anything in a blanket `except Exception`, so it cannot be silently swallowed;
 verify that deliberately rather than assuming.
 
@@ -350,7 +354,7 @@ notebook does not ship an Apache-2.0 asset at all — it downloads
 whose licence restricts redistributing images unaltered. Committing a fixture
 into a repo *is* redistributing it unaltered. So the provenance of each
 individual asset must be established on its own terms, not inherited from the
-project that references it. `portrait.jpg`'s own licence is **`unconfirmed`** at
+project that references it. `portrait.jpg`'s own licence is `unconfirmed` at
 spec time and is exactly what the download-time check exists to settle.
 - **Explicitly NOT a photo of the repo's owner.** A biometrics project committing
 its owner's face as a permanent fixture is a poor default even with no remote,
@@ -371,6 +375,8 @@ say where face B comes from**. Named here so it surfaces at spec time rather
 than mid-build.
 - Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
 `uv run pytest` → exit 0.
+
+
 
 ## 5. Verification — definition of done (runnable)
 
@@ -492,6 +498,8 @@ smiley returns, **the webcam light goes out**, and pressing **Record a second
 time** brings the preview back. Close the window while recording: the webcam
 light goes out. Observable: the camera is genuinely opened, genuinely drawn on,
 and genuinely released.
+
+
 
 Out-of-scope discoveries during build (Mode 3 default): record in
 `.out-of-scope/`, never build.
