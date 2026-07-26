@@ -1,6 +1,6 @@
-# Spec: F3 — Voiceprint on screen
+# Spec: F4 — Voice as the middle lock (stacked)
 
-Feature: Feature 3 from `roadmap.md`
+Feature: Feature 4 from `roadmap.md`
 
 ## 0. Approval gate
 
@@ -9,167 +9,249 @@ Feature: Feature 3 from `roadmap.md`
   hits in this file)
 - [x] Approved by human
 
-- **Mode:** Mode 3
+- **Mode:** Mode 3 (Spec-to-done). Set by the human at grilling 2026-07-23. The
+  security-critical crypto keystone (§4) is still locked in this spec via a
+  TECH-PICK + human approval BEFORE any building — Mode 3's autonomy is bounded to
+  an already-approved design.
 
 The agent may NOT plan or build until BOTH boxes are checked.
 The second box is checked by the HUMAN typing the `x` — the agent never checks it.
 
-**Amendment (2026-07-23) — box 2 re-opened, needs fresh approval.** Added a
-**Reset** control to F3: clears the stored reference and restarts the 3-take
-flow from scratch. Human-requested. Changes are in §1 (Outcome), §4
-(Constraints — new "Reset reference" bullet), §5 (Verification — a bridge reset
-test + a reset step in the manual demo), and the §2 Interaction/UX row. Mode
-unchanged (Mode 3). Per the universal [Modes] rule an amendment needs a fresh
-box-2 approval — re-check the box above after reviewing the changed sections.
-Re-plan (adding Task 5 = Reset) happens only after that.
-
 ## 1. Outcome
 
-Show the **voiceprint** working on screen. Compute a speaker embedding from
-captured speech (the F1 mic path) and display a **live match distance** against a
-stored **reference voiceprint** in the Booth, colored **accept** (close) vs
-**reject** (far). This is a diagnostic only — **not wired into any lock**, no key
-derivation, no vault change.
-Demo: same person speaks → distance small / accept-colored; a different person
-speaks → distance large / reject-colored.
-A **Reset** action clears the stored reference and returns the Booth to the
-no-reference state, so a fresh reference can be recorded from scratch.
+Make the **voiceprint** a real cryptographic lock, not just an on-screen meter.
+**Fuzzy-reconcile** the enrolled voiceprint into a **stable key** (with non-secret
+**helper data**) and use it to seal a **middle lock** — an AEAD layer wrapping the
+existing F2 **outer** (passphrase) lock's sealed box. After F4 the profile Vault
+is sealed by **two nested locks**: passphrase (outer) around voice (middle) around
+the payload. Unlock now requires the passphrase **and** the enrolled speaker's
+voice: the outer lock peels with the typed passphrase, then the middle lock peels
+only when a fresh voiceprint reconciles (via the helper data) to the enrollment
+key.
+
+Demo (the three impostor outcomes, each **visibly distinct**):
+- right passphrase **and** the enrolled person's voice → **unlocked** (display name shown);
+- **wrong passphrase** → REJECT at the **outer** lock ("wrong passphrase");
+- right passphrase but a **different person's voice** → REJECT at the **middle**
+  lock ("voice did not match").
 
 ## 2. Grilling record — ambiguity scan
 
-**Status: CLEAR**
+**Status: CLEAR** — every category resolved; zero clarification markers remain
+(2026-07-23, after grilling).
 
-
-| Category                           | Verdict | Resolved by                                                                                                                  |
-| ---------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Functional scope & behavior        | Clear   | compute voiceprint · show live distance vs reference · accept/reject color                                                   |
-| Domain & data model                | Clear   | reference = 3-sentence averaged ECAPA embedding, persisted to `~/.voicelock/voiceprint.ref` (plaintext vector, not in vault) |
-| Interaction & UX flow              | Clear   | "Set reference" action + **"Reset"** action (clears the reference + any in-progress takes, no confirm) + live 3-band meter (green/amber/red) in the Booth |
-| Non-functional (perf, security)    | Clear   | model vendored in-repo + HF_HUB_OFFLINE; pytest model-load budget declared in §5                                             |
-| Integration & dependencies         | Clear   | SpeechBrain ECAPA (human-approved TECH-PICK)                                                                                 |
-| Edge cases & failure modes         | Clear   | no reference → prompt to set; short/silent → "need more audio"; no mic → F1 error path                                       |
-| Completion signals                 | Clear   | 3-band cosine meter; fixtures assert same→accept / different→reject; manual Booth check                                      |
-| Terminology (matches `CONTEXT.md`) | Clear   | Voiceprint · Booth · Impostor                                                                                                |
-
+| Category                           | Verdict | Resolved by |
+| ---------------------------------- | ------- | ----------- |
+| Functional scope & behavior        | Clear   | Voice = middle lock; unlock needs passphrase + voice; enroll = 5-sentence averaged capture; unlock = passphrase + one utterance, identity-only. |
+| Domain & data model                | Clear   | Hand-rolled numpy code-offset fuzzy commitment (§4); helper data **inside** the outer box; nested **v2** vault layout; v1 refused with re-enroll. |
+| Interaction & UX flow              | Clear   | Enroll voice capture + unlock voice capture + two **distinct** reject messages (`auth_outer` / `auth_voice`); F3 diagnostic panel kept as-is. |
+| Non-functional (perf, security)    | Clear   | Offline + Argon2id/PyNaCl inherited; reconcile tolerance pinned empirically from fixtures (§4); honest limits written (§3/§4). No new dependency. |
+| Integration & dependencies         | Clear   | **No new dependency** — hand-rolled in numpy (research `memory/research/2026-07-23-f4-fuzzy-reconcile.md`; decision logged). No TECH-PICK triggered. |
+| Edge cases & failure modes         | Clear   | Reuse F1 mic-error + F3 "need more audio"; no-vault → enroll first; wrong-passphrase → outer REJECT; wrong-voice → middle REJECT; v1 vault → re-enroll. |
+| Completion signals                 | Clear   | §5 pinned: fixture tests (same→unlock / different→middle REJECT / wrong-pass→outer REJECT / distinct-reject + no-leak / v1 refused) + required live Booth manual demo. |
+| Terminology (matches `CONTEXT.md`) | Clear   | Vault · Outer lock · Middle lock · Voiceprint · Helper data · Enroll · Booth · Impostor (all already in `CONTEXT.md`). |
 
 ## 3. Non-goals
 
-- No lock or key derivation, no fuzzy reconcile / helper data (that is F4).
-- No face, camera, liveness, or challenge (F5+).
-- No change to the vault file or F2 enroll/unlock behavior.
-- No tolerance-tuning UI and no enrollment-quality gate (F9) — F3 uses a fixed
-provisional threshold only.
-- No multi-profile; a single reference voiceprint is enough for F3.
+- **No face, camera, faceprint, inner lock, liveness, or challenge** (F5–F8). The
+  voice at unlock is matched by **identity only** — there is no spoken-phrase
+  challenge yet (that is F8), so this feature does **not** resist replay of a
+  recording of the enrolled voice.
+- **No enrollment-quality gate and no tolerance-tuning UI** (F9). F4 pins one
+  fixed, provisional reconcile tolerance chosen empirically from fixtures.
+- **No multi-profile** — a single Vault at `~/.voicelock/vault.vl`, as F2.
+- **No account recovery** — lose the passphrase or the voice match → the Vault
+  stays sealed (as the roadmap states).
+- No claim of cryptographic hardness: biometric key binding for a **learning
+  demo**, honestly framed. Helper data is **non-secret** and leaks bounded
+  information about the voiceprint; the middle key is only as strong as the
+  voiceprint's entropy and the chosen reconcile tolerance (stretched by Argon2id)
+  — **not product-grade**. There is a small false-reject rate and a non-zero
+  false-accept risk for a very similar voice; F4 does not stop replay of the
+  enrolled voice (that is F8); no FAR/FRR guarantees.
 - Out-of-scope discoveries during build: record in `.out-of-scope/`, never build.
+
+### Interaction & UX flow
+
+**Enroll flow (RESOLVED 2026-07-23):** enroll becomes name + passphrase + a
+**5-sentence voice capture** (suggested sentences shown to read; each take
+embedded, a too-short/silent take rejected with F3's "need more audio", the valid
+takes averaged), producing the middle-lock helper data. The voice binds the
+middle key at enroll; this is the vault's enrollment voiceprint and **supersedes**
+F3's plaintext diagnostic reference for lock purposes.
+
+**F3 diagnostic panel (RESOLVED 2026-07-23):** keep the existing F3 live-match
+meter / "Set reference" / "Reset" panel **as-is** — an independent diagnostic that
+still writes the plaintext `~/.voicelock/voiceprint.ref`, separate from the lock.
+Least churn/risk in a crypto-heavy feature; the meter still visualizes close-vs-far.
+The F4 demo path uses the new enroll/unlock voice capture, not the F3 diagnostic.
+Keep F1 Record/Stop/Play unchanged.
+
+**Unlock flow (RESOLVED 2026-07-23):** unlock = type passphrase + record **one**
+short utterance (any speech; identity-only, no challenge phrase). The bridge peels
+**outer first, then middle**, returning a distinct reason per failure so the Booth
+shows two **visibly distinct** messages:
+- outer decrypt fails → `auth_outer` → "Wrong passphrase";
+- outer opens but the voice fails to reconcile / middle decrypt fails → `auth_voice`
+  → "Voice didn't match".
+A too-short/silent unlock take → F3's "need more audio", re-record (no penalty).
+Right passphrase + enrolled voice → **unlocked** (display name shown).
 
 ## 4. Constraints
 
-- Honor `constitution/project.md` + conventions: Python 3.11 + uv; engine code in
-`src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; Python owns the
-voiceprint compute, JS renders the meter only; **offline-only — no network at runtime**.
-- Entry point remains `uv run voicelock` (Booth window).
-- Voiceprint method: **SpeechBrain ECAPA-TDNN** (`spkrec-ecapa-voxceleb`),
-human-approved TECH-PICK. Research: `memory/research/2026-07-22-f3-voiceprint-embedding.md`.
-New deps added via `uv` at build time: `speechbrain`, `torch`, `torchaudio`.
-- **Offline enforcement (from the TECH-PICK):** the ECAPA weights are **vendored
-in the repo** at `src/voicelock/models/ecapa/` (model is Apache-2.0 — its
-LICENSE/NOTICE retained alongside the files; redistribution permitted). The app
-and the Gate load ECAPA from that local path with `HF_HUB_OFFLINE=1` (SpeechBrain
-pointed at the local dir), so there is **no runtime network**. The Gate is
-self-contained: `uv run pytest` loads the vendored model offline, no setup step.
-One-time developer action during build: download the official files once and
-commit them (~20 MB in git; plain git, no LFS for this local project).
-- Reference voiceprint: a Booth **"Set reference"** action records **3 separate
-short sentences**, computes an ECAPA embedding for each, and **averages** them
-(mean of the L2-normalized embeddings, then re-normalized) into one reference
-vector. It persists **just that averaged vector** to `~/.voicelock/voiceprint.ref`
-— a small sibling file, **not** inside the vault. Persists across runs;
-re-settable by setting again. A take that is too short/silent is rejected with
-"need more audio" and re-recorded (that take only), not averaged in. Keeps F3
-decoupled from the lock; F4 later supersedes this with vault-stored voice helper
-data. This multi-sample averaging deliberately overlaps F9's territory (human
-chose robustness); the **full** enrollment-quality gate + tolerance UI remain
-F9. Honest limitation: the reference vector is stored in **plaintext** —
-acceptable for an F3 diagnostic (real sealing is F4).
-- **Reset reference (amendment 2026-07-23):** a Booth **"Reset"** control clears
-the stored reference — deletes `~/.voicelock/voiceprint.ref` (a no-op if none
-exists) **and** discards any half-finished take run — then empties the 3-take
-progress and returns the meter to the "set reference first" state. **No
-confirmation prompt** (low-stakes diagnostic, freely re-settable). Re-setting a
-reference afterward is the normal 3-take flow. Python owns the clear (a bridge
-method deletes the file + resets in-progress takes); **JS renders only** the
-reset state — no embedding math in JS. Keep Record/Stop/Play and F2
-Enroll/Unlock unchanged.
-- Match distance + coloring: **cosine distance** between the live ECAPA embedding
-and the reference, shown with **three-band coloring** — accept (green) /
-borderline (amber) / reject (red). The concrete accept and reject cutoffs are
-chosen **empirically during build** from the test fixtures and pinned in §5 once
-measured; the borderline band sits between them. The Gate asserts same-speaker
-distance lands in the accept band and different-speaker distance lands in the
-reject band on fixed fixtures. Tolerance-tuning UI is F9, not F3.
-- Booth UX: reuse the existing mock chrome; add a live distance readout + accept/
-reject color; keep Record/Stop/Play and F2 Enroll/Unlock unchanged.
-- Edge cases (visible, no crash): no reference set yet → prompt to set one;
-speech too short / silent → visible "need more audio" state; no mic → existing
-F1 mic-error path.
+- Honor `constitution/project.md` + conventions: Python 3.11 + uv; engine/crypto
+  in `src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; **Python owns
+  all crypto/DSP, JS renders only**; **offline-only — no network at runtime**.
+- Entry point remains `uv run voicelock` (Booth window). Keep F1 Record/Stop/Play
+  and the F3 voiceprint engine (`voiceprint.py` — `embed`, cosine, cutoffs)
+  unchanged as the identity source.
+- Reuse the F2 outer lock unchanged: PyNaCl Argon2id + SecretBox, `vault.py`. The
+  middle lock is a second AEAD layer using the same primitives with a
+  voice-derived key.
+
+**Keystone — the fuzzy-reconcile construction (RESOLVED 2026-07-23, human-approved):**
+
+Hand-rolled **code-offset fuzzy commitment** in **pure numpy — NO new dependency**
+(the recognized Juels–Wattenberg / fuzzy-extractor construction; research
+`memory/research/2026-07-23-f4-fuzzy-reconcile.md`, decision in `memory/decisions.md`).
+The pipeline, all Python-owned:
+- **Binarize + expand:** a seeded random-hyperplane **LSH** projection turns the
+  192-dim L2-normalized ECAPA embedding into ~512 bits (the projection seed is
+  non-secret helper data). Raw 192 sign-bits give ~25% genuine bit-error — too
+  high — so expansion + masking is required, not optional.
+- **Reliability mask:** keep only the most stable bits (large-margin projections)
+  learned at enrollment across the averaged takes, pulling genuine bit-error down
+  toward ~10–15%. The kept-bit mask is non-secret helper data.
+- **Inner code:** a **repetition / majority-vote** ECC over the reliable bits.
+  Enroll picks a random secret `s`, encodes it to codeword `c`, stores helper
+  `P = b XOR c` plus `H(s)`. Unlock computes `b' XOR P`, majority-decodes, and
+  succeeds iff `H(s)` matches (same speaker within the correction radius).
+- **Key:** the recovered `s` is stretched via Argon2id/HKDF into a PyNaCl
+  SecretBox key for the **middle lock**. Modest secret entropy is acceptable for a
+  labeled learning demo (honest limits below); the KDF does the stretching.
+- **Rejected:** `bchlib`/`reedsolo` (both fail the ~12-month liveness bar), and
+  `komm`/`galois` (live but add a dependency for only the easy last step). A new
+  dependency was considered and declined — no TECH-PICK is triggered.
+
+**Helper-data storage + v2 vault layout (RESOLVED 2026-07-23):** helper data lives
+**inside the outer-passphrase box** — a deliberate refinement of the roadmap's
+high-level "sibling" sketch. Nested SecretBox layout, format **version bumped
+v1 → v2**:
+- innermost plaintext = the profile JSON (`{name, schema_version}`, as F2) →
+  sealed with the **voice-derived middle key** → **middle ciphertext**;
+- outer plaintext = JSON `{helper_data, middle_ciphertext}` where `helper_data` =
+  {LSH seed, reliability-bit mask, XOR offset `P`, `H(s)`} → sealed with the
+  **passphrase-derived outer key** (F2's Argon2id + SecretBox, unchanged);
+- on-disk file = `VLCK` magic + **version 2** + opslimit + memlimit + salt +
+  outer ciphertext.
+This hides the (non-secret) helper data at rest and orders the rejects: peel outer
+(passphrase) first → then reconcile + peel middle (voice).
+**v1 back-compat (RESOLVED):** a pre-existing F2 **v1** vault has no voice layer;
+F4 unlock **refuses it with a re-enroll prompt** ("this vault predates voice —
+re-enroll to add the voice lock"). No passphrase-only bypass, so "voice is now
+required" stays true. Enroll always writes v2.
+
+**Reconcile tolerance (RESOLVED 2026-07-23):** the correction radius (and the
+reliability-mask size / repetition factor) is the "how close is close enough"
+knob — the analog of F3's ACCEPT/REJECT cutoffs. Pinned **empirically from the
+fixtures** as module constants the tests import, so that same-speaker takes
+reconcile (unlock succeeds) and a clearly-different speaker does not (middle
+REJECT) — deterministic, not judgment. One fixed, provisional tolerance for F4;
+the full tolerance-tuning UI + enrollment-quality gate stay **F9**.
+
+**Accuracy levers (RESOLVED 2026-07-23):** maximize honest-voiceprint stability so
+the you-vs-different clusters sit far apart — **5-sentence averaged enrollment**
+(human chose richer than F3's 3 takes), the reliability mask above, and LSH
+bit-expansion. Enrollment shows suggested sentences to read; a per-take "need more
+audio" floor (F3) rejects a silent/too-short take. Accepted honest limits (not
+product-grade): a small false-reject rate, a non-zero false-accept for a *very*
+similar voice, and — because F4 has no challenge phrase — a **recording of the
+enrolled voice still passes** (replay is defended in **F8**). No FAR/FRR guarantees.
+
+- Booth UX: reuse existing mock chrome; add the enroll voice-capture step and the
+  unlock voice-capture step; keep Record/Stop/Play and the F3 diagnostic panel
+  unchanged; two distinct reject messages (outer vs middle), per §3.
+- Edge cases (visible, no crash): no vault → "enroll first"; wrong passphrase →
+  outer REJECT; right passphrase + wrong voice → middle REJECT; short/silent take
+  → F3 "need more audio"; no mic → F1 mic-error path; v1 vault → re-enroll prompt.
 - Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
-`uv run pytest` → exit 0.
-- No new dependency beyond the approved ECAPA stack without a fresh TECH-PICK.
+  `uv run pytest` → exit 0.
+- **No new dependency** — F4 is built on the existing ECAPA + PyNaCl + numpy stack;
+  nothing installed without a fresh TECH-PICK + human sign-off.
 
 ## 5. Verification — definition of done (runnable)
 
 The exact commands the Gate runs. Each must exit 0. Harness rules find this
 section by its NAME ("Verification"). Two parts, both required.
 
-Runtime budget: `uv run pytest` loads torch + the vendored ECAPA model, which can
-take up to ~2 minutes on first run. Whole suite budget: **within the 10-minute
-default** (declare a longer budget here only if that proves false during build).
+Runtime budget: `uv run pytest` loads torch + the vendored ECAPA model (up to
+~2 min first run) plus Argon2id KDF cost (the middle lock adds a second KDF).
+Whole-suite budget: within the 10-minute default (declare a longer budget here
+only if that proves false during build).
 
 Standing (project regression net, from `project.md`), pinned:
-
 - `uv run ruff check .` → exit 0 (stdout/stderr contain no ruff error findings)
-- `uv run pytest` → exit 0 (final summary reports 0 failed)
+- `uv run pytest` → exit 0 (final summary reports 0 failed — existing suite still green)
 
 Feature-specific (proves THIS feature works), pinned:
 
-- `uv run pytest tests/test_voiceprint.py -q` → exit 0; final summary reports 0
-failed. Must cover, using fixed audio fixtures + the **vendored** ECAPA model
-loaded fully offline (`HF_HUB_OFFLINE`, no network):
-(1) same-speaker fixtures → cosine distance ≤ the module's accept cutoff (lands
-in the accept band); (2) different-speaker fixtures → cosine distance ≥ the
-module's reject cutoff (lands in the reject band) — the test imports the same
-cutoff constants the app uses, so the assertion is deterministic, not judgment;
-(3) "Set reference" averages 3 per-utterance embeddings into a single
-L2-normalized reference vector, and a too-short/silent take is rejected with the
-"need more audio" signal (not averaged in); (4) with no reference file present,
-the compare path surfaces a set-reference-first signal (no crash); (5) the model
-loads from the vendored local path with no network call.
+- `uv run pytest tests/test_middlelock.py -q` → exit 0; final summary reports 0
+  failed. Must cover, using fixed audio fixtures + the **vendored** ECAPA model
+  loaded fully offline (`HF_HUB_OFFLINE`, no network), and a temp vault path:
+  (1) **enroll** binds a middle key from the (5-take averaged) enrollment
+  voiceprint, emits helper data (LSH seed + reliability-bit mask + XOR offset `P`
+  + `H(s)`), and seals a nested **v2** vault (`VLCK` magic, version byte = 2);
+  (2) **same-speaker** unlock voiceprint reconciles → `H(s)` matches → the middle
+  lock opens → the enrolled display name is returned;
+  (3) **different-speaker** voiceprint fails to reconcile → **middle REJECT**
+  (`auth_voice`) and **no name/plaintext** is returned;
+  (4) **wrong passphrase** → **outer REJECT** (`auth_outer`) and **no name** —
+  raised **before** the voice is ever consulted (peel order: outer then middle);
+  (5) the reconcile tolerance (correction radius / reliability params) are
+  module-level constants the test imports — same-speaker fixtures reconcile and a
+  clearly-different speaker does not, with a margin (deterministic, not judgment);
+  (6) a pre-existing **v1** vault is **refused** with the re-enroll signal (no
+  passphrase-only open);
+  (7) **no-leak / helper-data-at-rest:** neither reject path returns the name, and
+  the raw v2 file bytes do not expose the reference embedding or the middle
+  plaintext (helper data sits inside the outer ciphertext).
 
 - `uv run pytest tests/test_booth_api.py -q` → exit 0; final summary reports 0
-failed. Must cover (amendment 2026-07-23), using a temp ref path (no real mic):
-after a reference is set, the bridge **`reset_reference`** clears it — a
-subsequent `compare` surfaces the set-reference-first (`no_reference`) signal
-again, and the reference file no longer exists.
+  failed. Must cover (using a temp vault path + stub/fixture capture, no real mic):
+  the bridge **enroll** captures the 5 takes and seals the nested v2 vault; the
+  bridge **unlock** returns **distinct** reasons — `auth_outer` for a wrong
+  passphrase vs `auth_voice` for a wrong voice — and neither returns the name.
 
-Proof surface: the highest real surface F3 touches is the live pywebview Booth.
-Automated tests prove the Python voiceprint path on fixtures; they do **not** drive
-the real window or a live mic — that gap is covered by the required manual line
-below (a required check, not accepted risk).
+Proof surface: the highest real surface F4 touches is the live pywebview Booth.
+Automated tests prove the Python crypto path on fixtures; they do **not** drive the
+real window or a live mic — that gap is covered by the required manual line below
+(a required check, not accepted risk).
 
-- Manual (required for F3 done — Verification check): run `uv run voicelock`, use
-**Set reference** and speak 3 sentences to store a reference → the same person
-reads a sentence → live meter shows a small distance / **accept (green)** → a
-**different** person reads → meter shows a large distance / **reject (red)** →
-click **Reset** → the meter returns to "set reference first" and a fresh
-reference can be set again.
-Observable: real-mic Set reference works, the live 3-band meter updates, a
-real same-vs-different speaker separates into accept vs reject, and Reset clears
-the reference back to the no-reference state.
+- Manual (required for F4 done — Verification check): run `uv run voicelock` →
+  **enroll** (name + passphrase + read the 5 sentences) → **unlock** with the right
+  passphrase + the enrolled voice → **unlocked** (name shown); **wrong passphrase**
+  → **outer REJECT** ("Wrong passphrase"); a **different person** speaks with the
+  right passphrase → **middle REJECT** ("Voice didn't match"). Each reject names
+  its distinct cause.
+  Observable: real-mic enroll seals a v2 vault, the genuine speaker unlocks live
+  (real cross-recording, not a fixture), and the two impostor classes separate
+  into two **visibly distinct** rejects.
+
+**Mode 3 "if every gate passed but it were still wrong" (RESOLVED 2026-07-23):**
+the fixture tests prove the crypto + fixture-level separation but cannot prove
+real-mic **cross-session robustness** (enroll today / unlock later on another mic),
+which is why the live manual demo above is **required** (a required check, not
+accepted risk). The second failure mode — the two rejects silently collapsing or a
+reject leaking the name — is caught by the automated **distinct-reject / no-leak**
+checks (cases 3, 4, 7 above + the booth-api distinct-reason case). Known
+limitation, recorded: fixture same-speaker probes overlap the enrollment takes
+(inherited from F3), so automation cannot prove cross-session generalization — the
+manual demo mitigates it.
 
 Out-of-scope discoveries during build (Mode 3 default): record in `.out-of-scope/`,
 never build.
 
 ---
 
-*Spec-anchored: amendments follow the path in the closing note of the F2 spec —
-update this file, re-scan changed sections, human re-checks box 2, re-plan.*
+*Spec-anchored: amendments follow the F2/F3 path — update this file, re-scan
+changed sections, human re-checks box 2, re-plan.*

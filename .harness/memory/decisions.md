@@ -17,6 +17,20 @@ Format:
 
 <!-- entries go below this line -->
 
+- 2026-07-23 · **F4 fuzzy reconcile: hand-rolled pure-numpy code-offset fuzzy commitment (NO new dependency)**
+  - why: the ECC library is NOT the hard part — research shows raw 192 sign-bits give ~25% genuine bit-error, which no code absorbs while carrying a key; the real work is seeded LSH bit-expansion + reliability masking (pure numpy). Glass-box, offline-trivial, honest for a learning demo. Recognized construction (Juels–Wattenberg 1999 / Dodis et al. fuzzy extractor).
+  - rejected: `bchlib` (liveness FAIL — ~22mo stale, native C extension); `reedsolo` (liveness gray-zone ~14.5mo + Reed-Solomon is symbol-based, poor bit-level Hamming fit); `komm` (live, numpy-only, ships a real BCH decoder — offered as the "named ECC library" option, GPL-3.0; human chose hand-roll since the dep buys only the easy last step); `galois` (live but heavy — numba/llvmlite)
+  - link: `roadmap.md` F4 · `memory/research/2026-07-23-f4-fuzzy-reconcile.md` · `spec.md` §4 Constraints
+- 2026-07-23 · **F4 accuracy: 5-sentence averaged enrollment + reliability mask + fixture-pinned correction radius; full tuning + enrollment-quality gate stays F9**
+  - why: enrollment richness + reliability selection are the real accuracy levers; human chose a richer 5-sentence read over F3's 3-take for a steadier voiceprint. Correction radius pinned empirically from fixtures with a deterministic same-accepts / different-rejects test (analog of F3's ACCEPT/REJECT cutoffs).
+  - rejected: 3-take (F3 parity, less enrollment data); pulling F9's full tolerance-UI + quality-gate into F4 (scope creep)
+  - accepted limits: not product-grade — small false-reject rate, non-zero false-accept for a very similar voice, replay of the enrolled voice still passes (defended in F8), no FAR/FRR guarantees
+  - link: `spec.md` §3/§4 · `roadmap.md` F4/F9
+- 2026-07-23 · **F4 Mode 3 (Spec-to-done)**
+  - why: F3 completed cleanly at Mode 3 (Mode 4 now unlockable); human chose Mode 3. The security-critical keystone is human-approved inside the spec (above) before any building, bounding Mode 3's autonomy to an approved design.
+  - rejected: Mode 2 (extra final-verdict touchpoint — not wanted); Mode 4 (auto-draft F5 — not wanted now)
+  - link: `spec.md` §0 Approval gate
+
 - 2026-07-22 · **F3 voiceprint method: SpeechBrain ECAPA-TDNN (`spkrec-ecapa-voxceleb`)**
   - why: best-quality + actively-maintained speaker embedding for crisp same-vs-different separation; human chose quality over offline-friction
   - rejected: Resemblyzer (liveness FAIL — abandoned 2023 — + unconfirmed Py3.11/torch install); librosa DIY MFCC (maintained + offline but muddier separation)

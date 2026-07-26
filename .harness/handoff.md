@@ -1,68 +1,59 @@
-# Completion report — F3 (Voiceprint on screen) DONE · Mode 3 · 2026-07-23
+# Handoff — F4 (Voice as the middle lock) · /spec session · 2026-07-23
 
-## Outcome vs spec §1
-**Delivered.** The voiceprint works on screen: the Booth computes a live ECAPA
-speaker embedding from the F1 mic path and shows a **live match distance** vs a
-stored **reference voiceprint**, colored **accept (green) / borderline (amber) /
-reject (red)**. Diagnostic only — **not wired into any lock**, no key derivation,
-no vault change (that is F4). Human manual demo attested 2026-07-23: same person →
-accept, different person → reject, and the amendment's **Reset** clears the
-reference back to the no-reference state.
+## Where we are
+F4's `spec.md` is drafted and the **Grilling record is CLEAR** (zero
+`[NEEDS-CLARIFICATION:` markers). **Box 1 checked** (mechanical CLEAR gate);
+**box 2 is OPEN** — the human approves it. **Mode 3** (Spec-to-done), set at
+grilling. No planning or building may start until box 2 is checked.
 
-## Final Gate evidence (full amended §5, all exit 0)
-- `uv run ruff check .` → 0 ("All checks passed!")
-- `uv run pytest` → 0 (**35 passed**)
-- `uv run pytest tests/test_voiceprint.py -q` → 0 (9 passed; §5 cases 1–5)
-- `uv run pytest tests/test_booth_api.py -q` → 0 (10 passed; incl. 2 reset tests)
-- Manual (human-attested): `uv run voicelock` → Set reference → same=accept/green
-  → different=reject/red → Reset clears → re-settable. **Attested PASS by human.**
-(Automated Gate run by a clean-context subagent verifier; manual line attested by
-the human.)
+## Next action
+1. **Human:** read `spec.md` §1 Outcome + §5 Verification, confirm the **Mode 3**
+   line, and type the `x` in **box 2** of the §0 Approval gate.
+2. Then, in a **fresh session**, run **`/plan`** to break F4 into ordered tasks.
 
-## Tasks (all DONE · rejects: 0 each)
-1. ECAPA deps + vendored offline model (Apache-2.0, rev 0f99f2d) — APPROVE.
-2. `voiceprint.py` engine + fixtures + tests (§5 cases 1–5); cutoffs
-   `ACCEPT=0.45`/`REJECT=0.65`; offline load via `pretrained_path` override +
-   `LocalStrategy.NO_LINK` — APPROVE.
-3. Booth voiceprint chrome (3-band meter, Set reference, edge states), JS
-   render-only — APPROVE.
-4. Bridge (`set_reference`/`compare`) + end-to-end wiring — APPROVE (closed as
-   intermediate after the amendment; see below).
-5. Reset control (amendment) — APPROVE (final Gate + manual demo).
+## What F4 is (one line)
+The voiceprint becomes a real cryptographic lock: fuzzy-reconcile the enrolled
+voiceprint into a stable key + non-secret helper data, sealing a **middle lock**
+inside F2's outer (passphrase) lock. Unlock needs passphrase **and** the enrolled
+voice, with three visibly-distinct outcomes (in / wrong-passphrase-outer-reject /
+wrong-voice-middle-reject).
 
-## Amendment during the feature
-- 2026-07-23, human-requested + approved (fresh box-2): added a **Reset** control
-  (clears reference + in-progress takes, no confirm). Made Task 5 the new last
-  task; Task 4 reclassified to intermediate and closed on its passed automated
-  verification (human-approved closure path). Roadmap **F11** parked (manage
-  enrollment from inside the vault, post-F7).
+## Decisions locked this session (all in `memory/decisions.md`, dated 2026-07-23)
+- **Fuzzy reconcile:** hand-rolled **pure-numpy code-offset fuzzy commitment**,
+  **NO new dependency** (LSH bit-expansion + reliability mask + repetition/majority
+  ECC). Research: `memory/research/2026-07-23-f4-fuzzy-reconcile.md` (bchlib/reedsolo
+  fail liveness; komm/galois live but add a dep for only the easy step). No
+  TECH-PICK triggered.
+- **Accuracy/enroll:** 5-sentence averaged enrollment (richer than F3's 3) +
+  reliability mask + fixture-pinned correction radius. Full tuning/quality-gate = F9.
+- **Vault:** helper data lives **inside the outer-passphrase box**; nested v2
+  layout (`VLCK` v2). A pre-existing **v1** vault is **refused** with a re-enroll
+  prompt (no passphrase-only bypass).
+- **Unlock:** passphrase + one utterance (identity-only, no challenge — that's F8);
+  distinct rejects `auth_outer` ("Wrong passphrase") vs `auth_voice` ("Voice didn't
+  match"); neither leaks the name.
+- **F3 diagnostic panel:** kept as-is (independent diagnostic).
+- **Mode 3** + the mandatory "if gates passed but still wrong" answer: cross-session
+  real-mic robustness is covered by the **required manual demo**; reject-collapse /
+  leak covered by automated distinct-reject + no-leak checks (§5).
 
-## Deviations logged (`memory/deviations.md`)
-1. Vendored ECAPA is **~85 MB** (embedding_model.ckpt = 83 MB), not the spec's
-   "~20 MB" estimate. Committed plainly (no LFS, offline). **Open for the human:**
-   correcting the spec's "~20 MB" wording is a human-only spec edit.
-2. Task 3's standalone committed `DOING` was skipped (state went TODO→REVIEW in
-   the build commit). Disclosed; verifier judged it a non-defect. Not repeated on
-   Tasks 4–5.
+## Verification shape (pinned in §5)
+Standing: `ruff` + `pytest` exit 0. Feature: `tests/test_middlelock.py` (enroll
+binds middle key + seals v2 · same-speaker unlocks · different-speaker → middle
+REJECT no leak · wrong passphrase → outer REJECT · tolerance = imported constants ·
+v1 refused · helper-data-at-rest) + `tests/test_booth_api.py` (bridge enroll seals
+v2, unlock distinct `auth_outer`/`auth_voice`) + a **required live Booth manual demo**.
 
-## Escalations that resolved
-- Task 4 & Task 5 verifiers each returned **ESCALATE_HUMAN** on the required
-  manual Booth demo (a headless verifier can't drive a real mic). Task 4's moved
-  to Task 5 via the amendment; Task 5's resolved by the human's attestation.
+## Notes / risks for the human
+- Likely new module `src/voicelock/middlelock.py` (~150–250 lines numpy) + `vault.py`
+  v2 nesting + `app.py`/`ui/index.html` wiring. `/plan` will break this down.
+- Honest limits accepted (in spec §3/§4): small false-reject rate, non-zero
+  false-accept for a very similar voice, replay of the enrolled voice still passes
+  (F8 defends it), no FAR/FRR guarantees.
+- Minor stale-state note carried from F3: `plan.md` mentioned a "pending feature-end
+  commit checkpoint", but the F3 DONE + completion-report commit already landed
+  (`627963e`) and the tree was clean — F3 is effectively closed.
 
-## Honest limitations (as specced)
-- Reference vector stored in **plaintext** (`~/.voicelock/voiceprint.ref`) — fine
-  for an F3 diagnostic; real sealing is F4.
-- Fixtures: one clip per speaker (model-repo examples), so the same-speaker live
-  probe overlaps the reference takes — acceptable for a deterministic diagnostic
-  fixture, not a cross-session generalization claim (see fixtures README).
-
-## Next
-- **Feature-end checkpoint (human):** approve the commit below. No remote —
-  local commit only, no push.
-- Then F3 is closed. Next roadmap feature: **F4 — Voice as the middle lock**
-  (blocked-by F2, F3 — both now DONE). Start with `/spec` when you're ready.
-
-## Commits (this feature, on `main`)
-- Spanned `bbeafd2` (F3 plan) → the wrap-up commit below.
-- Remote: none — local history only.
+## Commits (this session, on `main`)
+- Base `627963e` (F3 DONE) → head: the `/spec` commit for this session.
+- Remote: **none** — local history only, no push.
