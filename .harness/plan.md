@@ -2,17 +2,17 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DONE`, Task 2 `REVIEW`
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, next is Task 3
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
   human` — so the gate is closed and Mode 3 is the standing "go" for the tasks
   inside F4. Grilling re-scanned after the amendment — still zero markers.
-  Task 1 is `DONE` — verified by a clean-context subagent (GATE PASS, REVIEW
-  APPROVE, both axes), verdict `memory/verdicts/2026-07-26-F4-T1.json`.
-  **Task 2 (`middlelock.py`) is `REVIEW`** — it separated genuine from impostor
-  with a wide margin, so the `BLOCKED` branch did not fire; Tasks 3–5 stay
-  `TODO` under WIP=1.)
+  Tasks 1 and 2 are `DONE`, each verified by a clean-context subagent (GATE PASS,
+  REVIEW APPROVE, both axes) — verdicts `memory/verdicts/2026-07-26-F4-T1.json`
+  and `-F4-T2.json`. **Task 2 separated genuine from impostor with a wide margin,
+  so the `BLOCKED` branch never fired.** Next is **Task 3** (`vault.py` v2
+  nesting); Tasks 3–5 stay `TODO` under WIP=1.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -67,8 +67,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed — F3 suite still green on its untouched fixtures)
   - feedback: (none)
 
-- [ ] **Task 2** — `middlelock.py`: LSH binarize + reliability mask + repetition ECC + commit/reconcile + key derive
-  - state: REVIEW
+- [x] **Task 2** — `middlelock.py`: LSH binarize + reliability mask + repetition ECC + commit/reconcile + key derive
+  - state: DONE
   - built 2026-07-26 — **it separates, with a wide margin; not BLOCKED.** Pinned
     constants: `CANDIDATE_BITS=4096`, `RELIABLE_BITS=512`, `KEY_BITS=32`,
     `REPETITION=16`, `CORRECTION_RADIUS=110`. Measured over **200 independent
@@ -258,8 +258,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4 building: Task 1 `DONE` (verified subagent, GATE PASS / REVIEW APPROVE), Tasks 2–5 `TODO`.** The 5-take enrollment fixtures exist and are measured. Next is **Task 2 (`middlelock.py`)**, the feature's riskiest. Mode 3 is the standing "go" inside F4.
+1. 2026-07-26 — **F4 building: Tasks 1–2 `DONE` (both verified by subagent, GATE PASS / REVIEW APPROVE), Tasks 3–5 `TODO`.** Fixtures exist and the middle-lock engine works. Next is **Task 3 (`vault.py` v2 nesting)**. Mode 3 is the standing "go" inside F4.
 2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
 3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
-4. Main build risk: **measured on the Task-1 fixtures, raw 192-dim sign-BER is 7.8 % genuine vs 43.2 % impostor with 98/192 bits unanimous across the five takes** — better than the research's ~25 % warning, but the research's binomial numbers assume independent flips that correlated LSH bits will not deliver, so measured results will still be worse than theory. Task 2 must separate genuine from impostor **with a margin** or report `BLOCKED`; never loosen the radius to force a pass.
-5. If Task 2 blocks, suspect the FIXTURES first: the source audio is ~3.3 s total so fixture takes are 1.6 s (measured-best; longer only adds fake overlap), still far shorter than a real 3–5 s enrollment. Escalation order: better fixture audio → accept higher false-reject → revisit the declined `komm` dependency. Open human item from F3: spec's "~20 MB" model-size wording is wrong (actual ~85 MB).
+4. **The main build risk is retired: Task 2 separated cleanly.** Over 200 independent commits — genuine 0, harder same-speaker 63, impostor floor 156, `CORRECTION_RADIUS = 110` at the midpoint; the verifier reproduced it on its own 60. Remaining honest caveat: fixtures cannot prove cross-session robustness, so the required manual demo in Task 5 is still the real proof.
+5. Task 3 nests `middlelock`'s helper data inside the outer passphrase box: `commit` returns `(secret, helper_data)` already JSON-safe, and `derive_key` takes the `salt` carried in that helper — not a fresh one. Open human items: spec's "~20 MB" model-size wording is wrong (actual ~85 MB); spec §0's amendment prose still says "awaiting the human's `x`" though box 2 is checked.

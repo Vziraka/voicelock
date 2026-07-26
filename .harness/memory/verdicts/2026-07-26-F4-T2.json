@@ -1,0 +1,24 @@
+{
+  "task": "T2",
+  "spec": "spec.md@a13d891",
+  "change": "4a16acc..469a4cd",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_middlelock.py -q",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "27 passed (middlelock), ruff 'All checks passed!', full suite 62 passed in 11.47s. Because commit() draws a fresh random LSH seed per run, the verifier re-ran the suite 3 extra times (27 passed each) and independently re-measured separation over its own 60 commits rather than trusting the handoff: genuine 0..0 (n=360), harder same-speaker F3 thirds 0..57 (n=180), impostor 162..205 (n=60) against CORRECTION_RADIUS=110. The claimed gap reproduced. Scope clean: middlelock.py, test_middlelock.py, plan.md only; pyproject.toml/uv.lock untouched, so 'no new dependency' holds; voiceprint.py/vault.py/app.py/UI untouched."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "All five spec-4 accuracy levers implemented and load-bearing, not decorative: 4096-bit LSH pool masked to 512 by cross-take sign unanimity with margin as lexsort tiebreak; 32-bit secret repeated 16x (spec 4's own worked example); soft-decision decoding summing signed projection magnitudes. Tolerance pinned from 200 independent commits: genuine 0, harder same-speaker 63, impostor floor 156, radius 110 = midpoint. Three build-time judgment calls, all disclosed in the handoff and all upheld: (1) soft decoding kept although it made no measurable difference on these fixtures -- spec 4's 'hard-decision majority remains the fallback' is permissive while plan.md lists lever 1 as REQUIRED, and the null result is documented in the module rather than buried; (2) lever 6 centering measured and NOT adopted, exactly as planned -- the vendored mean_var_norm_emb.ckpt is genuinely not applied because encode_batch defaults normalize=False, and enabling it moved the gap by 1 bit while requiring an edit to F3's voiceprint.py that spec 4 forbids; (3) Argon2id INTERACTIVE chosen for the middle lock with cost params recorded. ADR 0003 written for the commitment-tag decision. The implementor also caught and rewrote one of its own tests that asserted a backwards property (that the ECC must NOT correct helper-bit corruption)."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-26"
+}
