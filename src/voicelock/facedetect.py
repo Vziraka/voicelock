@@ -156,6 +156,10 @@ class FaceEngine:
         """
         if self.is_running:
             return
+        # Clear anything a previous run — or a camera that died mid-loop — left
+        # behind, so a restart can never orphan a still-held device. stop() is
+        # idempotent and refuses to erase an ERROR, so this is safe here.
+        self.stop()
         camera = self.acquire_camera()
         if camera is None:
             return
@@ -193,7 +197,13 @@ class FaceEngine:
             started = self.clock()
             ok, frame = camera.read()
             if not ok or frame is None:
-                break
+                # The device stopped delivering mid-recording — unplugged, or
+                # grabbed by another app. Surface it rather than leaving a dead
+                # loop behind a RUNNING status: stop() then releases the device
+                # and refuses to erase this error, and the next start() opens a
+                # fresh camera.
+                self._fail("Camera stopped delivering frames")
+                return
             on_frame(self.process_frame(frame))
             # Wait on the stop event rather than sleeping, so Stop is felt
             # immediately instead of after the rest of the frame budget.

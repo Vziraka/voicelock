@@ -547,17 +547,124 @@ def test_frame_rate_is_a_named_constant() -> None:
     assert FRAME_INTERVAL == pytest.approx(1.0 / TARGET_FPS)
 
 
-def test_worker_paces_itself_with_the_injected_clock() -> None:
-    """A slow frame path must not accumulate a backlog of unprocessed frames."""
+def _paced_clock(elapsed_per_frame: float):
+    """A clock reporting a fixed elapsed time for every loop iteration.
+
+    `_loop` calls it twice per frame — once before `read()`, once after
+    `process_frame` — so odd calls open a frame and even calls close it.
+    """
+    state = {"now": 0.0, "calls": 0}
+
+    def clock() -> float:
+        state["calls"] += 1
+        if state["calls"] % 2 == 1:
+            return state["now"]
+        state["now"] += elapsed_per_frame
+        return state["now"]
+
+    return clock
+
+
+def test_an_overrun_frame_is_not_repaid_with_a_wait() -> None:
+    """Drop, don't queue: an over-budget frame must cost ZERO extra delay.
+
+    Discriminating on purpose. A loop that waited a flat `FRAME_INTERVAL`
+    regardless of elapsed time would need >= 5 * 33 ms here and fail; only a
+    loop that actually consults `pacing_delay` finishes fast.
+    """
     engine, cameras = _running_engine()
-    ticks = iter([0.0, FRAME_INTERVAL * 3] * 200)
-    engine.clock = lambda: next(ticks, FRAME_INTERVAL * 3)
+    engine.clock = _paced_clock(FRAME_INTERVAL * 3)  # every frame overruns
 
     received: list[FrameResult] = []
+    began = time.monotonic()
     engine.start(received.append)
-    assert _wait_for(lambda: len(received) >= 3)
+    assert _wait_for(lambda: len(received) >= 5)
     engine.stop()
+    wall = time.monotonic() - began
 
-    # One processed frame per read: nothing was queued behind the overrun.
+    assert wall < 5 * FRAME_INTERVAL * 0.6, (
+        f"overrun frames were repaid with waits: {wall:.3f}s for 5 frames"
+    )
+    # One processed frame per read — nothing queued up behind the overrun.
     assert cameras[0].read_count >= len(received)
     assert not cameras[0].used_after_release
+
+
+def test_an_under_budget_frame_is_paced_to_the_target_rate() -> None:
+    """The other half: pacing must actually happen when there is budget left.
+
+    Without this, an implementation that never waits at all would satisfy the
+    overrun test above and silently run the camera flat out.
+    """
+    engine, _ = _running_engine()
+    engine.clock = _paced_clock(0.0)  # every frame comes in instantly
+
+    received: list[FrameResult] = []
+    began = time.monotonic()
+    engine.start(received.append)
+    assert _wait_for(lambda: len(received) >= 4)
+    engine.stop()
+    wall = time.monotonic() - began
+
+    assert wall >= 2 * FRAME_INTERVAL, (
+        f"the worker did not pace itself: 4 frames in {wall:.3f}s"
+    )
+
+
+def test_a_camera_that_stops_delivering_mid_loop_surfaces_an_error() -> None:
+    """A finite fake runs dry, which is the falsy-read branch inside `_loop`."""
+    cameras: list[FakeCamera] = []
+
+    def open_camera(index):
+        del index
+        # Two frames: one consumed by acquire_camera's probe, one by the loop.
+        camera = FakeCamera([_blank(), _blank()])
+        cameras.append(camera)
+        return camera
+
+    engine = FaceEngine(
+        open_camera=open_camera, landmarker=FakeLandmarker(_face_at(0.5, 0.5))
+    )
+    received: list[FrameResult] = []
+    engine.start(received.append)
+
+    assert _wait_for(lambda: engine.status == FaceStatus.ERROR), (
+        "a camera that stops delivering must not leave a dead loop behind RUNNING"
+    )
+    assert engine.error_message == "Camera stopped delivering frames"
+    assert len(received) == 1
+
+    engine.stop()
+    assert cameras[0].released
+    assert engine.status == FaceStatus.ERROR, "stop() must not erase the error"
+
+
+def test_restarting_after_a_mid_loop_camera_failure_releases_the_dead_camera() -> None:
+    """The leak the falsy-read branch would otherwise cause."""
+    cameras: list[FakeCamera] = []
+
+    def open_camera(index):
+        del index
+        if cameras:
+            camera = FakeCamera([_blank() for _ in range(3)], repeat=True)
+        else:
+            camera = FakeCamera([_blank(), _blank()])
+        cameras.append(camera)
+        return camera
+
+    engine = FaceEngine(
+        open_camera=open_camera, landmarker=FakeLandmarker(_face_at(0.5, 0.5))
+    )
+    engine.start(lambda result: None)
+    assert _wait_for(lambda: engine.status == FaceStatus.ERROR)
+
+    received: list[FrameResult] = []
+    engine.start(received.append)  # restart WITHOUT an explicit stop() first
+
+    assert engine.status == FaceStatus.RUNNING
+    assert _wait_for(lambda: len(received) >= 1)
+    engine.stop()
+
+    assert len(cameras) == 2
+    assert cameras[0].released, "the dead camera was orphaned instead of released"
+    assert all(not camera.used_after_release for camera in cameras)

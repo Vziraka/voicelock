@@ -19,13 +19,14 @@
   `rejects: 0`) — `facedetect.py` exists: the per-frame composite path on
   injectable fakes, 14 new tests, suite at **102 passed**. `TARGET_FPS` and the
   camera lifecycle are deliberately NOT there — they are **Task 5's**, so no
-  constant lands without a caller. **Task 5 `TODO`, `rejects: 1`** — the
-  lifecycle was built and **REJECTED** on review: `_loop`'s falsy-read branch is
-  untested dead surface (the first earned guardrail), and the drop-don't-queue
-  behaviour was pinned only as a pure function, so deleting it from the loop
-  still passed every test. Retry in progress, feedback-first. The Gate itself
-  passed 6/6 — **throughput 8.2 ms/frame** against the 33 ms budget, so
-  `TARGET_FPS` stays at **30** and the fallback ladder is not needed.
+  constant lands without a caller. **Task 5 `REVIEW`, `rejects: 1`** — REJECTED
+  once (untested falsy-read branch; drop-don't-queue pinned only as a pure
+  function). Both fixed: the falsy-read path now raises an ERROR instead of
+  dying silently, `start()` can no longer orphan a held camera, and the pacing
+  tests were **mutation-checked 3/3** — including the exact `wait(FRAME_INTERVAL)`
+  mutation the verifier used to expose the original gap. **Throughput
+  8.7 ms/frame** against the 33 ms budget, so `TARGET_FPS` stays at **30**.
+  Suite: **114 passed**.
   Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
   the enforcement check for the per-asset licence guardrail; (2) the fixture
   change.**
@@ -349,7 +350,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — `facedetect.py`: camera lifecycle — 30 fps worker, drop-don't-queue, release tripwire
-  - state: DOING
+  - state: REVIEW
   - rejects: 1
   - measured: **throughput floor 8.1 ms/frame** against the 33 ms budget
     (~123 fps engine-side, ~4x headroom). **`TARGET_FPS` stays at 30** — the
