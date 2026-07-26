@@ -15,10 +15,12 @@
   Resolved as **fetched-not-committed** — the image is `.gitignore`d and never
   entered git, while the Apache-2.0 `portrait_expected_face_landmarks.pbtxt` IS
   committed, preserving the **vendor reference** that exists for this image and
-  no other. **Task 4 `REVIEW`** — `facedetect.py` exists: the per-frame composite
-  path on injectable fakes, 14 new tests, suite at 102 passed. `TARGET_FPS` and
-  the camera lifecycle are deliberately NOT here — they are Task 5's, so no
-  constant lands without a caller.
+  no other. **Task 4 `DONE`** (verdict `…-F5-T4.json`, APPROVE first pass,
+  `rejects: 0`) — `facedetect.py` exists: the per-frame composite path on
+  injectable fakes, 14 new tests, suite at **102 passed**. `TARGET_FPS` and the
+  camera lifecycle are deliberately NOT there — they are **Task 5's**, so no
+  constant lands without a caller. **Task 5 is next**, and carries a
+  status-reset observation from Task 4's verifier (see its notes).
   Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
   the enforcement check for the per-asset licence guardrail; (2) the fixture
   change.**
@@ -276,8 +278,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       **This blocks Tasks 4, 5 and 7**, whose criteria all name the fixture.
       Task 6 (UI) is the only later task independent of it.
 
-- [ ] **Task 4** — `facedetect.py`: the per-frame composite path, on injectable fakes
-  - state: REVIEW
+- [x] **Task 4** — `facedetect.py`: the per-frame composite path, on injectable fakes
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/facedetect.py` (new), `tests/test_facedetect.py` (new)
   - notes: The engine's **pure** half — one frame in, one composited data URI plus
@@ -348,6 +350,14 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - notes: The stateful half: `start(on_frame)` opens the camera and runs a
     **daemon thread**; `stop()` halts the loop, **joins**, and only then calls
     `release()`.
+    **Carried in from Task 4's verifier (2026-07-26), non-blocking there but
+    load-bearing here:** `acquire_camera()` clears `error_message` on entry
+    (`facedetect.py:114`) but never resets `status` on success, so a successful
+    re-acquire after a prior failure would leave `status == FaceStatus.ERROR`
+    with no message. `capture.py:79` sets `status` on its success path; the
+    analog is `start()`, which this task owns. It bears directly on
+    criterion (6) below — "a second start after stop works" — and on a Record
+    that follows a failed Record.
     - **Its own thread — not `app.py`'s 50 ms `_pump_loop`** (`spec.md` §4). That
       loop serves audio levels and must not be made to wait on a JPEG encode.
     - **`TARGET_FPS` is a named module constant**, so §4's fallback ladder is a
@@ -485,14 +495,18 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F5 is BUILDING: Tasks 1–3 `DONE`, 4 remain.** All three asset
-   /manifest tasks landed APPROVE on the first pass, `rejects: 0`. Dependencies
-   declared (`mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`) with
-   **nothing moved underneath F4** — `numpy` 2.2.6, `torch` 2.13.0 — so
+1. 2026-07-26 — **F5 is BUILDING: Tasks 1–4 `DONE`, 3 remain.** Every task so far
+   landed APPROVE on the first pass, `rejects: 0`. Dependencies declared
+   (`mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`) with **nothing
+   moved underneath F4** — `numpy` 2.2.6, `torch` 2.13.0 — so
    `CORRECTION_RADIUS = 110` and `ACCEPT_CUTOFF = 0.45` are undisturbed; the
    Face Landmarker bundle is vendored (Apache-2.0, LICENSE + NOTICE); the face
    fixture is **fetched-not-committed** with its Apache-2.0 vendor reference
-   committed beside it. **Task 4 begins the engine code** — `facedetect.py`.
+   committed beside it; and **`facedetect.py` now does the per-frame composite**
+   — detect on the full frame, ellipse + landmarks, crop, flip last — verified
+   against MediaPipe's published coordinates at 0.005645 max deviation. Suite:
+   **102 passed**. Remaining: **5** camera lifecycle → **6** Booth `<img>` →
+   **7** wiring + the human-attested demo.
    **Verification runs on the subagent path** for F5 — human-authorized
    2026-07-26, which closed the previous handoff's open item 1.
    **A guardrail UPDATE is parked in `handoff.md`**, unwritten pending human

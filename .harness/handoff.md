@@ -1,14 +1,15 @@
-# Handoff — F5 Task 4 built, now `REVIEW`
+# Handoff — F5 Task 4 `DONE`; Task 5 (camera lifecycle) is next
 
-Session of 2026-07-26. Tasks 1–3 `DONE` (all APPROVE first pass, `rejects: 0`).
-Task 4 — `facedetect.py`, F5's first engine code — is built and `REVIEW`.
-Tasks 5–7 `TODO`.
+Session of 2026-07-26. Tasks 1-4 are all `DONE`, every one APPROVE on the
+first pass with `rejects: 0`. Task 4 - `facedetect.py`, F5's first engine
+code - closed with Gate 5/5 exit 0 and Review APPROVE on both axes; verdict
+`memory/verdicts/2026-07-26-F5-T4.json`. Tasks 5-7 `TODO`.
 
 ## Changed
 
 - **`src/voicelock/facedetect.py`** (new) — the engine's pure half.
 - **`tests/test_facedetect.py`** (new) — 14 tests, no real webcam.
-- **`.harness/plan.md`** — Task 4 `TODO → DOING → REVIEW`.
+- **`.harness/plan.md`** — Task 4 `TODO → DOING → REVIEW → DONE`.
 
 Suite: **102 passed** (88 existing + 14 new) in 35.90 s.
 
@@ -131,9 +132,11 @@ the test's tolerance had to be chosen from evidence rather than guessed.
 
 ## next_action
 
-**Verify Task 4** — clean-context verifier via `formats/VERIFIER-PROMPT.md`,
-verbatim, spawned by this session (subagent path, human-authorized). Task 4's
-done-criteria are its `plan.md` list; it is an intermediate task.
+**`/implement` F5 Task 5 — camera lifecycle: 30 fps worker,
+drop-don't-queue, release tripwire, throughput floor.** `Mode: Mode 3` is the
+standing "go" and Task 4's wrap-up completed, so no further human "go" is
+needed. **Carry in the verifier's status-reset observation** — it is recorded
+in Task 5's notes in `plan.md`.
 
 ## Commits
 
