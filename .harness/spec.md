@@ -324,6 +324,15 @@ from the SpeechBrain `spkrec-ecapa-voxceleb` model repo's own example clips
   `tests/fixtures/voiceprint/README.md` already established. **The licence must be
   verified at download**, exactly as for the `.task` bundle; if it does not check
   out, STOP and escalate rather than substituting another image.
+- **That check has teeth — "it comes from Google's MediaPipe project" is NOT
+  sufficient evidence.** Verified 2026-07-26: MediaPipe's own face_detector
+  sample notebook does not ship an Apache-2.0 asset at all — it downloads
+  `https://i.imgur.com/Vu2Nqwb.jpeg`, credited in the notebook to **Pixabay**,
+  whose licence restricts redistributing images unaltered. Committing a fixture
+  into a repo *is* redistributing it unaltered. So the provenance of each
+  individual asset must be established on its own terms, not inherited from the
+  project that references it. `portrait.jpg`'s own licence is **`unconfirmed`** at
+  spec time and is exactly what the download-time check exists to settle.
 - **Explicitly NOT a photo of the repo's owner.** A biometrics project committing
   its owner's face as a permanent fixture is a poor default even with no remote,
   and a fixture must be stable — one that can be withdrawn later is a test that

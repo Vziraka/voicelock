@@ -184,6 +184,20 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   Compute the faceprint (face embedding) and show live match distance vs a stored
   sample — not wired into the lock yet. The visual analog of F3.
   *Demo:* same face → close / accept-colored; different face → far / reject-colored.
+  **Two constraints inherited from F5's spec (2026-07-26), recorded here so they
+  survive the next handoff rewrite:**
+  (1) **The embedding is OpenCV's SFace**, already reachable through the
+  `opencv-contrib-python` F5 declares (`cv2.FaceRecognizerSF` + an ONNX file from
+  `opencv_zoo`) — named in F5's TECH-PICK but deliberately **not** vendored there.
+  MediaPipe has no face-identity model, so F6 owns a second vendored model dir.
+  (2) **F6 needs TWO faces in its fixtures** — a same-person-close and a
+  different-person-far probe — and F5 commits only one (`portrait.jpg`). This is
+  the wall F3 hit (its model repo shipped one clip per speaker, so its
+  same-speaker probe is a window of the same recording, disclosed as a caveat);
+  a photo cannot be windowed that way. **F6's spec must say where face B comes
+  from**, and licence provenance must be established per-asset — MediaPipe's own
+  samples use a Pixabay-licensed image, whose terms restrict redistributing
+  unaltered copies, so "it came from the vendor" is not evidence.
 
 - [ ] **F7 — Face as the inner lock (innermost)** · blocked-by: F4, F6
   Fuzzy-reconcile the faceprint into a stable key; wrap the voice-sealed box
