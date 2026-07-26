@@ -1,8 +1,9 @@
 # Handoff — F4 Task 3 (`vault.py` v2 + bridge signature) · /implement session · 2026-07-26
 
 ## Where we are
-Tasks 1–2 are `DONE`. **Task 3 is `REVIEW`.** It was `BLOCKED` mid-session on a
-plan contradiction, the human resolved it, and the resolution is logged. Tasks 4–5
+Tasks 1–2 are `DONE`. **Task 3 is `REVIEW` after retry 1.** It was `BLOCKED` mid-session on a
+plan contradiction, the human resolved it, the build was then rejected once on
+the Standards axis, and both findings are fixed. Tasks 4–5
 remain `TODO` — **Task 4's scope is now smaller**, see below.
 
 - base: `3a88ed3` (Task 3 `DOING`, committed before building)
@@ -31,8 +32,8 @@ and is the first thing the verifier should judge.**
 ## Changed
 - `src/voicelock/vault.py` — v2 nested layout, `VoiceAuthError`,
   `LegacyVaultError`, outer-then-middle peel order
-- `src/voicelock/app.py` — `enroll_take()` / `reset_enroll_takes()`, enroll from
-  the banked takes, unlock embeds the last capture, distinct error strings
+- `src/voicelock/app.py` — `enroll_take()` banking, enroll from the banked takes,
+  unlock embeds the last capture, distinct error strings
 - `tests/test_middlelock.py` — spec §5 vault cases (1)(2)(3)(4)(6)(7)
 - `tests/test_vault.py`, `tests/test_outer_lock.py` — new signature, synthetic
   unit-vector voiceprints so format/validation cases stay free of the ECAPA model
@@ -96,7 +97,9 @@ Verify Task 3 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, 
 ## Commits (this session, on `main`)
 `a13d891` → `01667e1` → `a671db3` → `72b6743` (T1 done) → `4a16acc` → `469a4cd` →
 `c2310ef` → `0fa8e8a` (T2 done) → `3a88ed3` → `2706679` (BLOCKED) → `d583749`
-(decision) → `1488925` (T3 build). Remote: **none** — local history, no push.
+(decision) → `1488925` (T3 build, rejected) → `16c01fb` (reject recorded) →
+`eb7d4ce` (**retry-1 build, the head under review**). Remote: **none** — local
+history, no push.
 
 ## Pending guardrail
 Parked for the human, not written: *"a task that changes a module's public
