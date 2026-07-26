@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, next is Task 5 (the LAST task)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `DOING` (LAST task — full §5)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -293,7 +293,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          **Fix: delete the branch.**
 
 - [ ] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/ui/index.html` (+ `src/voicelock/app.py` only if wiring gaps surface)
   - notes: Reuse the existing mock chrome (spec §4 Booth UX). Enroll panel gains a
