@@ -2,16 +2,16 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DONE`, next is Task 2
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DONE`, Task 2 `DOING`
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
   human` — so the gate is closed and Mode 3 is the standing "go" for the tasks
   inside F4. Grilling re-scanned after the amendment — still zero markers.
   Task 1 is `DONE` — verified by a clean-context subagent (GATE PASS, REVIEW
-  APPROVE, both axes), verdict `memory/verdicts/2026-07-26-F4-T1.json`. Next up
-  is **Task 2** (`middlelock.py`) — the feature's riskiest task; Tasks 2–5 stay
-  `TODO` under WIP=1.)
+  APPROVE, both axes), verdict `memory/verdicts/2026-07-26-F4-T1.json`.
+  **Task 2 (`middlelock.py`) is `DOING`** — the feature's riskiest task; Tasks
+  3–5 stay `TODO` under WIP=1.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -67,7 +67,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — `middlelock.py`: LSH binarize + reliability mask + repetition ECC + commit/reconcile + key derive
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/middlelock.py`, `tests/test_middlelock.py`
   - notes: The spec's keystone (§4, as amended 2026-07-26), hand-rolled in **pure
