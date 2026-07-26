@@ -3,7 +3,9 @@
 ## Active context
 - Updated: 2026-07-26
 - Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1
-  `DOING` (declare the two approved dependencies). Tasks 2–7 still `TODO`.**
+  `REVIEW` (the two approved dependencies are declared and installed;
+  `mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`, and `numpy`/`torch`
+  did not move). Tasks 2–7 still `TODO`.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -57,7 +59,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Declare `mediapipe` + `opencv-contrib-python` (manifest only, no code)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`
   - notes: `uv add mediapipe "opencv-contrib-python>=4.13,<5"` — nothing else. **No
