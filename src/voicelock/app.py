@@ -27,6 +27,50 @@ from voicelock.vault import (
 
 UI_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
 
+# --- Lever 5: capture quality for the LOCK path (spec §3, amendment 2026-07-26) --
+# The lock asks for meaningfully more speech than F3's 0.4 s diagnostic floor. A
+# lock take is also embedded as the average of several overlapping windows rather
+# than one point sample, because enrollment averages five takes while unlock has
+# only one — that made unlock the noisier half of the comparison and inflated the
+# reconcile error rate. Both sides use this path, so both are averaged.
+#
+# These floors are deliberately NOT shared with `voiceprint`: the F3 diagnostic
+# meter keeps its own 0.4 s floor (spec §3 says leave that panel as-is), so the
+# same recording can be good enough to show a match distance yet too thin to key
+# a lock with.
+MIN_LOCK_SECONDS = 1.2
+LOCK_WINDOWS = 3
+LOCK_WINDOW_FRACTION = 0.7
+
+
+def lock_voiceprint(audio: np.ndarray) -> np.ndarray:
+    """Embed a lock take as the average of overlapping windows.
+
+    Raises ``voiceprint.NeedMoreAudioError`` when the take is under
+    ``MIN_LOCK_SECONDS`` — the caller re-records, reusing F3's "need more audio"
+    signal and copy against this raised floor.
+    """
+    signal = np.asarray(audio, dtype=DTYPE).reshape(-1)
+    if signal.size < int(MIN_LOCK_SECONDS * SAMPLE_RATE):
+        raise voiceprint.NeedMoreAudioError("need more audio")
+
+    window = min(
+        signal.size,
+        max(int(MIN_LOCK_SECONDS * SAMPLE_RATE), int(signal.size * LOCK_WINDOW_FRACTION)),
+    )
+    hop = (signal.size - window) // (LOCK_WINDOWS - 1)
+    if hop == 0:
+        # The take is barely over the floor, so every window would be the same
+        # audio — average nothing and just embed it once.
+        return voiceprint.embed(signal)
+
+    embeddings = [
+        voiceprint.embed(signal[index * hop : index * hop + window])
+        for index in range(LOCK_WINDOWS)
+    ]
+    averaged = np.mean(embeddings, axis=0)
+    return averaged / np.linalg.norm(averaged)
+
 
 class BoothApi:
     """JS ↔ Python bridge for record / stop / play and vault enroll / unlock."""
@@ -73,7 +117,7 @@ class BoothApi:
         """
         buf = self.capture.pcm_buffer()
         try:
-            embedding = voiceprint.embed(buf)
+            embedding = lock_voiceprint(buf)
         except voiceprint.NeedMoreAudioError:
             return {
                 "ok": False,
@@ -135,7 +179,7 @@ class BoothApi:
             return {"ok": False, "error": "no_vault"}
 
         try:
-            voiceprint_vector = voiceprint.embed(self.capture.pcm_buffer())
+            voiceprint_vector = lock_voiceprint(self.capture.pcm_buffer())
         except voiceprint.NeedMoreAudioError:
             return {"ok": False, "error": "need_more_audio"}
 

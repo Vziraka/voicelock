@@ -5,10 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 
-from voicelock.app import BoothApi
+from voicelock.app import MIN_LOCK_SECONDS, BoothApi, lock_voiceprint
 from voicelock.middlelock import ENROLLMENT_TAKES
-from voicelock.voiceprint import load_wav
+from voicelock.voiceprint import (
+    ACCEPT_CUTOFF,
+    MIN_SPEECH_SECONDS,
+    SAMPLE_RATE,
+    NeedMoreAudioError,
+    cosine_distance,
+    embed,
+    load_wav,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "voiceprint"
 
@@ -140,6 +149,59 @@ def test_bridge_re_enroll_needs_confirm(tmp_path: Path) -> None:
 
     cap.set(_fx("speakerA_live.wav"))
     assert api.unlock({"passphrase": "two"})["name"] == "Bea"
+
+
+# --- lever 5: raised lock floor + window-averaged embedding -------------------
+def test_lock_take_is_the_average_of_overlapping_windows() -> None:
+    """A lock take is a window average, not one point sample."""
+    audio = _fx("speakerA_live.wav")
+    averaged = lock_voiceprint(audio)
+    single = embed(audio)
+
+    assert averaged.shape == single.shape
+    assert np.isclose(np.linalg.norm(averaged), 1.0)
+    # It really is a different estimate — if this ever equals the point sample,
+    # the averaging has been silently bypassed.
+    assert not np.allclose(averaged, single)
+    # ...but it still describes the same speaker, so it stays close.
+    assert cosine_distance(averaged, single) < ACCEPT_CUTOFF
+
+
+def test_lock_floor_is_higher_than_the_f3_diagnostic_floor(tmp_path: Path) -> None:
+    """A clip good enough for the F3 meter can still be too thin for the lock.
+
+    This is the whole point of the raised floor: `voiceprint.MIN_SPEECH_SECONDS`
+    (0.4 s) governs the diagnostic panel, `MIN_LOCK_SECONDS` (1.2 s) governs
+    anything that keys the vault. The same recording must be accepted by one and
+    refused by the other, or the two floors have silently merged.
+    """
+    assert MIN_LOCK_SECONDS > MIN_SPEECH_SECONDS
+
+    middling = _fx("speakerA_live.wav")[: int(0.8 * SAMPLE_RATE)]
+    assert MIN_SPEECH_SECONDS * SAMPLE_RATE < middling.size < MIN_LOCK_SECONDS * SAMPLE_RATE
+
+    # The F3 diagnostic accepts it...
+    embed(middling)
+    # ...and the lock path does not.
+    with pytest.raises(NeedMoreAudioError):
+        lock_voiceprint(middling)
+
+
+def test_lock_floor_applies_to_both_enroll_and_unlock(tmp_path: Path) -> None:
+    """Lever 5 is two-sided — the raised floor guards enrollment and unlock alike."""
+    cap = _StubCapture()
+    middling = _fx("speakerA_live.wav")[: int(0.8 * SAMPLE_RATE)]
+
+    api, cap_enrolled, _ = _enrolled_booth(tmp_path)
+    cap_enrolled.set(middling)
+    assert api.unlock({"passphrase": "correct-horse"})["error"] == "need_more_audio"
+
+    fresh = BoothApi(capture=cap, vault_path=tmp_path / "other.vl")
+    cap.set(middling)
+    banked = fresh.enroll_take()
+    assert banked["ok"] is False
+    assert banked["error"] == "need_more_audio"
+    assert banked["progress"] == 0
 
 
 def test_bridge_set_reference_then_compare_separates_speakers(tmp_path: Path) -> None:
