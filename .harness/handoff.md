@@ -1,8 +1,23 @@
-# Handoff — F5 spec written, parked at the approval gate
+# Handoff — F5 spec APPROVED, ready for `/plan`
 
 Session of 2026-07-26 (after F4.5 closed). Ran `/spec` for **F5 — Camera booth**.
 No code was written and **nothing was installed** — `pyproject.toml` and
 `uv.lock` are untouched.
+
+**Approval gate: BOTH boxes checked 2026-07-26.** `Status: CLEAR`, zero
+clarification markers, `Mode: Mode 3`. The gate is satisfied, so `/plan` is
+unblocked.
+
+**Repair recorded honestly:** the human's editor reformatted `spec.md` on
+approval and, alongside harmless table/wrap changes, **deleted the 8-line
+"that check has teeth" licence paragraph** in §4 — the entire content of commit
+`beb21b3`, which the human had explicitly approved one message earlier. It was
+restored verbatim on the human's instruction before the approval was committed.
+The same formatter transposed backtick/asterisk in three places
+(`` `**BaseException` ``, `` `**VIDEO**` ``, `` `**opencv-contrib-python` ``),
+breaking emphasis without losing content; all three were corrected. A
+word-level diff against `beb21b3` was used to confirm **nothing else** was lost —
+not an eyeball pass.
 
 > F4.5's completion report was previously here. It is closed and its evidence
 > lives in `memory/verdicts/2026-07-26-F4.5-T1/-T2/-T3.json` and in git
@@ -85,8 +100,7 @@ No code was written and **nothing was installed** — `pyproject.toml` and
 
 ## next_action
 
-**`/plan` in a fresh session — only after box 2 is checked.** The universal
-[Startup] rule blocks planning on an unapproved spec, and box 2 is the approval.
+**`/plan` in a fresh session. Box 2 is checked — the gate is open.**
 
 Expect roughly this task shape (the plan session decides for real): declare the
 two dependencies · vendor the `.task` bundle and check its licence at download ·
