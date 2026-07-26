@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, Task 4 `REVIEW`
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, Task 4 `DOING` (retry 1 of 3)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -225,18 +225,17 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          write).
 
 - [ ] **Task 4** — Bridge: `BoothApi` 5-take voice enroll + voice unlock with distinct reject reasons
-  - state: REVIEW
+  - state: DOING
   - built 2026-07-26 (lever 5, the reduced scope): `app.py` gains
     `MIN_LOCK_SECONDS = 1.2` (3x F3's 0.4 s diagnostic floor), `LOCK_WINDOWS = 3`,
     `LOCK_WINDOW_FRACTION = 0.7`, and `lock_voiceprint()` — which embeds a take as
     the L2-renormalized average of 3 overlapping windows and raises F3's
     `NeedMoreAudioError` under the new floor. Wired into **both** lock paths
-    (`enroll_take` and `unlock`), never into F3's `compare`. Degrades gracefully:
-    a take barely over the floor yields hop 0, so it embeds once instead of
-    averaging three identical windows. Full suite 81 passed; runtime rose 25s ->
+    (`enroll_take` and `unlock`), never into F3's `compare`. Full suite 81
+    passed; runtime rose 25s ->
     47s because each lock take now costs three embeds instead of one — still far
     inside spec §5's 10-minute budget.
-  - rejects: 0
+  - rejects: 1
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
   - **scope REDUCED 2026-07-26:** Task 3 absorbed the bridge's signature-driven
     half (`enroll_take()` banking, banked takes → `vault.enroll`, `unlock`
@@ -275,7 +274,23 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest tests/test_booth_api.py -q` → exit 0; final summary reports 0 failed. Must cover, with a temp vault path + stub capture (no real mic) and the Task-1 fixtures: (a) five `enroll_take()` calls then `enroll` seals a vault whose bytes start with `VLCK` and whose version byte is 2; (b) a too-short take returns `need_more_audio` and leaves progress unchanged; (c) right passphrase + same-speaker take → `ok: True` with the enrolled name; (d) **wrong passphrase** → `ok: False`, `error == "auth_outer"`, and no `name` key; (e) right passphrase + **different speaker** → `ok: False`, `error == "auth_voice"`, and no `name` key — the two reasons are **distinct**; (f) no vault → `no_vault`; (g) a v1 vault file → `legacy_vault`; and the F3 `set_reference`/`compare`/`reset_reference` cases still pass unchanged
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
-  - feedback: (none)
+  - feedback (newest first):
+    - **2026-07-26 · REJECT 1 of 3** (verifier subagent; GATE PASSed — 17 booth,
+      81 full, ruff 0 — Standards-axis reject only, and the verifier independently
+      re-measured that window-averaged enrollment vectors still separate: genuine
+      residual 0, impostor floor 159 vs the raw-enroll baseline 0/173):
+      1. `src/voicelock/app.py` `lock_voiceprint()`'s `hop == 0` branch is
+         **effectively dead, untested, and behaviourally redundant**. With
+         `window = min(N, max(19200, 0.7N))`, hop is zero only for
+         `N ∈ {19200, 19201}` — takes of 1.2000–1.2001 s, not the "1.2 s to
+         ~1.71 s" the build claimed. Measured hops on the fixtures: enroll takes
+         **3200**, `speakerA_live` **4696**, `speakerB` **4963** — never 0. The
+         general path already handles a degenerate take correctly (averaging three
+         identical unit vectors and renormalizing returns the same vector), so the
+         branch optimizes an unreachable case. Violates
+         `topics/code-quality.md` ("No speculative anything"). **The build's own
+         handoff note defending it was factually wrong** — that claim is retracted.
+         **Fix: delete the branch.**
 
 - [ ] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
   - state: TODO
