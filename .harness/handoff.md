@@ -1,131 +1,119 @@
-# Handoff — F5 Tasks 1–2 `DONE`; Task 3 `BLOCKED` on ONE tick from the human
+# Handoff — F5 Task 3 built, now `REVIEW`
 
-Session of 2026-07-26. Tasks 1 and 2 built, verified (subagent), `DONE`.
-Task 3's licence STOP condition fired and did **not** clear; the human chose a
-replacement fixture; the spec amendment is **written and committed**, and the
-only thing standing between here and the rest of the feature is **box 2**.
+Session of 2026-07-26. Tasks 1–2 `DONE`. Task 3's licence STOP condition fired,
+escalated twice, resolved by the human as **fetched-not-committed**, and is now
+built and `REVIEW`. Tasks 4–7 `TODO`.
 
-## ⚠ ONE ACTION UNBLOCKS TASKS 3–7
+## Changed
 
-Open `.harness/spec.md` line 10 and change:
+- **`tests/fixtures/face/portrait_expected_face_landmarks.pbtxt`** (29 637 B) —
+  **committed**. MediaPipe's own published expected output for `portrait.jpg`,
+  from `mediapipe/tasks/testdata/vision/` in the Apache-2.0
+  `google-ai-edge/mediapipe` repo. 478 `landmark { x: … y: … }` blocks.
+- **`tests/fixtures/face/README.md`** — **committed**. Fetch command, the full
+  quoted copyright notice, why the image is absent from git, the measured
+  vendor-reference agreement, and the disclosed precedent inversion.
+- **`.gitignore`** (committed earlier in the amendment) — line 39 ignores
+  `tests/fixtures/face/portrait.jpg`.
+- **`.harness/plan.md`** — Task 3 `BLOCKED → DOING → REVIEW`.
 
-```
-- [ ] Approved by human      →      - [x] Approved by human
-```
+**NOT committed, by design:** `tests/fixtures/face/portrait.jpg` (176 561 B,
+SHA-256 `A6F11EFA…2749DE3E`). Present on this machine so the Gate can run.
 
-I may never check that box myself. Once it is checked, Tasks 3, 4, 5, 6 and 7
-can run straight through — nothing else is waiting on you until the **manual
-demo** in Task 7, which you already said you would come back for.
+**Zero engine code.** `facedetect.py` is Task 4.
 
-**What you are approving** (a note sits directly under the box in `spec.md`):
-the fixture changes from MediaPipe's `portrait.jpg` to the Met's CC0
-daguerreotype. Nothing else — no scope, no outcome, no non-goal, no camera
-architecture, no 30 fps target, no other Verification command.
+## The escalation, and how it resolved
 
-## Why Task 3 blocked
+`portrait.jpg` is a **White House press photograph** (EXIF `Artist = Pete Souza`)
+whose notice forbids reproduction or dissemination without written permission
+from the White House Photo Office. Committing a fixture is exactly that.
 
-`portrait.jpg` — the fixture the spec originally named — is a **White House
-press photograph**. Its own EXIF carries `Artist = Pete Souza` and:
+The human's first instinct was that a personal project is covered by the
+"personal use only" clause. **It is not** — that permission is granted to *the
+subject(s) in the photograph*. Correcting that was the pivot; the human then
+chose **fetched-not-committed** over both committing it and substituting a CC0
+image, because it preserves the **vendor reference**, which exists for this image
+and no other.
 
-> "This photograph is provided by THE WHITE HOUSE as a courtesy and may be
-> printed by the subject(s) in the photograph for personal use only. The
-> photograph may not be manipulated in any way and may not otherwise be
-> reproduced, disseminated or broadcast, without the written permission of the
-> White House Photo Office."
+A fully-vendored CC0 alternative was researched and verified first (the Met's
+c.1850 `-Elderly Man; Full Face-`, 1 face / 478 landmarks) and remains the
+documented fallback in
+`memory/research/2026-07-26-f5-fixture-replacement-candidates.md`.
 
-Committing a fixture **is** reproducing and disseminating it. The image was
-downloaded, its metadata read, and the file **deleted**. `tests/fixtures/face/`
-was never created; no image is in git.
+## Evidence a verifier should re-check rather than take
 
-"It's in Google's Apache-2.0 repo" does not rescue it: the repo ships only the
-`portrait_expected_*.pbtxt` **outputs** and no `.jpg` at all, and a
-package-level Bazel licence cannot override an asset's own embedded notice.
-This is `spec.md` §4's predicted failure mode — more severe than predicted — and
-a textbook instance of the `[Approval]` per-asset guardrail approved the same
-day.
+- **The photograph is not in git, at all:**
+  `git log --all --diff-filter=A --name-only | grep 'portrait.jpg$'` → no match.
+  `git check-ignore -v` → `.gitignore:39`. `git ls-files --error-unmatch` → exit 1.
+  And `git add -A` was run deliberately before committing: it staged the README
+  and the `.pbtxt` and **left the photograph behind**.
+- **The vendor reference genuinely matches the vendored bundle** — measured, not
+  assumed:
+  ```
+  reference landmarks: 478   detected: 478
+  max abs diff: 0.005645     mean: 0.001051   (normalized coords)
+  ```
+  ~4.6 px on the 820 px-wide image. **Task 4's tolerance must sit above that
+  measured maximum, not at it.**
 
-## The replacement, verified before it was proposed
+## Disclosure — exactly which Gate commands I ran (measurement exception)
 
-**`-Elderly Man; Full Face-` (Met 37.14.52)** — CC0 1.0, a c.1850 daguerreotype
-by Southworth & Hawes, donated to Wikimedia Commons by the Metropolitan Museum
-under its Open Access Policy. Vendored as
-`tests/fixtures/face/met_elderly_man.jpg`.
+`uv run ruff check .` → exit 0, plus the two git-state checks and the
+vendor-reference comparison above (the comparison is what decides whether the
+"practical to parse" branch in `spec.md` §5 is satisfiable, so it had to be
+measured before the README could claim it). I did **not** run `uv run pytest`,
+the presence check, the README-content check, or the `.pbtxt` size check.
 
-- Licence established **per asset** from the Commons API's per-file
-  `extmetadata` (`LicenseShortName: CC0`) — a source that names the asset, the
-  standard the new guardrail requires and the one MediaPipe's bucket failed.
-- **Detection confirmed against the vendored bundle:** 1 face, **478
-  landmarks**; plain grey 640×480 → **0** faces. Both halves of §5's real-model
-  test pass, so this will not land red.
-- **No living subject** — sitter and both photographers died in the 19th
-  century. `spec.md` §4 rejected the repo owner's face on reasoning that does
-  not stop at the owner; a c.1850 sitter also cannot ask to be removed later,
-  satisfying §4's stability requirement.
-- Filename deliberately **not** `portrait.jpg`, so no future reader mistakes it
-  for MediaPipe's image.
+## Doubts, flagged rather than buried
 
-**Known cost, disclosed not hidden:** the **vendor-reference** assertion is
-withdrawn. MediaPipe publishes expected landmarks for `portrait.jpg` only, so
-there is no vendor reference for an image we can legally ship. What remains is
-the assertion §5 itself calls the important one — a real face at 478 landmarks,
-and no face on plain colour. The fixture README must state this, per §5's own
-instruction to say so rather than silently assert less.
+1. **This inverts F3's precedent, and that is a real cost.** `.gitignore` carries
+   `!tests/fixtures/voiceprint/*.wav` with the comment "Gate needs them on a
+   clean checkout". `portrait.jpg` is the first asset the Gate needs but the repo
+   cannot ship. A fresh clone skips the real-model test until it is fetched. The
+   README states this; the pinned presence check stops it becoming a silent
+   green Gate.
+2. **The licence position is unchanged by this arrangement.** Nothing here makes
+   the photograph more usable — it keeps it out of permanent history, which is a
+   different and narrower claim. Recorded as the human's decision in
+   `memory/decisions.md`, with the reasoning and the rejected alternatives.
+3. **The published reference has `x` and `y` only, no `z`.** Task 4's comparison
+   is 2-D. Noted so it is not mistaken for an omission.
+4. **`tests/fixtures/face/` shows as one untracked entry** in `git status` on a
+   machine where the image is present — git collapses the directory. That is
+   expected, not a leak; the staging check above is the real proof.
 
-Rejected alternatives are recorded in
-`memory/research/2026-07-26-f5-fixture-replacement-candidates.md` — notably
-`Ed Fallon Head Shot 2013.jpg`, CC0 on its face but with a licence-laundering
-smell (`Artist` is one person, `Credit` says the uploader got it by email from
-another), rejected on the very principle that produced this investigation.
+## Still open for the human
 
-## State of the ledger
-
-| Task | State |
-|---|---|
-| 1 — declare deps | `DONE` · Gate 5/5 · APPROVE 1st pass · `rejects: 0` |
-| 2 — vendor the bundle | `DONE` · Gate 5/5 · APPROVE 1st pass · `rejects: 0` |
-| 3 — vendor the fixture | `BLOCKED` on box 2 · `rejects: 0` |
-| 4–7 | `TODO`; 4, 5, 7 name the fixture, 6 (UI) does not |
-
-## Two amendments were made today
-
-1. **Approved and in force** — a Standing Verification check that every
-   `src/voicelock/models/*/` dir carries a non-stub `LICENSE` and `NOTICE`
-   (enforcement half of the new `project.md` guardrail).
-2. **Awaiting box 2** — this fixture change.
+- **Nothing blocking.** Both licence STOP points are resolved. No guardrail
+  proposal is pending.
+- `project.md`'s Environment section is stale (*"Tool(s): Cursor only"*);
+  re-running `setup` refreshes it. Cosmetic.
 
 ## Carried forward, unchanged
 
 - **The unmeasured `evaluate_js` bridge throughput** — Task 5's floor covers the
   engine half, Task 7's live check the bridge half. Fallback: `TARGET_FPS`
-  30 → 20 → 15 **on measured evidence**, never by loosening the assertion, and
-  never by reopening the rejected loopback-MJPEG transport.
+  30 → 20 → 15 **on measured evidence**, never by loosening the assertion.
 - **F4.5's fake-stream shape is what Tasks 4–5 inherit** — `read()` is the real
   path the fake must deliver through, `release()` the teardown it must trip on,
   with a **`BaseException`** subclass.
-- **`project.md`'s Environment section is stale** (*"Tool(s): Cursor only"*).
-  Re-running `setup` refreshes it. Cosmetic.
-- **F6 inherits a changed source** — face B now comes from Wikimedia Commons
-  under a verified per-file licence, not MediaPipe's assets.
-
-## Where the rest lives
-
-- Verdicts: `memory/verdicts/2026-07-26-F5-T1.json`, `-F5-T2.json`
-- Licence investigations: `…-f5-face-landmarker-licence.md` →
-  `…-licence-resolved.md`; `…-f5-portrait-fixture-licence.md` →
-  `…-f5-fixture-replacement-candidates.md`
-- Decisions: `memory/decisions.md` (verifier path · bundle licence · fixture swap)
+- **F6 inherits the arrangement** as well as the two-faces gap, plus a researched
+  CC0 shortlist.
 
 ## next_action
 
-**Human checks `spec.md` box 2.** Then `/implement` F5 Task 3 and run on through
-Task 7. No further approval is expected until Task 7's human-attested manual
-demo.
+**Verify Task 3** — clean-context verifier via `formats/VERIFIER-PROMPT.md`,
+verbatim, spawned by this session (subagent path, human-authorized). Task 3's
+done-criteria are its `plan.md` list; it is an intermediate task.
 
 ## Commits
 
 - Task 1: `878186c` → `19b63e5` → `79b022e` → `b21b8ae`
-- Task 2: `be938c1` → `e533720` (BLOCKED) → `6585761` → `1ddf831` → `bded558` → `8aa1e62`
-- Amendment 1 + guardrail: `5522bd3`
-- Task 3: `c230109` (DOING) → `b926819` (BLOCKED) → `0fbadeb` (amendment 2)
+- Task 2: `be938c1` → `e533720` → `6585761` → `1ddf831` → `bded558` → `8aa1e62`
+- Amendment 1 + guardrail: `5522bd3` · Amendment 2 (revised): `2876e6f`
+- Task 3: `c230109` → `b926819` (BLOCKED) → `0fbadeb` → `d7465da` (DOING
+  resumed) → **`5b7670f` (build)**
+- Base for the Gate diff: **`d7465da`** · head: **`5b7670f`**
+- Plus this bookkeeping commit, putting actual HEAD one ahead — expected.
 
 Session base was `b718038`. Remote: **none** — local history only, nothing pushed.
