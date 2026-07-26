@@ -1,0 +1,26 @@
+{
+  "task": "T4",
+  "spec": "spec.md@a13d891",
+  "change": "f41f669..82d9096",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_booth_api.py -q",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "Retry 1 of 3. 17 passed (booth), ruff 'All checks passed!', full suite 81 passed in 44.47s (budget 10 min). Scope: exactly Task 4's two declared files plus state bookkeeping. voiceprint.py untouched, so F3's diagnostic floor is genuinely unchanged. The first build (0fc073d) also PASSed the Gate — the reject was Standards-axis only."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Task 4 ran at REDUCED scope: Task 3 had absorbed the bridge's signature-driven half, leaving lever 5 (raised lock floor + window-averaged embedding). APPROVE on retry 1 after one REJECT (rejects: 1 of 3). The reject: lock_voiceprint()'s hop==0 short-circuit was effectively dead (reachable only at exactly 19200-19201 samples), driven by no test, and redundant with the general path -- and the build's handoff note had defended it with a measurably false coverage claim ('reachable 1.2-1.71 s, exercised by the suite'; measured fixture hops are 3200/4696/4963). The branch was deleted, the false claim retracted in place rather than quietly dropped, and an exact-floor take confirmed to return a unit vector through the general path. Second review confirmed lever 5 is faithful: MIN_LOCK_SECONDS=1.2 (3x F3's 0.4 s) as an importable module constant, 3 genuinely overlapping windows L2-renormalized, wired into BOTH enroll_take and unlock, F3's compare left on its own floor. The first verifier also independently re-measured the calibration risk this task creates -- enrollment vectors are now window-averaged while CORRECTION_RADIUS was pinned on raw embeddings -- and found separation holds: genuine residual 0, impostor floor 159 vs the raw-enroll baseline 0/173.",
+    "history": "REJECT (0fc073d) -> fix -> APPROVE (82d9096)",
+    "open_nit": "tests/test_booth_api.py test_lock_take_is_the_average_of_overlapping_windows declares an unused tmp_path fixture; verifier called it non-blocking. Carried to Task 5 as a one-line cleanup."
+  },
+  "mechanism": "subagent",
+  "lesson": "proposed — pending approval",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-26"
+}

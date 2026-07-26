@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, Task 4 `REVIEW` (retry 1 applied)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, next is Task 5 (the LAST task)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -224,8 +224,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          scope violation. **Fix: update the `files:` line** (done in this same
          write).
 
-- [ ] **Task 4** — Bridge: `BoothApi` 5-take voice enroll + voice unlock with distinct reject reasons
-  - state: REVIEW
+- [x] **Task 4** — Bridge: `BoothApi` 5-take voice enroll + voice unlock with distinct reject reasons
+  - state: DONE
   - built 2026-07-26 (lever 5, the reduced scope): `app.py` gains
     `MIN_LOCK_SECONDS = 1.2` (3x F3's 0.4 s diagnostic floor), `LOCK_WINDOWS = 3`,
     `LOCK_WINDOW_FRACTION = 0.7`, and `lock_voiceprint()` — which embeds a take as
@@ -339,7 +339,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4 building: Tasks 1–3 `DONE` (all verified by subagent), Tasks 4–5 `TODO`.** Fixtures, the middle-lock engine, and the nested v2 vault all land; Task 3 took one Standards-axis REJECT (`rejects: 1`) after a human-resolved plan contradiction. Next is **Task 4**. Mode 3 is the standing "go" inside F4.
+1. 2026-07-26 — **F4 building: Tasks 1–4 `DONE` (all verified by subagent), only Task 5 left.** The engine is complete and two-locked; Tasks 3 and 4 each took one Standards-axis REJECT (both for speculative dead code) and were APPROVEd on retry 1. **Task 5 is the LAST task — its done-criterion is the FULL spec §5 list, including the human-attested manual demo an agent cannot perform.**
 2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
 3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
 4. **The main build risk is retired: Task 2 separated cleanly.** Over 200 independent commits — genuine 0, harder same-speaker 63, impostor floor 156, `CORRECTION_RADIUS = 110` at the midpoint; the verifier reproduced it on its own 60. Remaining honest caveat: fixtures cannot prove cross-session robustness, so the required manual demo in Task 5 is still the real proof.
