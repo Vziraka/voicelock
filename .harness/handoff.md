@@ -6,7 +6,7 @@ feature's LAST task and carries the FULL spec §5 list including the
 **human-attested manual demo**, which an agent cannot perform.
 
 - base: `f41f669` (Task 4 `DOING`, committed before building)
-- head: **`RETRYHEAD`** (retry-1 build commit — supersedes `0fc073d`)
+- head: **`82d9096`** (retry-1 build commit — supersedes `0fc073d`)
 - **retry 1 of 3** after a Standards-axis REJECT; `rejects: 1`
 
 ## Changed
@@ -58,7 +58,7 @@ and what this diff is, is **lever 5 only**. Task 4's original done-criteria
 
 ## next_action
 Verify Task 4 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, task
-`F4-T4`, base `f41f669`, head `RETRYHEAD`. On APPROVE → wrap-up, then **Task 5**.
+`F4-T4`, base `f41f669`, head `82d9096`. On APPROVE → wrap-up, then **Task 5**.
 
 **Read this before starting Task 5:** it is F4's LAST task, so its done-criterion
 is the FULL spec §5 Verification list — which includes a **manual, human-attested
