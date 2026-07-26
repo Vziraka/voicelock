@@ -7,7 +7,7 @@ Feature: Feature 4 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file) — re-scanned after the 2026-07-26 amendment, still zero hits
-- [ ] Approved by human
+- [x] Approved by human
 
 - **Mode:** Mode 3 (Spec-to-done). Set by the human at grilling 2026-07-23. The
   security-critical crypto keystone (§4) is still locked in this spec via a

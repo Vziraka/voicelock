@@ -2,13 +2,13 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: PLANNED — **BLOCKED on box 2**
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DOING`
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
-  accuracy levers in §3/§4, which re-opened approval **box 2**. Grilling re-scanned
-  after the amendment — still zero markers. All 5 tasks `TODO`, re-planned below
-  against the amended spec. **Nothing may be built until the human re-checks box 2.**
-  After that, the approved Mode 3 is the standing "go" for `/implement` Task 1 —
-  no further per-task go needed inside the feature.)
+  accuracy levers in §3/§4, which re-opened approval **box 2**. The human
+  **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
+  human` — so the gate is closed and Mode 3 is the standing "go" for the tasks
+  inside F4. Grilling re-scanned after the amendment — still zero markers.
+  Task 1 is `DOING`; Tasks 2–5 stay `TODO` under WIP=1.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -19,7 +19,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — 5-take speaker-A enrollment fixtures + measured same/different separation
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `tests/fixtures/voiceprint/speakerA_enroll1..5.wav`, `tests/fixtures/voiceprint/README.md`
   - notes: F4's enrollment is a **5-sentence averaged capture** (spec §4 Accuracy
@@ -223,7 +223,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4 planned, then AMENDED. `spec.md` box 2 is OPEN — building is blocked until the human re-checks it.** 5 tasks `TODO`, re-planned against the amended spec; Grilling re-scanned (zero markers). After box 2, Mode 3 is the standing "go" for Task 1.
+1. 2026-07-26 — **F4 amended, then APPROVED: box 2 re-checked by the human, so building is unblocked.** Task 1 (`DOING`) builds the 5-take enrollment fixtures; Tasks 2–5 `TODO`. Grilling re-scanned after the amendment (zero markers). Mode 3 is the standing "go" for the remaining tasks inside F4.
 2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
 3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
 4. Main build risk: raw ECAPA sign-bits carry ~25 % genuine bit-error, and the research's binomial numbers assume independent flips that correlated LSH bits will not deliver — measured results will be worse than theory. Task 2 must separate genuine from impostor **with a margin** or report `BLOCKED`; never loosen the radius to force a pass.
