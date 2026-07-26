@@ -94,11 +94,18 @@ plan required is not a deviation from the plan, so no log entry was owed.
   `ImportError: TorchCodec is required`, so it would have added a genuinely new
   dependency. Settled at TECH-PICK time; nothing re-litigated during the build.
 
-## Pending guardrail — NEEDS YOUR APPROVAL
+## Pending guardrail — NONE. Approved and written 2026-07-26.
 
-Task 3's `learn` compound scan is the first in this feature to clear the bar
-(Tasks 1 and 2 both recorded "none"). Proposed for
-`constitution/project.md` — **not written**, awaiting your yes/no:
+Task 3's `learn` compound scan was the first in this feature to clear the bar
+(Tasks 1 and 2 both recorded "none"). The human **approved** it after the
+feature-end checkpoint, and it is now the repo's **third** earned guardrail in
+`constitution/project.md`, listed first. Nothing is pending.
+
+Task 3's verdict file still reads `"lesson": "proposed — pending approval"` —
+that is correct and deliberate: verdicts are append-only and record what was
+true at the moment of the scan. This section is the record of the resolution.
+
+The written entry:
 
 > - **[Forbidden]** A test double for a stream or device must deliver data
 >   through the **real callback it was handed** — a fake that only exposes a
@@ -131,19 +138,25 @@ being added; this one is about a test harness structurally unable to reach a
 real production path. Different fix, different files. An addition, not an edit.
 The UI-state-mirror rule is unrelated.
 
-If you decline, say so and it is dropped — the verdict file records
-`"lesson": "proposed — pending approval"` either way, and declining is a valid
-recorded outcome.
-
 ## next_action
 
-1. **Approve or decline the guardrail above.**
-2. **The feature-end checkpoint** — approve the commit message below (commit
-   only; there is **no remote**, so nothing is pushed).
-3. Then: **`/spec` for F5 — Camera booth**, which starts with its TECH-PICK
-   (offline face detect / landmark / embedding stack). Named, not started —
-   F4.5 existed to make F5 start from a sound pattern, and Task 2's fake-stream
-   shape is what F5's camera fake should copy.
+**F4.5 is closed. Nothing is outstanding — both human items are resolved:**
+the feature-end checkpoint was approved and committed (`93bc887`), and the
+guardrail was approved and written.
+
+1. **`/spec` for F5 — Camera booth.** It starts with a **TECH-PICK** (offline
+   face detect / landmark / embedding stack) — that is a new dependency, so it
+   needs `formats/TECH-PICK.md` and your sign-off before anything is installed.
+   Not started here.
+2. **Carry into F5:** Task 2's fake-stream shape is what F5's camera fake
+   should copy — deliver through the real callback, halt on `CallbackStop`,
+   trip a `BaseException` wire on re-entrant teardown. Making that inheritance
+   possible is the entire reason F4.5 existed, and it is now a guardrail.
+3. **Also carry into F5's spec:** a per-module `assert 'callback' in <test
+   file>` line in its Verification section — the narrow enforcement the
+   guardrail names as its complement.
+4. F5's spec will need a fresh Mode line and a fresh box-2 approval from you;
+   F4.5's Mode 3 does not reach past the feature.
 
 ## Where the rest lives
 

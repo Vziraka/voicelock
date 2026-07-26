@@ -179,8 +179,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    deliver through the real callback, halt on `CallbackStop`, and trip a
    `BaseException` wire on re-entrant teardown. That inheritance is the whole
    reason F4.5 was inserted before F5.
-4. Two things await the human: the proposed guardrail (a test double must
-   deliver through the real callback it was handed — full text in `handoff.md`)
-   and the feature-end commit checkpoint. Nothing is pushed; there is no remote.
+4. Both human items are **resolved**: the feature-end checkpoint was approved
+   and committed (`93bc887`), and the proposed guardrail was approved and
+   written — `project.md` now carries a **third** earned rule ("a test double
+   must deliver through the real callback it was handed"). Nothing is pushed;
+   there is no remote.
 5. Next: `/spec` for **F5 — Camera booth**, starting with its TECH-PICK
    (offline face detect / landmark / embedding stack). Not started.
