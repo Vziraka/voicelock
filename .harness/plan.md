@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BLOCKED — Tasks 1–2 `DONE`, Task 3 `BLOCKED` (plan contradiction, needs a human call)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, Task 3 `DOING` (unblocked by human decision 2026-07-26)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -152,8 +152,21 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — `vault.py` v2: nested outer(passphrase) → middle(voice) layout + v1 refusal
-  - state: BLOCKED
-  - blocked 2026-07-26 — **the task's own ledger entry is self-contradictory**, which
+  - state: DOING
+  - **scope extended 2026-07-26 by human decision (UNBLOCKED).** Was `BLOCKED` for
+    the contradiction described below; the human chose "extend Task 3 with the
+    minimal `app.py` fix — Task 4 keeps the real bridge work". `files:` for this
+    task is therefore `src/voicelock/vault.py`, `src/voicelock/app.py`,
+    `tests/test_middlelock.py`, `tests/test_vault.py`, `tests/test_outer_lock.py`,
+    `tests/test_booth_api.py`. Logged in `memory/deviations.md` (2026-07-26,
+    F4-T3). **The "no new bridge behaviour" half of that option proved
+    unachievable** — the vault now requires voice material the bridge does not
+    collect, so a signature-only edit cannot make the five booth tests pass. The
+    smallest coherent change absorbed into Task 3: `enroll_take()` banking, the
+    banked takes passed to `vault.enroll`, `unlock` embedding the last capture,
+    and the vault errors mapped to spec §3's names. **Task 4 shrinks accordingly**
+    — see its own entry.
+  - the contradiction this task was blocked on: 
     the universal [Modes] rule says a Mode 3 session must STOP on rather than
     interpret. This task's `files:` line is `vault.py` / `test_middlelock.py` /
     `test_vault.py`, but its done-criteria include `uv run pytest` → exit 0. Task 3
@@ -195,6 +208,16 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - state: TODO
   - rejects: 0
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
+  - **scope REDUCED 2026-07-26:** Task 3 absorbed the bridge's signature-driven
+    half (`enroll_take()` banking, banked takes → `vault.enroll`, `unlock`
+    embedding the last capture, and the `auth_outer` / `auth_voice` / `no_vault` /
+    `legacy_vault` / `need_more_audio` error mapping), because the vault change
+    broke those call sites and Task 3's done-criteria demand a green full suite.
+    See `memory/deviations.md` (2026-07-26, F4-T3). **What REMAINS for Task 4:**
+    lever 5 — embedding each take as the average of 2–3 overlapping windows, and
+    the F4-specific raised minimum speech length as a module constant (F3's
+    `compare` floor stays untouched) — plus explicit coverage of the done-criteria
+    cases not yet asserted, and any bridge gap the UI needs.
   - notes: Mirror the proven F3 `set_reference` shape so the stub-capture tests
     keep working: `enroll_take()` banks the last captured buffer as one of the
     **5** enrollment sentences (validate via `voiceprint.embed`; a too-short/silent
