@@ -6,7 +6,8 @@ plan contradiction, the human resolved it, and the resolution is logged. Tasks 4
 remain `TODO` — **Task 4's scope is now smaller**, see below.
 
 - base: `3a88ed3` (Task 3 `DOING`, committed before building)
-- head: `1488925` (build commit — this handoff's own commit is one after it)
+- head: **`eb7d4ce`** (retry-1 build commit — supersedes `1488925`)
+- **retry 1 of 3** after a Standards-axis REJECT; `rejects: 1`
 - intermediate: `2706679` (the `BLOCKED` checkpoint) and `d583749` (the human's
   decision written to `plan.md` + `deviations.md` before any code followed it)
 
@@ -40,11 +41,28 @@ and is the first thing the verifier should judge.**
   enroll-without-voice
 - F3's `set_reference`/`compare`/`reset_reference` cases pass **unchanged**
 
+## The first REJECT, and what changed
+The verifier passed the Gate (78 passed, ruff 0) and found no crypto or
+peel-order defect, but rejected on the Standards axis with two findings, both
+accepted without argument:
+
+1. `app.py`'s `reset_enroll_takes()` was **unrequired, uncalled and untested** —
+   speculative bridge work past the human's "minimal `app.py` fix" decision.
+   **Deleted.** The suite still reports 78 passed, which confirms it was dead code
+   with no coverage to lose.
+2. `plan.md` contradicted itself — the scope-extension paragraph declared six
+   files while the `files:` line still read the stale three. **`files:` updated**
+   to the six approved files.
+
+Both findings are recorded in Task 3's feedback log in `plan.md`.
+
 ## Doubts the verifier should weigh
-1. **Scope.** Six files changed against a three-file `files:` line. Two of them
+1. **Scope.** Six files, now matching the `files:` line. Two of them
    (`test_outer_lock.py`, `test_booth_api.py`) call the changed API and were
-   unavoidable; `app.py` is the human's explicit decision. Judge whether the
-   absorbed bridge work is the "smallest coherent change" or over-reach.
+   unavoidable; `app.py` is the human's explicit decision. The previous review
+   judged the remaining bridge work mechanically forced by the signature change
+   plus the green-suite criterion, and faulted only the one unforced addition,
+   which is now gone.
 2. **`unlock` checks `no_vault` before embedding the take.** Deliberate: it keeps
    the no-vault answer cheap and stops a missing vault being reported as
    `need_more_audio` when nothing has been recorded. It also means a no-vault
@@ -67,7 +85,7 @@ and is the first thing the verifier should judge.**
 
 ## next_action
 Verify Task 3 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, task
-`F4-T3`, base `3a88ed3`, head `1488925`. On APPROVE → wrap-up, then Task 4.
+`F4-T3`, base `3a88ed3`, head `eb7d4ce`. On APPROVE → wrap-up, then Task 4.
 *(curate due — 16 verdicts vs `Last curated: never`)*
 
 ## Where the rest lives
