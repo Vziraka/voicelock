@@ -500,7 +500,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 7** — Wire `BoothApi` to Record/Stop + release on window close (LAST task — FULL §5)
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
   - notes: The wiring that makes the demo real. `start_record` starts the camera,
