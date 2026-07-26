@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, next is Task 3
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, Task 3 `DOING`
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -152,7 +152,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — `vault.py` v2: nested outer(passphrase) → middle(voice) layout + v1 refusal
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/vault.py`, `tests/test_middlelock.py`, `tests/test_vault.py`
   - notes: Bump `FORMAT_VERSION` 1 → 2 and nest, exactly as spec §4 pins:
