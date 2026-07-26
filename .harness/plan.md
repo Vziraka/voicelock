@@ -1,12 +1,14 @@
 # Plan — F4 — Voice as the middle lock (stacked)
 
 ## Active context
-- Updated: 2026-07-25
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: PLANNED
-  (F4 spec APPROVED 2026-07-23 — both boxes checked, Grilling CLEAR, Mode 3.
-  Ledger written 2026-07-25; all 5 tasks `TODO`. Next: `/implement` Task 1 —
-  the approved Mode 3 is the standing "go", no further human go needed inside
-  the feature.)
+- Updated: 2026-07-26
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: PLANNED — **BLOCKED on box 2**
+  (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
+  accuracy levers in §3/§4, which re-opened approval **box 2**. Grilling re-scanned
+  after the amendment — still zero markers. All 5 tasks `TODO`, re-planned below
+  against the amended spec. **Nothing may be built until the human re-checks box 2.**
+  After that, the approved Mode 3 is the standing "go" for `/implement` Task 1 —
+  no further per-task go needed inside the feature.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -36,6 +38,13 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     — they do **not** prove cross-session generalization (that is what the
     required manual demo covers). This task exists first because Task 2's whole
     tolerance calibration depends on a 5-take enrollment vector existing.
+    **Fixture-vs-reality caveat (spec §4, added by the 2026-07-26 amendment):** the
+    source audio is only ~3.3 s total, so these windows are ~1 s each — far shorter
+    and noisier than the 3–5 s sentences a real enrollment yields. The fixtures are
+    a HARDER test than the live demo. Cut the windows as long as the source allows
+    (prefer overlap over shortness) and **record the measured per-window duration
+    and the resulting same/different distances in build-notes** — Task 2 needs those
+    numbers to tell a fixture problem apart from a construction problem.
   - done-criteria:
     - `uv run python -c "from pathlib import Path; import numpy as np; from voicelock import voiceprint as vp; d = Path('tests/fixtures/voiceprint'); takes = [vp.load_wav(d / f'speakerA_enroll{i}.wav') for i in range(1, 6)]; assert all(t.size >= int(vp.MIN_SPEECH_SECONDS * vp.SAMPLE_RATE) for t in takes), 'a take is too short'; embs = [vp.embed(t) for t in takes]; ref = np.mean(embs, axis=0); same = vp.cosine_distance(ref, vp.embed(vp.load_wav(d / 'speakerA_live.wav'))); diff = vp.cosine_distance(ref, vp.embed(vp.load_wav(d / 'speakerB.wav'))); print('same', same, 'diff', diff); assert same <= vp.ACCEPT_CUTOFF; assert diff >= vp.REJECT_CUTOFF"` → exit 0 (5 takes embed with no "need more audio", their average lands the same speaker in the accept band and the impostor in the reject band)
     - `uv run ruff check .` → exit 0 (stdout/stderr contain no ruff error findings)
@@ -46,30 +55,61 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - state: TODO
   - rejects: 0
   - files: `src/voicelock/middlelock.py`, `tests/test_middlelock.py`
-  - notes: The spec's keystone (§4), hand-rolled in **pure numpy — NO new
-    dependency**. Code-offset fuzzy commitment (Juels–Wattenberg), Python-owned:
-    `commit(enrollment_embeddings) -> (secret, helper_data)` — seeded
+  - notes: The spec's keystone (§4, as amended 2026-07-26), hand-rolled in **pure
+    numpy — NO new dependency**. Code-offset fuzzy commitment (Juels–Wattenberg),
+    Python-owned: `commit(enrollment_embeddings) -> (secret, helper_data)` — seeded
     random-hyperplane **LSH** projection of the L2-normalized 192-dim ECAPA
-    average to ~512 bits (seed = non-secret helper), a **reliability mask** keeping
-    the largest-margin / most-stable bits across the 5 takes (mask = non-secret
-    helper), a random secret `s` encoded by a **repetition/majority-vote** inner
-    code to codeword `c`, helper `P = b XOR c`, plus `H(s)`;
+    embeddings (seed = non-secret helper), a **reliability mask** (mask = non-secret
+    helper), a random secret `s` encoded by a **repetition** inner code to codeword
+    `c`, helper `P = b XOR c`, plus `H(s)`;
     `reconcile(helper_data, live_embedding) -> secret` — recompute `b'`, apply the
-    mask, `b' XOR P`, majority-decode, verify `H(s)`, else raise `ReconcileError`;
+    mask, `b' XOR P`, decode, verify `H(s)`, else raise `ReconcileError`;
     `derive_key(secret, salt) -> 32 bytes` for a PyNaCl SecretBox (Argon2id or
     HKDF-style stretch per spec §4 — pick one at build time, keep the whole-suite
     runtime inside spec §5's budget, and record the choice + cost params in
     build-notes). Helper data must serialize to JSON-safe values (base64 the byte
-    arrays) because Task 3 stores it inside the outer box.
+    arrays) because Task 3 stores it inside the outer box. Engine-only — no vault,
+    no bridge, no UI.
+    **The five accuracy levers (spec §4 amendment 2026-07-26, human-approved;
+    rationale in `memory/decisions.md`) are REQUIRED, in this order of expected
+    effect:**
+    1. **Soft-decision decoding** — decode each secret bit by summing its copies'
+       signed projection **magnitudes** (confidence-weighted), not by counting hard
+       sign votes. A near-zero-margin bit is a coin flip and must not outvote a
+       large-margin one. Roughly doubles the absorbable noise for ~5 lines of numpy.
+       Hard-decision majority stays the fallback if it does not measurably help.
+    2. **Cross-take unanimity as the reliability filter** — keep only bits whose
+       sign is identical across ALL five enrollment takes, then rank the survivors
+       by mean |margin|. Unanimity measures stability directly; margin only proxies it.
+    3. **Large candidate pool, hard mask** — project to ~2048–4096 candidate bits
+       and keep ~512, rather than projecting straight to ~512. Same final count,
+       far higher selection pressure. Only the seed is stored, so the pool is free
+       at rest.
+    4. **Short key, deep repetition** — prefer a ~32-bit secret repeated ~16× over a
+       long key repeated shallowly; depth is what absorbs genuine noise, and the
+       middle lock sits INSIDE the passphrase lock so it is never attacked directly
+       until Argon2id has already fallen.
+    5. (Levers 5's capture-side half lands in Tasks 4/5 — longer, window-averaged
+       takes on both enroll and unlock.)
+    **Lever 6 — centering — is TEST-ONLY:** check whether the vendored model's
+    `mean_var_norm_emb.ckpt` is already applied inside `encode_batch`, measure
+    whether mean-subtraction helps, and record the finding — but do NOT depend on
+    it (two fixture speakers is far too few to estimate a background mean).
     **Tolerance is pinned empirically here** (spec §4 "Reconcile tolerance"):
-    bit count, mask size, repetition factor and correction radius are
-    module-level constants the tests import — measure genuine vs impostor bit-error
-    on the Task-1 fixtures and pin values that separate them **with a margin**.
-    Research (`memory/research/2026-07-23-f4-fuzzy-reconcile.md`) warns raw
-    192 sign-bits give ~25 % genuine BER, so masking + expansion are required, not
-    optional; if the two clusters will not separate with a margin after a genuine
-    tuning attempt, that is a `BLOCKED` report, not a silently loosened radius.
-    This task is engine-only — no vault, no bridge, no UI.
+    candidate-pool size, kept-bit count, repetition factor, key length and
+    correction radius are module-level constants the tests import — measure genuine
+    vs impostor bit-error on the Task-1 fixtures and pin values that separate them
+    **with a margin**. Research (`memory/research/2026-07-23-f4-fuzzy-reconcile.md`)
+    warns raw 192 sign-bits give ~25 % genuine BER, and its binomial estimates
+    ASSUME independent bit flips — with only 192 real dimensions the expanded bits
+    are correlated, so measured results will be worse than theory. Measure; do not
+    trust the arithmetic.
+    **If it will not separate:** report `BLOCKED` — never a silently loosened
+    radius. And per spec §4's fixture-vs-reality caveat, the FIRST thing to
+    question is Task 1's ~1 s fixture windows (much shorter than a real 3–5 s
+    enrollment), not the construction. Escalation order for the human: better
+    fixture audio → accept a higher false-reject rate for the demo → revisit the
+    declined `komm` BCH dependency (already researched and live).
   - done-criteria:
     - `uv run pytest tests/test_middlelock.py -q` → exit 0; final summary reports 0 failed. Must cover, on the Task-1 fixtures + the vendored ECAPA model loaded fully offline (`HF_HUB_OFFLINE`, no network): (a) `commit` on the 5-take enrollment returns a secret plus helper data carrying the LSH seed, reliability mask, XOR offset `P` and `H(s)`, all JSON-serializable; (b) the **same-speaker** probe reconciles to the **identical** secret; (c) the **different-speaker** probe raises `ReconcileError` (no secret returned); (d) the tolerance knobs are module-level constants the test **imports** (not literals in the test), and the measured genuine error count sits below the correction radius while the impostor's sits above it — asserted with an explicit margin; (e) `derive_key` returns 32 deterministic bytes for a given (secret, salt) and different bytes for a different secret or salt
     - `uv run ruff check .` → exit 0
@@ -116,7 +156,16 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     error). `unlock({passphrase})` embeds the last captured take and calls
     `vault.unlock`, mapping errors to **distinct** strings: `auth_outer` (wrong
     passphrase) · `auth_voice` (voice didn't match) · `no_vault` · `legacy_vault`
-    (v1) · `need_more_audio`. **No failure path may include a `name`.** Keep the
+    (v1) · `need_more_audio`. **No failure path may include a `name`.**
+    **Lever 5 — capture quality (spec §3 amendment 2026-07-26), applies to BOTH
+    sides:** embed each take as the **average of 2–3 overlapping windows** of the
+    recording rather than one point sample, and enforce an F4-specific **raised
+    minimum speech length** (a module constant, meaningfully above F3's 0.4 s
+    diagnostic floor) — reusing F3's `need_more_audio` signal and copy, measured
+    against the new floor. Unlock stays ONE recording and one user action; it is
+    only embedded better. Reason: enrollment averages five takes while unlock had
+    one, making the unlock side the noisier half of the comparison. Note the F3
+    diagnostic bridge (`compare`) keeps F3's own floor — do not raise it there. Keep the
     F3 diagnostic bridge (`set_reference` / `compare` / `reset_reference`) and
     Record/Stop/Play unchanged; tests use a temp vault path + stub capture, never a
     real mic. Note for build: F2's `unlock` returned `error: "auth"` — that string
@@ -136,7 +185,16 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     progress indicator driven by `enroll_take()`, and the "need more audio" hint on
     a rejected take; Enroll stays disabled until 5 valid takes are banked. The
     unlock strip gains a **record-your-utterance** step before Unlock (identity
-    only — no challenge phrase; that is F8). Results render **two visibly distinct**
+    only — no challenge phrase; that is F8).
+    **Sentence quality (spec §3 amendment 2026-07-26):** the five prompts are FULL
+    sentences of roughly 3–5 s each (not fragments) and **phonetically varied,
+    vowel/voiced-heavy** — vowels and voiced consonants (m, n, l, r) carry the
+    speaker-identity signal; unvoiced fricatives (s, f, sh) carry much less. Count
+    stays **five** (the human's 2026-07-23 spec choice — changing it needs an
+    amendment). The UI asks for ONE consistent, natural speaking voice across all
+    five and must NOT prompt for emotional / pitch / loudness variation — that was
+    explicitly rejected because it widens between-take spread and starves Task 2's
+    unanimity filter. Unlock likewise prompts for a full sentence, not a word. Results render **two visibly distinct**
     rejects: "Wrong passphrase" (existing `chip-wrong-pass`, now driven by
     `auth_outer`) and a NEW "Voice didn't match" chip driven by `auth_voice`, plus a
     re-enroll message for `legacy_vault` ("this vault predates voice — re-enroll to
@@ -165,8 +223,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-25 — **F4 planned (Mode 3).** Spec APPROVED 2026-07-23 (both boxes, Grilling CLEAR). 5 tasks `TODO`; next is `/implement` Task 1 — the approved Mode is the standing "go" inside the feature.
+1. 2026-07-26 — **F4 planned, then AMENDED. `spec.md` box 2 is OPEN — building is blocked until the human re-checks it.** 5 tasks `TODO`, re-planned against the amended spec; Grilling re-scanned (zero markers). After box 2, Mode 3 is the standing "go" for Task 1.
 2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
-3. Keystone locked in spec §4: hand-rolled pure-numpy code-offset fuzzy commitment (LSH bit-expansion + reliability mask + repetition ECC), **no new dependency**; helper data lives **inside** the outer passphrase box; v1 vaults are refused with a re-enroll prompt.
-4. Main build risk: raw ECAPA sign-bits carry ~25 % genuine bit-error (research 2026-07-23) — Task 2's mask/expansion tuning must separate genuine from impostor **with a margin**, or the task reports `BLOCKED` rather than loosening the radius.
-5. Inherited from F3, unchanged: fixture same-speaker probes overlap the enrollment audio, so automation cannot prove cross-session generalization — that gap is exactly what Task 5's required manual demo covers. Open human item from F3: spec's "~20 MB" model-size wording is wrong (actual ~85 MB).
+3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
+4. Main build risk: raw ECAPA sign-bits carry ~25 % genuine bit-error, and the research's binomial numbers assume independent flips that correlated LSH bits will not deliver — measured results will be worse than theory. Task 2 must separate genuine from impostor **with a margin** or report `BLOCKED`; never loosen the radius to force a pass.
+5. If Task 2 blocks, suspect the FIXTURES first: the source audio is ~3.3 s total so fixture takes are ~1 s, far shorter than a real 3–5 s enrollment. Escalation order: better fixture audio → accept higher false-reject → revisit the declined `komm` dependency. Open human item from F3: spec's "~20 MB" model-size wording is wrong (actual ~85 MB).

@@ -6,13 +6,23 @@ Feature: Feature 4 from `roadmap.md`
 
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
-  hits in this file)
-- [x] Approved by human
+  hits in this file) — re-scanned after the 2026-07-26 amendment, still zero hits
+- [ ] Approved by human
 
 - **Mode:** Mode 3 (Spec-to-done). Set by the human at grilling 2026-07-23. The
   security-critical crypto keystone (§4) is still locked in this spec via a
   TECH-PICK + human approval BEFORE any building — Mode 3's autonomy is bounded to
   an already-approved design.
+
+- **AMENDMENT 2026-07-26 (box 2 re-opened, awaiting the human's `x`):** the §4
+  reconcile pipeline and the §3 unlock/enroll capture lines are refined with five
+  accuracy levers agreed with the human this session — bigger LSH expansion masked
+  down to the same ~512 reliable bits, cross-take unanimity as the stability
+  filter, confidence-weighted (soft-decision) majority decoding, a deliberately
+  short key traded for repetition depth, and a longer/window-averaged unlock take.
+  **Scope, outcome, non-goals and the §5 Verification list are unchanged** — this
+  amendment changes only HOW the reconcile is built. Nothing may be built until
+  the human re-checks box 2. Rationale: `memory/decisions.md` 2026-07-26.
 
 The agent may NOT plan or build until BOTH boxes are checked.
 The second box is checked by the HUMAN typing the `x` — the agent never checks it.
@@ -38,7 +48,8 @@ Demo (the three impostor outcomes, each **visibly distinct**):
 ## 2. Grilling record — ambiguity scan
 
 **Status: CLEAR** — every category resolved; zero clarification markers remain
-(2026-07-23, after grilling).
+(2026-07-23, after grilling; re-scanned 2026-07-26 after the §3/§4 accuracy-lever
+amendment — the changed sections introduced no new ambiguity and no markers).
 
 | Category                           | Verdict | Resolved by |
 | ---------------------------------- | ------- | ----------- |
@@ -73,10 +84,19 @@ Demo (the three impostor outcomes, each **visibly distinct**):
 
 ### Interaction & UX flow
 
-**Enroll flow (RESOLVED 2026-07-23):** enroll becomes name + passphrase + a
-**5-sentence voice capture** (suggested sentences shown to read; each take
-embedded, a too-short/silent take rejected with F3's "need more audio", the valid
-takes averaged), producing the middle-lock helper data. The voice binds the
+**Enroll flow (RESOLVED 2026-07-23; capture quality refined 2026-07-26):** enroll
+becomes name + passphrase + a **5-sentence voice capture** (suggested sentences
+shown to read; each take embedded, a too-short/silent take rejected with F3's
+"need more audio", the valid takes averaged), producing the middle-lock helper
+data. **Sentence quality (2026-07-26 amendment):** the five prompts are full
+sentences of roughly 3–5 s each (not fragments) and are **phonetically varied and
+vowel/voiced-heavy** — vowels and voiced consonants carry the speaker-identity
+signal, unvoiced fricatives carry much less. The count stays **five** (the
+human's 2026-07-23 choice); only their length and wording improve. The reader is
+asked for one **consistent, natural** speaking voice across all five —
+deliberately varying emotion, pitch or vocal effort is explicitly **rejected**,
+because it widens the spread between takes and directly degrades the cross-take
+stability filter in §4. The voice binds the
 middle key at enroll; this is the vault's enrollment voiceprint and **supersedes**
 F3's plaintext diagnostic reference for lock purposes.
 
@@ -87,14 +107,23 @@ Least churn/risk in a crypto-heavy feature; the meter still visualizes close-vs-
 The F4 demo path uses the new enroll/unlock voice capture, not the F3 diagnostic.
 Keep F1 Record/Stop/Play unchanged.
 
-**Unlock flow (RESOLVED 2026-07-23):** unlock = type passphrase + record **one**
-short utterance (any speech; identity-only, no challenge phrase). The bridge peels
+**Unlock flow (RESOLVED 2026-07-23; take quality refined 2026-07-26):** unlock =
+type passphrase + record **one** short utterance (any speech; identity-only, no
+challenge phrase). **Take quality (2026-07-26 amendment):** it stays ONE recording
+and one user action, but the Booth asks for a full sentence and the engine
+requires meaningfully more speech than F3's 0.4 s diagnostic floor (a raised
+F4-specific minimum, pinned as a module constant); the single take is embedded as
+the **average of 2–3 overlapping windows** rather than one point sample. Reason:
+enrollment averages five takes while unlock had only one, so the unlock side was
+the noisier half of the comparison and was inflating the reconcile error rate.
+The bridge peels
 **outer first, then middle**, returning a distinct reason per failure so the Booth
 shows two **visibly distinct** messages:
 - outer decrypt fails → `auth_outer` → "Wrong passphrase";
 - outer opens but the voice fails to reconcile / middle decrypt fails → `auth_voice`
   → "Voice didn't match".
-A too-short/silent unlock take → F3's "need more audio", re-record (no penalty).
+A too-short/silent unlock take → F3's "need more audio" **signal** (reused copy
+and error path), now measured against F4's raised minimum, re-record (no penalty).
 Right passphrase + enrolled voice → **unlocked** (display name shown).
 
 ## 4. Constraints
@@ -115,20 +144,43 @@ Hand-rolled **code-offset fuzzy commitment** in **pure numpy — NO new dependen
 (the recognized Juels–Wattenberg / fuzzy-extractor construction; research
 `memory/research/2026-07-23-f4-fuzzy-reconcile.md`, decision in `memory/decisions.md`).
 The pipeline, all Python-owned:
-- **Binarize + expand:** a seeded random-hyperplane **LSH** projection turns the
-  192-dim L2-normalized ECAPA embedding into ~512 bits (the projection seed is
-  non-secret helper data). Raw 192 sign-bits give ~25% genuine bit-error — too
-  high — so expansion + masking is required, not optional.
-- **Reliability mask:** keep only the most stable bits (large-margin projections)
-  learned at enrollment across the averaged takes, pulling genuine bit-error down
-  toward ~10–15%. The kept-bit mask is non-secret helper data.
-- **Inner code:** a **repetition / majority-vote** ECC over the reliable bits.
-  Enroll picks a random secret `s`, encodes it to codeword `c`, stores helper
-  `P = b XOR c` plus `H(s)`. Unlock computes `b' XOR P`, majority-decodes, and
-  succeeds iff `H(s)` matches (same speaker within the correction radius).
-- **Key:** the recovered `s` is stretched via Argon2id/HKDF into a PyNaCl
-  SecretBox key for the **middle lock**. Modest secret entropy is acceptable for a
-  labeled learning demo (honest limits below); the KDF does the stretching.
+- **Binarize + expand (refined 2026-07-26):** a seeded random-hyperplane **LSH**
+  projection binarizes the 192-dim L2-normalized ECAPA embedding (the projection
+  seed is non-secret helper data). Raw 192 sign-bits give ~25% genuine bit-error —
+  too high — so expansion + masking is required, not optional. **Project to a
+  LARGE candidate pool (~2048–4096 bits) and mask it down to ~512 reliable bits**,
+  rather than projecting straight to ~512. Same final bit count, far higher
+  selection pressure: keeping the best 1-in-8 candidates is a much stronger filter
+  than keeping 1-in-2, and the pool costs nothing at rest because only the seed is
+  stored. Exact pool and kept-bit sizes are pinned empirically (see Reconcile
+  tolerance below).
+- **Reliability mask (refined 2026-07-26):** keep only the most stable bits,
+  learned at enrollment **across the five individual takes** — the primary filter
+  is **cross-take sign unanimity** (a bit must come out the same way in all five
+  takes), with large projection margin as the ranking tiebreak among the
+  survivors. Unanimity is a direct measurement of stability under exactly the
+  within-speaker variation we must survive; margin alone is only a proxy for it.
+  Target: genuine bit-error down toward ~10–15%. The kept-bit mask is non-secret
+  helper data.
+- **Inner code (refined 2026-07-26):** a **repetition ECC with confidence-weighted
+  (soft-decision) majority decoding** over the reliable bits. Enroll picks a random
+  secret `s`, encodes it to codeword `c`, stores helper `P = b XOR c` plus `H(s)`.
+  Unlock computes `b' XOR P` and decodes each secret bit by summing its copies'
+  **signed projection magnitudes** (confidence-weighted) instead of counting hard
+  sign votes, succeeding iff `H(s)` matches (same speaker within the correction
+  radius). A near-zero-margin measurement is close to a coin flip and must not
+  outvote a large-margin one; hard voting throws that information away for free.
+  Plain hard-decision majority remains the fallback if soft decoding does not
+  measurably help on the fixtures.
+- **Key (refined 2026-07-26):** the recovered `s` is stretched via Argon2id/HKDF
+  into a PyNaCl SecretBox key for the **middle lock**. Modest secret entropy is
+  acceptable for a labeled learning demo (honest limits below); the KDF does the
+  stretching. **Deliberately prefer a SHORT secret (tens of bits) over a long one**
+  — the reliable-bit budget is split between key length and repetition depth, and
+  depth is what absorbs genuine noise (e.g. 512 reliable bits as a 32-bit key
+  repeated 16× is far more robust than a 128-bit key repeated 4×). This is sound
+  here because the middle lock sits INSIDE the passphrase lock: the voice key is
+  never attacked directly until Argon2id on the outer lock has already fallen.
 - **Rejected:** `bchlib`/`reedsolo` (both fail the ~12-month liveness bar), and
   `komm`/`galois` (live but add a dependency for only the easy last step). A new
   dependency was considered and declined — no TECH-PICK is triggered.
@@ -151,19 +203,46 @@ F4 unlock **refuses it with a re-enroll prompt** ("this vault predates voice —
 re-enroll to add the voice lock"). No passphrase-only bypass, so "voice is now
 required" stays true. Enroll always writes v2.
 
-**Reconcile tolerance (RESOLVED 2026-07-23):** the correction radius (and the
-reliability-mask size / repetition factor) is the "how close is close enough"
-knob — the analog of F3's ACCEPT/REJECT cutoffs. Pinned **empirically from the
-fixtures** as module constants the tests import, so that same-speaker takes
-reconcile (unlock succeeds) and a clearly-different speaker does not (middle
-REJECT) — deterministic, not judgment. One fixed, provisional tolerance for F4;
-the full tolerance-tuning UI + enrollment-quality gate stay **F9**.
+**Reconcile tolerance (RESOLVED 2026-07-23; knob list extended 2026-07-26):** the
+correction radius is the "how close is close enough" knob — the analog of F3's
+ACCEPT/REJECT cutoffs. It and every sizing knob beside it — **LSH candidate-pool
+size · kept reliable-bit count · repetition factor · secret-key length · the
+raised unlock minimum** — are pinned **empirically from the fixtures** as module
+constants the tests import, so that same-speaker takes reconcile (unlock succeeds)
+and a clearly-different speaker does not (middle REJECT) — deterministic, not
+judgment. One fixed, provisional set for F4; the full tolerance-tuning UI +
+enrollment-quality gate stay **F9**.
 
-**Accuracy levers (RESOLVED 2026-07-23):** maximize honest-voiceprint stability so
-the you-vs-different clusters sit far apart — **5-sentence averaged enrollment**
-(human chose richer than F3's 3 takes), the reliability mask above, and LSH
-bit-expansion. Enrollment shows suggested sentences to read; a per-take "need more
-audio" floor (F3) rejects a silent/too-short take. Accepted honest limits (not
+**Fixture-vs-reality caveat (2026-07-26):** the committed speaker-A source audio
+is only ~3.3 s in total, so fixture "takes" are ~1 s each — materially SHORTER and
+noisier than the 3–5 s sentences a real enrollment produces. The fixtures are
+therefore a HARDER test than the live demo, which is a safe direction to be wrong
+in, but it means a failure to separate on fixtures may indict the fixtures rather
+than the construction. If tuning cannot separate the clusters, the first thing to
+question is fixture length — not the approach — and the honest remedy is better
+fixture audio, not a widened radius. Widening the radius until the demo "works"
+is forbidden: a voice lock that accepts everyone is worse than none, because it
+looks like security.
+
+**Accuracy levers (RESOLVED 2026-07-23; extended 2026-07-26):** maximize honest-
+voiceprint stability so the you-vs-different clusters sit far apart —
+**5-sentence averaged enrollment** (human chose richer than F3's 3 takes), the
+reliability mask above, and LSH bit-expansion. Enrollment shows suggested
+sentences to read; a per-take "need more audio" floor rejects a silent/too-short
+take. The five levers agreed 2026-07-26 (human-approved; rationale in
+`memory/decisions.md`) are, in order of expected effect: (1) confidence-weighted
+soft-decision decoding; (2) cross-take unanimity as the reliability filter;
+(3) a large LSH candidate pool masked hard down to ~512 bits; (4) a short key
+traded for repetition depth; (5) longer, window-averaged captures on BOTH sides.
+A sixth — embedding centering / mean-subtraction — is **test-only, low
+confidence**: check whether the vendored model's `mean_var_norm_emb.ckpt` already
+applies it and measure, but do not depend on it (we have two fixture speakers, far
+too few to estimate a background mean properly). **Explicitly rejected:**
+deliberately varying emotion / pitch / vocal effort across the enrollment takes —
+it sounds like useful coverage but widens the between-take spread, which starves
+the unanimity filter and leaves the unlock voice at the edge of the enrolled range
+instead of its centre. Enrollment and unlock should sound like the same person in
+the same conditions (same natural voice, mic, distance, room). Accepted honest limits (not
 product-grade): a small false-reject rate, a non-zero false-accept for a *very*
 similar voice, and — because F4 has no challenge phrase — a **recording of the
 enrolled voice still passes** (replay is defended in **F8**). No FAR/FRR guarantees.
