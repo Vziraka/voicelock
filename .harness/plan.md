@@ -2,7 +2,9 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **FEATURE COMPLETE — all 3 tasks `DONE`, `rejects: 0` on every one. F4.5 DONE 2026-07-26 (Mode 3).**
+- Spec: `spec.md` now holds **F5's** spec (parked at its approval gate) — this
+  ledger is **F4.5's**, kept as history until `/plan` rewrites it for F5.
+  Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **FEATURE COMPLETE — all 3 tasks `DONE`, `rejects: 0` on every one. F4.5 DONE 2026-07-26 (Mode 3).**
   (Human attested the 31-second live Booth check 2026-07-26, resolving Task 3's
   Gate ESCALATE_HUMAN. Completion report is in `handoff.md`. Two items await the
   human: the proposed guardrail and the feature-end commit checkpoint. Next
@@ -184,5 +186,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    written — `project.md` now carries a **third** earned rule ("a test double
    must deliver through the real callback it was handed"). Nothing is pushed;
    there is no remote.
-5. Next: `/spec` for **F5 — Camera booth**, starting with its TECH-PICK
-   (offline face detect / landmark / embedding stack). Not started.
+5. 2026-07-26 (later session) — **F5's spec is written and parked at its
+   approval gate**; this ledger is still F4.5's and is replaced by `/plan` once
+   the human checks box 2. F5's TECH-PICK ran and was human-approved:
+   `mediapipe` + `opencv-contrib-python>=4.13,<5` (`memory/decisions.md`; research
+   in `memory/research/2026-07-26-f5-face-stack.md` and
+   `-f5-camera-preview-transport.md`). Mode 3, set by the human. **Nothing is
+   installed and no code is written** — `pyproject.toml` is untouched.

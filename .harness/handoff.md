@@ -1,177 +1,108 @@
-# F4.5 — COMPLETION REPORT · DONE 2026-07-26 (Mode 3)
+# Handoff — F5 spec written, parked at the approval gate
 
-**Capture callback + test-harness hygiene.** Three tasks, three APPROVEs, zero
-rejects, one session. Human attested the live Booth check 2026-07-26.
+Session of 2026-07-26 (after F4.5 closed). Ran `/spec` for **F5 — Camera booth**.
+No code was written and **nothing was installed** — `pyproject.toml` and
+`uv.lock` are untouched.
 
-## Outcome vs the spec's Outcome section
+> F4.5's completion report was previously here. It is closed and its evidence
+> lives in `memory/verdicts/2026-07-26-F4.5-T1/-T2/-T3.json` and in git
+> (`93bc887`, the feature-end commit).
 
-Spec §1 promised three things. All three landed.
+## What this session produced
 
-1. **"The capture callback no longer deadlocks against itself."** ✅
-   `capture.py:116-120` — at `max_seconds` the callback raises
-   `sd.CallbackStop` and does nothing else. The `_close_stream()` /
-   `status = IDLE` / `_started_at = None` block is gone, so the callback never
-   waits on `Pa_StopStream`, which blocks until the callback returns. No new
-   state, no new flag: `pump()`'s existing cap check (`capture.py:107-108`)
-   does the teardown and `app.py`'s 50 ms loop fires `onCaptureEnded` exactly
-   as before. The comment that claimed the opposite of what the code did now
-   describes the deadlock it avoids.
-2. **"The tests drive the real callback path."** ✅
-   `FakeStream` keeps the `callback=` it was handed and delivers through it in
-   PortAudio's own shape — 2-D `(frames, channels)` — stopping once the
-   callback raises `CallbackStop`. `_on_audio` went from **zero** coverage to
-   five tests. The re-entrant-teardown tripwire raises a `BaseException`
-   subclass so it escapes `_close_stream`'s blanket `except Exception: pass`;
-   without that, the regression would have surfaced as a **hung suite** instead
-   of a fast failure. Measured: the defect fails in **0.47 s**.
-3. **"`soundfile` is declared."** ✅ `pyproject.toml:11`
-   `"soundfile>=0.14.0"`. `voiceprint.py:150` imports it inside `load_wav`; it
-   previously reached the environment only as a SpeechBrain transitive.
+- **`spec.md`** — F5, `Status: CLEAR`, zero clarification markers, box 1 checked,
+  **box 2 open for the human**. `Mode: Mode 3`, set by the human.
+- **`memory/research/2026-07-26-f5-face-stack.md`** — the TECH-PICK research:
+  four candidates, registry dates quoted, two ruled out on evidence.
+- **`memory/research/2026-07-26-f5-camera-preview-transport.md`** — why the
+  camera cannot be opened from JavaScript in this Booth.
+- **`memory/decisions.md`** — two new entries (the TECH-PICK; the FaceView
+  architecture), newest first.
+- **`plan.md`** — memory-spine bullet 5 and the Active-context line updated to say
+  the ledger is still F4.5's and is replaced by `/plan` after approval.
 
-Demo line delivered: a recording left past 30 seconds auto-stops with the audio
-intact instead of freezing — **attested by the human**, not inferred.
+## The decisions the human made this session
 
-## Final Gate evidence — the FULL spec §5 list
+1. **TECH-PICK → `mediapipe` + `opencv-contrib-python>=4.13,<5`** (candidate A).
+   The discriminator was **F8**, not F5: MediaPipe gives 478 landmarks with a
+   full lip contour and a `jawOpen` blendshape, where OpenCV's YuNet gives 5
+   points — two mouth *corners*, which cannot express whether a mouth is open.
+   InsightFace was blocked on a **non-commercial-research-only** model licence;
+   facenet-pytorch failed the liveness bar (2024-04-29, ~27 months) **and** pins
+   `torch<2.3.0` / `numpy<2.0.0` against this repo's `torch>=2.13.0` /
+   `numpy>=2.0`.
+2. **Python owns the camera; it composites the overlay and pushes one JPEG per
+   frame.** The JS-owned alternative was eliminated on Microsoft's own WebView2
+   docs, not on preference — `getUserMedia` is unavailable to `file://`
+   documents, and `app.py:405` loads the Booth from a `file://` URL.
+3. **FaceView replaces the Booth's decorative smiley in its existing 172 px
+   disk, while recording.** The human's placement. Expanding it to a 440 px
+   rectangle was explicitly **deferred, not refused** — "we can try 172px and we
+   can expand if i want".
+4. **The preview is round, and the face is outlined with an ellipse.** The human
+   asked at the commit checkpoint whether it would be "a circle not a camera
+   box", which caught that the draft's phrase "face box" blurred two shapes: the
+   *container* (a circle, since `.face-disk` is `border-radius: 50%`) and the
+   *drawn outline* (a rectangle, which would clip its corners against that mask).
+   Resolved to an ellipse. The 4:3 frame is centre-cropped to a square, but
+   **detection runs on the full frame first**, so an edge-of-frame face is still
+   found.
+4. **Mode 3**, and for the mandatory Mode-3 blind-spot question the human chose
+   **both** mitigations: a required human-attested live check **and** an
+   automated camera-release tripwire, plus a Gate-measurable throughput floor.
 
-| Command | Exit |
-|---|---|
-| `uv run ruff check .` | **0** — `All checks passed!` |
-| `uv run pytest` | **0** — `88 passed in 50.42s`, 0 failed (all F1–F4 green) |
-| `uv run pytest tests/test_capture.py -q` | **0** — `10 passed in 0.32s` |
-| `_on_audio` source assertion (no `_close_stream`, uses `CallbackStop`) | **0** |
-| `soundfile` manifest assertion | **0** |
-| `callback`-in-test-file tripwire | **0** |
-| **Manual, human-attested:** `uv run voicelock` → Record → past 30 s | **attested 2026-07-26** — auto-stopped, window responsive, Play worked |
+## Open items for the human
 
-The Gate first returned **ESCALATE_HUMAN**, not PASS: six commands exited 0 and
-the seventh cannot be run by an agent. Task 3 was held at `REVIEW` with no
-verdict file until the attestation arrived (F3-T5 / F4-T5 precedent). The
-verdict file records that sequence honestly rather than as a plain PASS.
+1. **Check box 2 in `spec.md`** — the agent never checks it.
+2. **Five defaults the agent pinned rather than asked about.** None is
+   architectural, all are reversible before `/plan`, and none was dropped
+   silently — say the word on any and the spec is amended before planning:
+   - capture at 640×480, downscale the composited image to 172 px;
+   - target ~15 fps on a dedicated daemon thread, not `app.py`'s 50 ms pump loop;
+   - draw the face box plus a landmark **subset** (face oval, eyes, lip contour)
+     rather than all 478 dots on a 172 px disk;
+   - MediaPipe `VIDEO` running mode, not `LIVE_STREAM` — synchronous and
+     deterministic, so Gate tests cannot go flaky;
+   - **no startup camera probe** — a missing camera surfaces on Record, so the
+     app does not stall for seconds on every launch. This diverges from
+     `_probe_mic` deliberately.
+3. **A face-photo fixture with a permissive licence** is wanted so one test runs
+   the **real** vendored model rather than an injected fake. Spec §4 says that if
+   no suitably licensed image can be obtained, the limitation is **written into
+   the Verification section** — never replaced by a silent proxy. Worth deciding
+   before `/plan`.
 
-Suite growth across the feature: **83 → 88** tests (5 new, all on the callback
-path). Runtime `50.42 s` against F4's `48.15 s` baseline — the new tests cost
-well under a second; the rest is torch + ECAPA + Argon2id, as before.
+## Two things carried in from F4.5, both honored
 
-## Retry counts
-
-**`rejects: 0` on all three tasks.** Every task approved on its first
-verification, each by a clean-context subagent using
-`formats/VERIFIER-PROMPT.md` verbatim. No task was ever `BLOCKED`.
-
-| Task | Verdict file | Result |
-|---|---|---|
-| 1 — declare `soundfile` | `2026-07-26-F4.5-T1.json` | APPROVE, first pass |
-| 2 — `FakeStream` real callback + tripwire | `2026-07-26-F4.5-T2.json` | APPROVE, first pass |
-| 3 — `_on_audio` raises `sd.CallbackStop` | `2026-07-26-F4.5-T3.json` | APPROVE (Gate ESCALATE_HUMAN → attested) |
-
-## Deviations recorded during the feature
-
-**None.** `memory/deviations.md` was not appended to — no rule proved
-unfollowable and no judgment call required reinterpretation.
-
-The one call worth naming (disclosed in Task 2's handoff, and scored
-deliberately by that verifier rather than discovered): Task 2 added a **third**
-test where `plan.md` named two. The plan mandated branch (b) — "stops
-delivering once the callback raises `sd.CallbackStop`" — but named tests only
-for branches (a) and (c), so (b) would have sat uncovered at that task's HEAD,
-which is precisely what the earned guardrail forbids. Covering a branch the
-plan required is not a deviation from the plan, so no log entry was owed.
-
-## Anything escalation-worthy that resolved itself
-
-- **The repro was seen failing before the fix.** Same command at base and head:
-  `2 failed, 8 passed in 0.47s` → `10 passed in 0.35s`. The base traceback named
-  the root cause, not the symptom: `capture.py:118 _close_stream` →
-  `capture.py:136 stream.stop()` → `ReentrantTeardown`.
-- **The sharpest trap was caught at plan time, not build time.** `capture.py`
-  swallows `Exception` around `stream.stop()`/`close()`, so a plain-`Exception`
-  tripwire would have been silently eaten and Task 3's regression would have
-  passed with the defect still live. The plan flagged it; Task 2 raised a
-  `BaseException` subclass; Task 2's test proves the escape empirically by
-  wrapping `deliver()` in the same blanket handler.
-- **`torchaudio` stayed ruled out on evidence.** The calibration note had
-  suggested it as the zero-cost answer, but `torchaudio.load` on 2.11.0 raises
-  `ImportError: TorchCodec is required`, so it would have added a genuinely new
-  dependency. Settled at TECH-PICK time; nothing re-litigated during the build.
-
-## Pending guardrail — NONE. Approved and written 2026-07-26.
-
-Task 3's `learn` compound scan was the first in this feature to clear the bar
-(Tasks 1 and 2 both recorded "none"). The human **approved** it after the
-feature-end checkpoint, and it is now the repo's **third** earned guardrail in
-`constitution/project.md`, listed first. Nothing is pending.
-
-Task 3's verdict file still reads `"lesson": "proposed — pending approval"` —
-that is correct and deliberate: verdicts are append-only and record what was
-true at the moment of the scan. This section is the record of the resolution.
-
-The written entry:
-
-> - **[Forbidden]** A test double for a stream or device must deliver data
->   through the **real callback it was handed** — a fake that only exposes a
->   polling method leaves the callback path at zero coverage. `warn` ·
->   expires: 2027-01-31
->   - _Evidence:_ F1's `FakeStream` never invoked the callback it was
->     constructed with (the word `callback` did not appear in
->     `tests/test_capture.py`), so `_on_audio` shipped with **zero** coverage and
->     a self-deadlock — `_close_stream()` → `stream.stop()` from inside the
->     callback, where `Pa_StopStream` blocks until the callback returns. It
->     survived F2, F3 and F4 undetected and cost a whole inserted feature
->     (F4.5) to close. F5 adds a camera stream with its own frame callback and
->     was going to copy the same fake-stream pattern — which is the stated
->     reason F4.5 was inserted before F5 at all.
->   - _Added:_ 2026-07-26
-
-Why prose and not enforcement (the `learn` skill asks this first): the natural
-mechanism is a shared fake-stream base class in `tests/`, but F5's camera fake
-does not exist yet, so extracting that abstraction now would be speculative and
-would trip the code-quality floor. The narrower enforcement — spec §5's
-`assert 'callback' in <test file>` — already exists for `test_capture.py` and
-can be repeated per-module in F5's own spec. Judging what counts as "the real
-callback" for a not-yet-chosen camera library needs judgment, which is what
-prose is for.
-
-Overlap-checked against both existing guardrails: the 2026-07-26
-"no unexercised helper, method, or branch" rule shares the *symptom* (untested
-surface) but not the root cause — that one is about speculative production code
-being added; this one is about a test harness structurally unable to reach a
-real production path. Different fix, different files. An addition, not an edit.
-The UI-state-mirror rule is unrelated.
+- **Task 2's fake-stream shape is the pattern F5's camera fake must copy.**
+  Spec §4 says how that reads for a **polling** device: `cv2.VideoCapture` has no
+  callback, so `read()` **is** the real path the fake must deliver through, and
+  `release()` is the teardown it must trip on — with a `BaseException` subclass,
+  as F4.5 proved is necessary against blanket `except Exception` handlers.
+- **A per-module tripwire in the Verification section.** F4.5's was
+  `assert 'callback' in <test file>`; F5's pins `release` and `read` in
+  `tests/test_facedetect.py`, for the same reason and adapted to the real API.
 
 ## next_action
 
-**F4.5 is closed. Nothing is outstanding — both human items are resolved:**
-the feature-end checkpoint was approved and committed (`93bc887`), and the
-guardrail was approved and written.
+**`/plan` in a fresh session — only after box 2 is checked.** The universal
+[Startup] rule blocks planning on an unapproved spec, and box 2 is the approval.
 
-1. **`/spec` for F5 — Camera booth.** It starts with a **TECH-PICK** (offline
-   face detect / landmark / embedding stack) — that is a new dependency, so it
-   needs `formats/TECH-PICK.md` and your sign-off before anything is installed.
-   Not started here.
-2. **Carry into F5:** Task 2's fake-stream shape is what F5's camera fake
-   should copy — deliver through the real callback, halt on `CallbackStop`,
-   trip a `BaseException` wire on re-entrant teardown. Making that inheritance
-   possible is the entire reason F4.5 existed, and it is now a guardrail.
-3. **Also carry into F5's spec:** a per-module `assert 'callback' in <test
-   file>` line in its Verification section — the narrow enforcement the
-   guardrail names as its complement.
-4. F5's spec will need a fresh Mode line and a fresh box-2 approval from you;
-   F4.5's Mode 3 does not reach past the feature.
+Expect roughly this task shape (the plan session decides for real): declare the
+two dependencies · vendor the `.task` bundle and check its licence at download ·
+build `facedetect.py` on an injectable fake camera · wire `BoothApi` to the
+Record/Stop path · swap the smiley for the `<img>` in the Booth · land the live
+check last, since it is the one Gate line an agent cannot run.
 
-## Where the rest lives
-
-- Per-task evidence and the resolved handoff doubts → the three verdict files.
-- What was deliberately NOT fixed (calibration findings 3 and 4, both
-  `voiceprint.py` surface, filed for F9) →
-  `.out-of-scope/2026-07-26-calibration-findings.md`.
-- The dependency decision and its rejected alternatives → `memory/decisions.md`.
+**Known risk to carry into the build:** nobody has measured what frame rate
+`evaluate_js` sustains across pywebview's WebView2 bridge on this machine, and it
+cannot be measured without installing the dependency. The 172 px preview is the
+mitigation (~8 KB per frame); the required live check is the detector. If it is
+choppy, the fallback ladder is: lower the frame rate → lower the JPEG quality →
+reconsider the loopback MJPEG transport (rejected here, and the rejection is
+recorded with its reason in `memory/decisions.md`).
 
 ## Commits
 
-`727fbbc` (base) → `da7b8f9` `0ae0fd3` `b48f546` `8f86fc7` (Task 1) →
-`0106418` `f2a1013` `fc7f5c8` `f12dd19` (Task 2) → `a130ac5` `8267878`
-`99573c9` `ca6004e` (Task 3 build + escalation) → the wrap-up commit awaiting
-your approval.
-Curate check: **22** verdict `.json` files vs `project.md`'s "verdicts then: 19"
-→ 3 since the last curate; **not due** (threshold 10).
+Base for this session: `a114a49`. Head: written at the commit checkpoint below.
 Remote: **none** — local history only, nothing pushed.
