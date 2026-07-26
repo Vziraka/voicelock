@@ -344,7 +344,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — `facedetect.py`: camera lifecycle — 30 fps worker, drop-don't-queue, release tripwire
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/facedetect.py`, `tests/test_facedetect.py`
   - notes: The stateful half: `start(on_frame)` opens the camera and runs a
