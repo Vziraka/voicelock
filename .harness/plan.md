@@ -3,9 +3,9 @@
 ## Active context
 - Updated: 2026-07-26
 - Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1
-  `REVIEW` (the two approved dependencies are declared and installed;
-  `mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`, and `numpy`/`torch`
-  did not move). Tasks 2–7 still `TODO`.**
+  `DONE` (verdict `memory/verdicts/2026-07-26-F5-T1.json`, APPROVE first pass,
+  `rejects: 0`). Tasks 2–7 `TODO`; next is Task 2, the model-bundle vendoring
+  with its licence escalation point.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -58,8 +58,8 @@ Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — Declare `mediapipe` + `opencv-contrib-python` (manifest only, no code)
-  - state: REVIEW
+- [x] **Task 1** — Declare `mediapipe` + `opencv-contrib-python` (manifest only, no code)
+  - state: DONE
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`
   - notes: `uv add mediapipe "opencv-contrib-python>=4.13,<5"` — nothing else. **No
@@ -378,10 +378,15 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F5 is PLANNED**: 7 tasks, all `TODO`, `rejects: 0`. Nothing is
-   installed and no code is written yet; `pyproject.toml` and `uv.lock` are
-   untouched. F4.5 is closed (3/3 `DONE`, verdicts `-F4.5-T1/-T2/-T3.json`,
-   feature-end commit `93bc887`).
+1. 2026-07-26 — **F5 is BUILDING: Task 1 `DONE`, 6 remain.** The two approved
+   dependencies are declared and installed — `mediapipe==0.10.35`,
+   `opencv-contrib-python==4.13.0.92` — and **nothing moved underneath F4**:
+   `numpy` stayed 2.2.6, `torch` stayed 2.13.0, and the `uv.lock` diff was purely
+   additive, so F4's `CORRECTION_RADIUS = 110` and F3's `ACCEPT_CUTOFF = 0.45`
+   are undisturbed. Still **zero code**: no `facedetect.py`, no model, no fixture.
+   Gate 5/5 exit 0 (`pytest` 88 passed in 59.14 s), APPROVE first pass.
+   **Verification runs on the subagent path** for F5 — human-authorized
+   2026-07-26, which closed the previous handoff's open item 1.
 2. Shape of the build: **1** declare the two approved deps → **2** vendor the
    `.task` bundle → **3** vendor `portrait.jpg` + provenance → **4**
    `facedetect.py` per-frame composite on fakes → **5** camera lifecycle
