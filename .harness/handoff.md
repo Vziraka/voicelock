@@ -72,6 +72,8 @@ bite here; it lands before F5, which is the feature that adds FaceView.
    human decision so only one feature is ever in flight.
 
 ## Commits
-Base `9d0b137` → head `PENDING` (recorded in the follow-up bookkeeping commit,
-per the two-commit rule — a commit cannot contain its own hash).
+Base `9d0b137` → head `be78be5` (recorded here by the follow-up bookkeeping
+commit, per the two-commit rule — a commit cannot contain its own hash).
+`be78be5` also carries the previous `/spec` session's work, whose own checkpoint
+never landed.
 Remote: **none** — local history only, nothing pushed.
