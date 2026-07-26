@@ -500,13 +500,14 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 7** — Wire `BoothApi` to Record/Stop + release on window close (LAST task — FULL §5)
-  - state: REVIEW
-  - rejects: 0
+  - state: TODO
+  - rejects: 1
   - measured: FULL §5 automated list **11/11 exit 0** — suite **121 passed**,
-    throughput **8.0 ms/frame** against the 33 ms budget. The **manual
-    human-attested demo is the only line outstanding**; expect
-    `ESCALATE_HUMAN` and do NOT mark this task `DONE` or write its verdict
-    until the human attests it.
+    throughput **8.0–8.1 ms/frame** against the 33 ms budget. The **manual
+    human-attested demo is the only line the Gate cannot run**; it returns
+    `ESCALATE_HUMAN` by design, and this task is NOT `DONE` and gets NO verdict
+    file until the human attests it. **REJECTED once on review** for the
+    auto-stop camera leak — see feedback.
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
   - notes: The wiring that makes the demo real. `start_record` starts the camera,
     `stop_record` stops it, and the engine's `on_frame` callback pushes each data
@@ -546,8 +547,37 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run python -c "import pathlib; t = pathlib.Path('tests/test_facedetect.py').read_text(encoding='utf-8'); assert 'release' in t, 'the camera tests never mention release'; assert 'read' in t, 'the camera tests never drive the real read path'"` → exit 0
     - `uv run python -c "import pathlib; dirs = [d for d in pathlib.Path('src/voicelock/models').iterdir() if d.is_dir()]; assert dirs, 'no vendored model dirs found'; missing = [f'{d.name}/{n}' for d in dirs for n in ('LICENSE', 'NOTICE') if not (d / n).is_file() or (d / n).stat().st_size <= 100]; assert not missing, f'vendored model dir missing a non-stub LICENSE/NOTICE: {missing}'"` → exit 0 (**added by the 2026-07-26 spec amendment** — the enforcement half of `project.md`'s per-asset licence-provenance guardrail; standing, so it is part of the full list this task runs)
     - **Throughput floor** (Task 5's pinned command, re-run here as part of the full list) → exit 0, averaging **under 33 ms/frame**; the measured number goes in the completion report
-    - **Manual (required for F5 done, human-attested):** run `uv run voicelock` → press **Record**. The smiley is replaced by a live, **circular** camera image in the same 172 px disk, with an oval outline and landmarks **tracking your face as you move**, and the preview looks like smooth video rather than a slideshow. The image fills the disk with **no letterboxing**. It is **mirrored**: raising your right hand moves the hand on the right of the picture, and leaning left moves you left — the way a mirror behaves, not the way a stranger's camera does. The preview must also stay **in step with you** — no drifting behind, no growing lag the longer it runs. Press **Stop**: the smiley returns, **the webcam light goes out**, and pressing **Record a second time** brings the preview back. Close the window while recording: **the webcam light goes out.** (Observable: the camera is genuinely opened, genuinely drawn on, and genuinely released. The automated tests prove the pipeline's logic against fakes; they do **not** prove the composited frames reach the page fast enough to look like video, nor that a real Windows webcam device is genuinely freed — that is what this line covers.)
-  - feedback: (none)
+    - **Manual (required for F5 done, human-attested):** run `uv run voicelock` → press **Record**. **Add to the check after the 2026-07-26 REJECT #1:** press Record and **wait 30 s without pressing Stop** — F4.5's soft cap ends the take by itself, and the webcam light must go out then too. The smiley is replaced by a live, **circular** camera image in the same 172 px disk, with an oval outline and landmarks **tracking your face as you move**, and the preview looks like smooth video rather than a slideshow. The image fills the disk with **no letterboxing**. It is **mirrored**: raising your right hand moves the hand on the right of the picture, and leaning left moves you left — the way a mirror behaves, not the way a stranger's camera does. The preview must also stay **in step with you** — no drifting behind, no growing lag the longer it runs. Press **Stop**: the smiley returns, **the webcam light goes out**, and pressing **Record a second time** brings the preview back. Close the window while recording: **the webcam light goes out.** (Observable: the camera is genuinely opened, genuinely drawn on, and genuinely released. The automated tests prove the pipeline's logic against fakes; they do **not** prove the composited frames reach the page fast enough to look like video, nor that a real Windows webcam device is genuinely freed — that is what this line covers.)
+  - feedback:
+    - **2026-07-26 — REJECT #1** (Gate `ESCALATE_HUMAN`: 11/11 automated lines
+      exit 0, throughput 8.1 ms/frame, manual demo outstanding as designed;
+      Review REJECT on the Spec axis). Accepted without argument:
+      **(1) BLOCKING — the camera is never released when a take ends by
+      itself.** F4.5's `MAX_SECONDS = 30.0` soft cap ends a recording with
+      nobody calling `stop_record`. `_pump_loop` notices at `app.py:349-355`,
+      pushes `onCaptureEnded(samples)` and exits — but never calls
+      `_stop_camera()`, and `index.html`'s `onCaptureEnded` handler is pure JS.
+      So: press Record, don't press Stop, wait 30 s → the audio take ends, the
+      UI says "Take ready", and **the webcam light stays on with the preview
+      still streaming**, until a full Record→Stop cycle or a window close. The
+      verifier reproduced it against the real `BoothApi` with a self-stopping
+      capture stub: `face.stops == 0`, `face.status == RUNNING`, no
+      `setFaceIdle` pushed. This is the defect class `spec.md` §1.1 and §4 make
+      a headline requirement, it did not exist before this diff, and it sits on
+      the routine path F4.5's own manual check exercises. The existing camera
+      tests all drive Record/Stop explicitly and structurally cannot catch it.
+      **(2) Non-blocking — a camera failure paints the *mic*-error banner and it
+      never clears.** `_push_mic_error` is reused for `FaceStatus.ERROR`;
+      `showMicError` sets "Microphone unavailable" / "LOCKED · MIC ERROR" and
+      disables the transport buttons. `setRecording(true)` re-enables them a
+      moment later so audio still records (the spec's actual requirement holds),
+      but there is no `hideMicError`, so a machine with no webcam shows
+      "No camera available" under a MIC ERROR status for the rest of the
+      session. Logged to F9 in `roadmap.md`, which owns per-cause messaging.
+      **(3) Non-blocking — `shutdown()` releases the camera and the pump but not
+      the microphone.** Not a regression (there was no close handler at all
+      before), and the spec scopes the close handler to the camera; recorded as
+      a deliberate decision rather than an omission.
 
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.

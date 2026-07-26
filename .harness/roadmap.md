@@ -215,6 +215,17 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   Enrollment-quality gate (voice **and** face), visible tolerance knobs, clear
   per-rejection reason (wrong passphrase / voice / face / liveness).
   *Demo:* bad enrollment refused; dial tolerance; each reject names its cause.
+  **Inherited from F5 Task 7's REJECT #1 (2026-07-26), recorded here so it
+  survives handoff rewrites:** a **camera** error is surfaced through
+  `_push_mic_error`, because `spec.md` (F5) §4 said to surface it "the way
+  `_push_mic_error` does" and reusing the function was the shortest honest
+  reading. Consequence: on a machine with no webcam the Booth shows
+  "No camera available" under a **"LOCKED · MIC ERROR"** status, and since there
+  is no `hideMicError` the banner **persists for the rest of the session** while
+  the microphone works fine. Audio recording is unaffected (the transport
+  buttons are re-enabled by `setRecording(true)`), so this is a labelling and
+  stuck-state problem, not a functional one. F9 owns per-cause messaging and is
+  where a distinct camera chip — and a way to clear it — belongs.
 
 ### Parked (not in the must-build path)
 
