@@ -104,5 +104,28 @@ recorded with its reason in `memory/decisions.md`).
 
 ## Commits
 
-Base for this session: `a114a49`. Head: written at the commit checkpoint below.
+Base for this session: `a114a49` → head `cf97c77` (the spec commit), plus this
+bookkeeping commit recording the pair.
 Remote: **none** — local history only, nothing pushed.
+
+## Nice-to-haves the human was offered and left at their defaults
+
+Listed here so none was dropped silently (the `grilling` skill's step 5). All are
+cheap to amend before `/plan`; none is architectural.
+
+1. Capture resolution **640×480** — 1280×720 would sharpen landmarks and cost CPU.
+2. Frame-rate target **~15 fps** on a dedicated daemon thread.
+3. MediaPipe **`VIDEO`** running mode rather than `LIVE_STREAM` — deterministic
+   Gate tests over a closer match to the callback guardrail's wording.
+4. Landmark **subset** drawn (face oval, eyes, lip contour) rather than all 478
+   points, which would be a blob at 172 px.
+5. **No startup camera probe** — deliberate divergence from `_probe_mic`.
+6. **Preview not mirrored.** Raised late and worth a decision: webcam previews are
+   conventionally mirrored ("selfie view") because an unmirrored one makes people
+   move the wrong way. OpenCV delivers unmirrored frames. If mirroring is wanted,
+   it must be applied **after** detection and the landmark coordinates flipped
+   with it, or the overlay lands on the wrong side of the face.
+7. **Camera device index 0.** No device picker; a second webcam is not selectable.
+8. **Face-photo fixture licence** — the one item above cosmetic: it decides
+   whether a test runs the *real* vendored model. Spec §4 requires the limitation
+   be written down if no licensed image is found, never proxied silently.
