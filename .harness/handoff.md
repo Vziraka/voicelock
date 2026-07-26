@@ -1,148 +1,126 @@
-# Handoff — F5 Task 4 `DONE`; Task 5 (camera lifecycle) is next
+# Handoff — F5 Task 5 built, now `REVIEW`
 
-Session of 2026-07-26. Tasks 1-4 are all `DONE`, every one APPROVE on the
-first pass with `rejects: 0`. Task 4 - `facedetect.py`, F5's first engine
-code - closed with Gate 5/5 exit 0 and Review APPROVE on both axes; verdict
-`memory/verdicts/2026-07-26-F5-T4.json`. Tasks 5-7 `TODO`.
+Session of 2026-07-26. Tasks 1–4 `DONE`, every one APPROVE on the first pass
+with `rejects: 0`. Task 5 — the camera lifecycle — is built and `REVIEW`.
+Tasks 6–7 `TODO`.
 
 ## Changed
 
-- **`src/voicelock/facedetect.py`** (new) — the engine's pure half.
-- **`tests/test_facedetect.py`** (new) — 14 tests, no real webcam.
-- **`.harness/plan.md`** — Task 4 `TODO → DOING → REVIEW → DONE`.
+- **`src/voicelock/facedetect.py`** — the stateful half: `TARGET_FPS` /
+  `FRAME_INTERVAL` / `JOIN_TIMEOUT`, `start()`, `stop()`, `_loop()`,
+  `pacing_delay()`, and an injectable `clock`.
+- **`tests/test_facedetect.py`** — 9 more tests (**23** total in the file).
+- **`.harness/plan.md`** — Task 5 `TODO → DOING → REVIEW`, with the measured
+  throughput recorded on the task.
 
-Suite: **102 passed** (88 existing + 14 new) in 35.90 s.
+Suite: **111 passed** in 35.54 s.
+
+## THE MEASUREMENT — `TARGET_FPS` stays at 30
+
+**Throughput floor: 8.1 ms/frame** against the 33 ms budget — about **123 fps**
+engine-side, ~4× headroom. Detect + overlay + crop + flip + JPEG encode, 30
+consecutive 640×480 frames, real vendored model, real fixture.
+
+**The fallback ladder was not needed.** `TARGET_FPS` remains 30, on evidence
+rather than aspiration. **This measures the engine only** — passing it means the
+engine *can* feed 30 fps, not that 30 fps reaches the screen. The `evaluate_js`
+bridge half is still unmeasured and is Task 7's live check.
 
 ## What it does
 
-`process_frame()` runs the pipeline `spec.md` §4 fixes, in that exact order:
-detect on the **full** 640×480 frame → draw ellipse + landmark subset →
-centre-crop to a square → downscale to 172 px → `cv2.flip(img, 1)` → JPEG →
-base64 data URI. **The flip is last, after the overlay**, so the oval and points
-flip *with* the pixels and no landmark coordinate is ever flipped.
+- **Its own daemon thread**, not `app.py`'s 50 ms pump — that loop serves audio
+  levels and must not be made to wait on a JPEG encode.
+- **`stop()` ordering is the point**: halt the loop → **join** the worker →
+  *then* `release()`. A frame read after release is a bug.
+- **`stop()` is idempotent and safe after a failed start** — a window-close
+  handler (Task 7) cannot know what state it is in. It also **refuses to erase a
+  camera ERROR**, so a failure stays visible.
+- **`pacing_delay()` is the drop-don't-queue rule made testable**: an overrun
+  yields **zero** delay, so the loop goes straight back to `read()` for the
+  newest frame instead of buffering the ones it missed. A queueing pipeline does
+  not merely run slow, it drifts.
+- **The loop waits on the stop event rather than sleeping**, so Stop is felt
+  immediately instead of after the remainder of the frame budget.
+- **A successful open sets `RUNNING`**, which clears any `ERROR` left by an
+  earlier failed start — this is the observation Task 4's verifier carried
+  forward, and it bears directly on criterion (6).
 
-`acquire_camera()` handles both failure shapes `cv2.VideoCapture` actually
-produces — `isOpened()` False, and `read()` returning `(False, None)` — because
-treating a falsy `read()` as "no frame yet" would spin forever. Failures set
-`FaceStatus.ERROR` with a human-readable message, mirroring `_mic_error_message`.
+## The release tripwire, and why it is shaped this way
 
-`VIDEO` running mode with an engine-owned monotonic timestamp counter.
+`CameraUsedAfterRelease` is a **`BaseException` subclass**, exactly as F4.5's
+`ReentrantTeardown`, so a blanket `except Exception` on a teardown path cannot
+swallow it. It **also sets a flag**, because an exception raised inside a daemon
+worker thread dies with that thread and would otherwise never reach an
+assertion — the flag is what makes a leak visible from the test.
 
-## Two findings worth a verifier's attention
-
-1. **`mediapipe` 0.10.35 ships ONLY the `tasks` package.** There is no
-   `mediapipe.solutions` in this build — `import mediapipe.solutions` raises
-   `ImportError`, and `pkgutil` lists exactly one submodule, `tasks`. The usual
-   `FACEMESH_LIPS` / `FACEMESH_FACE_OVAL` constants therefore **do not exist**
-   here. The module uses the Tasks API equivalent,
-   `mediapipe.tasks.python.vision.face_landmarker.FaceLandmarksConnections`,
-   which exposes 11 groups. **Landmark index groups come from the vendor's own
-   constants, not hand-copied numbers**, so the drawn subset cannot silently
-   drift from the model's topology.
-2. **Overlay stroke weights are sized for the downscale, not the capture
-   frame.** The overlay is drawn on 640×480 and then shrunk ~2.8× into the
-   172 px disk, so `ELLIPSE_THICKNESS = 5` / `POINT_RADIUS = 3` render as ~2 px.
-   A 1 px stroke would average away to nothing before reaching the page. This is
-   a real consequence of the spec's fixed draw-then-crop order, and is commented
-   in the source.
-
-## Deliberately NOT in this diff
-
-- **`TARGET_FPS` / `FRAME_INTERVAL`** — Task 5's, per the plan. A named constant
-  introduced here would have no caller and no test, which is exactly the first
-  earned guardrail's failure mode.
-- **`start()` / `stop()` / the worker thread / the release tripwire** — Task 5.
-- **The `release()`-after-`read()` tripwire on the fake camera** — Task 5, where
-  teardown exists. The fake records `release()` (used by the two failure tests)
-  but does not yet raise on use-after-release.
-- **Any `app.py` change, and any startup camera probe** — Task 7; `ready()` is
-  untouched by design (`spec.md` §3).
-
-## Evidence a verifier should re-check rather than take
-
-- **The real-model tests genuinely run and genuinely assert.** `pytest -v -k
-  "vendored or reference"` → 2 passed, not skipped. Measured deviation against
-  MediaPipe's committed vendor reference, **in VIDEO mode**: `0.005645` — the
-  same as the IMAGE-mode figure Task 3 recorded, so the pipeline's mode change
-  did not move the landmarks. Test tolerance is `0.02` (~3.5× headroom).
-- **`FrameResult.landmarks` carries all 478 though only a subset is drawn.**
-  This is required by `spec.md` §4 (later face features consume these points)
-  and is pinned by `test_engine_returns_all_478_landmarks_though_only_a_subset_is_drawn`.
-  **It is not unexercised surface** — please read it against the first earned
-  guardrail before flagging it.
-- **The geometry test is a real check, not a smoke test.** It places the face
-  left of centre and asserts the overlay centroid lands right of centre at the
-  predicted pixel, deriving the expectation from the crop offset (80 px) and
-  scale (172/480). A normalized-vs-pixel bug, a crop-offset bug, or a missing
-  mirror each break it.
-- **The mirror test uses the module's own helpers** to build the *unflipped*
-  composite, so only the flip is under test rather than the pipeline being
-  re-implemented in the test.
+`test_read_after_release_trips_a_wire_a_blanket_handler_cannot_swallow` proves
+both halves: the wire is armed, *and* `except Exception` misses it.
 
 ## Disclosure — exactly which Gate commands I ran (measurement exception)
 
-`uv run ruff check .` → exit 0; `uv run pytest tests/test_facedetect.py -q` →
-14 passed; `uv run pytest` → 102 passed; and the `model_asset_path` / no-URL
-source assertion → exit 0. The vendor-reference deviation was measured because
-the test's tolerance had to be chosen from evidence rather than guessed.
+`ruff` → 0; `pytest tests/test_facedetect.py -q` → 23 passed; `pytest` → 111
+passed; the `TARGET_FPS`-is-named assertion → 0; the `release`/`read`
+per-module tripwire assertion → 0; and **the throughput floor** → 0 at
+8.1 ms/frame. The floor is a measurement whose result decides `TARGET_FPS`, so
+it had to be run to know the task was done.
 
 ## Doubts, flagged rather than buried
 
-1. **The tests import two private helpers** (`_centre_crop_square`,
-   `_draw_overlay`) to build the expected unflipped composite. The alternative
-   was re-implementing the crop and draw in the test, which would let the test
-   and the module drift apart silently. I judged importing the real helpers the
-   honest choice; a verifier may disagree.
-2. **`acquire_camera()` has no production caller yet** — Task 5's `start()` will
-   call it. It is exercised by four tests and required by `spec.md` §5's
-   criterion (7), which the plan explicitly assigns to Task 4 ("camera-open
-   failure is handled here too, because it is pure-ish and cheap to test").
-   Flagging it because "no production caller" is a guardrail trigger shape.
-3. **The JPEG encode flag is deliberately ignored.** `cv2.imencode` raises
-   `cv2.error` on a genuinely bad image rather than returning `False` for a valid
-   3-channel `uint8` frame, so checking it would add a branch no test could
-   reach — the guardrail forbids exactly that. Commented in the source.
-4. **`_fail()` returns `None` and is typed `-> None`** while being used in
-   `return self._fail(...)` position. Intentional and readable, but it is the
-   kind of thing a reviewer may want as two statements.
+1. **The threaded tests poll with a deadline** (`_wait_for`, 5 s) rather than
+   synchronising on an event. It is the simplest shape that does not deadlock a
+   suite, and every such test also asserts the tripwire flag, so a hang or a
+   leak fails rather than passing quietly. A verifier may still consider polling
+   a smell.
+2. **`test_worker_paces_itself_with_the_injected_clock` asserts
+   `read_count >= len(received)`**, not equality — the worker may be mid-read
+   when `stop()` lands, so equality would be flaky. The claim it actually pins
+   is "no frame is processed that was not read", which is the backlog property.
+3. **`JOIN_TIMEOUT = 5.0` is a new constant** with one caller (`stop()`). It is
+   exercised by every lifecycle test through that path, but it is a number I
+   chose rather than measured; 5 s is generous against an 8 ms frame.
+4. **`_loop` breaks out on a falsy `read()`** rather than setting ERROR. A
+   camera unplugged mid-recording therefore ends the loop quietly and leaves
+   `status` RUNNING until `stop()`. That is not covered by any §5 criterion, and
+   Task 7 owns what the Booth shows; flagging it rather than inventing scope.
+5. **The tests reach into `engine._thread`** to assert the worker was cleared.
+   Private-attribute access in a test, deliberate: there is no public surface
+   that proves the join happened.
 
-## Carried forward into Task 5
+## Carried forward into Task 6 (UI) and Task 7 (wiring)
 
-- **F4.5's fake-stream shape**, translated: `read()` is the real path the fake
-  must deliver through, `release()` the teardown it must trip on — with a
-  **`BaseException`** subclass, since F4.5 proved a plain `Exception` is
-  swallowed by blanket handlers. `tests/test_capture.py`'s `ReentrantTeardown`
-  is the precedent to copy.
-- **`stop()` ordering is the whole point**: loop stops → thread joined → *then*
-  `release()`. A frame read after release is a bug the fake must trip on.
-- **Drop frames, never queue them** — a queueing pipeline drifts, which reads as
-  a freeze rather than a low frame rate.
-- **The throughput floor lands in Task 5** and is set **at** the 30 fps target
-  (<33 ms/frame). If it fails, the answer is `spec.md` §4's ladder — lower
-  `TARGET_FPS` to 20, then 15, **on measured evidence** — never loosening the
-  assertion, and never reopening the rejected loopback-MJPEG transport.
+- **Task 6 is UI-only** and independent of everything above: an `<img>` inside
+  `.face-wrap`, `setFaceFrame` / `setFaceIdle` on `window.voicelockBooth`, no
+  camera state in JS, **no `getUserMedia`**, **no CSS `scaleX(-1)`** (the flip
+  belongs in Python, after the overlay). This repo's Gate is pytest with zero JS
+  tests, so its criteria pin presence and export; the real proof is Task 7's
+  live check.
+- **Task 7** wires `BoothApi`: `start_record` starts the camera, `stop_record`
+  stops it, **a camera failure must NOT prevent audio recording**, and
+  `main()` gains a window-close handler pointing at `stop()` (it currently has
+  none). `ready()` stays untouched — no startup camera probe.
+- **Task 7 is the LAST task**: its done-criterion is the FULL `spec.md`
+  Verification list, and it will return `ESCALATE_HUMAN` on the manual demo
+  line. Do **not** mark it `DONE` until the human attests the live check.
 
 ## Also open
 
 - **A guardrail UPDATE is parked** (from Task 3's `learn` scan): check an
-  asset's own embedded metadata (EXIF/XMP) first. Proposed as an update to the
-  existing `[Approval]` rule, not a fourth guardrail. **Not written.** Does not
-  block anything.
+  asset's own embedded metadata (EXIF/XMP) first, as an update to the existing
+  `[Approval]` rule rather than a fourth guardrail. **Not written.** Blocks
+  nothing.
 - `project.md`'s Environment section is stale (*"Tool(s): Cursor only"*).
 
 ## next_action
 
-**`/implement` F5 Task 5 — camera lifecycle: 30 fps worker,
-drop-don't-queue, release tripwire, throughput floor.** `Mode: Mode 3` is the
-standing "go" and Task 4's wrap-up completed, so no further human "go" is
-needed. **Carry in the verifier's status-reset observation** — it is recorded
-in Task 5's notes in `plan.md`.
+**Verify Task 5** — clean-context verifier via `formats/VERIFIER-PROMPT.md`,
+verbatim, spawned by this session (subagent path, human-authorized). Task 5's
+done-criteria are its `plan.md` list; it is an intermediate task.
 
 ## Commits
 
-- Tasks 1–3: `878186c`…`65f6d33` (see git log; all three `DONE` with verdicts)
-- Task 4: `5418499` (DOING) → **`f610e04` (build)**
-- Base for the Gate diff: **`5418499`** · head: **`f610e04`**
+- Tasks 1–4: `878186c`…`fab7a30` (all `DONE`, verdicts in `memory/verdicts/`)
+- Task 5: `80a95ca` (DOING) → **`0eeac3f` (build)**
+- Base for the Gate diff: **`80a95ca`** · head: **`0eeac3f`**
 - Plus this bookkeeping commit, putting actual HEAD one ahead — expected.
 
 Session base was `b718038`. Remote: **none** — local history only, nothing pushed.
