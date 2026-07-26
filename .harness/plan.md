@@ -10,8 +10,11 @@
   `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`), and the
   bundle is vendored with LICENSE + NOTICE. Tasks 3–7 `TODO`; next is Task 3,
   which carries the **second, unrelated** licence STOP point.
-  **Task 3 `DOING`** — the `portrait.jpg` fixture, carrying the **second,
-  independent** licence STOP point.
+  **Task 3 `BLOCKED` — the second licence STOP condition fired and did NOT
+  clear: `portrait.jpg` is a White House press photograph whose embedded notice
+  forbids reproduction/dissemination. Nothing was committed. A CC0 replacement
+  is verified and awaiting a human decision (spec amendment).** This blocks
+  Tasks 4, 5 and 7; Task 6 is the only later task independent of the fixture.
   Both halves of F5 Task 2's `learn` proposal were human-approved 2026-07-26:
   the prose guardrail is in `project.md`, and its enforcement check is in
   `spec.md`'s Verification Standing list. That was a **spec amendment**, so box 2
@@ -170,7 +173,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       in every mode.
 
 - [ ] **Task 3** — Vendor the `portrait.jpg` face fixture + its provenance README, licence verified at download
-  - state: DOING
+  - state: BLOCKED
   - rejects: 0
   - files: `tests/fixtures/face/portrait.jpg`, `tests/fixtures/face/README.md`,
     optionally `tests/fixtures/face/portrait_expected_face_landmarks.pbtxt`
@@ -211,7 +214,40 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run python -c "import cv2; img = cv2.imread('tests/fixtures/face/portrait.jpg'); assert img is not None, 'the fixture is not a decodable image'; print(img.shape)"` → exit 0 (a real image, not a truncated download)
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
-  - feedback: (none)
+  - feedback:
+    - **2026-07-26 — `BLOCKED` at the second designed STOP condition, and this
+      one did NOT clear.** `rejects:` stays 0: the retry budget counts failed
+      *fix attempts*, and no way of building differently makes a copyright
+      notice go away.
+      **Finding: `portrait.jpg` is NOT permissively licensed.** Its own EXIF
+      carries `Artist = Pete Souza` and a White House copyright notice reading
+      that the photograph *"may be printed by the subject(s) in the photograph
+      for personal use only … may not be manipulated in any way and may not
+      otherwise be reproduced, disseminated or broadcast, without the written
+      permission of the White House Photo Office."* Committing a fixture **is**
+      reproducing and disseminating it. Evidence:
+      `memory/research/2026-07-26-f5-portrait-fixture-licence.md`.
+      The Apache-2.0 BUILD file lists `portrait.jpg`, but the repo ships only
+      the `portrait_expected_*.pbtxt` **outputs** — no `.jpg` at all — and a
+      package-level Bazel licence cannot override an asset's own embedded
+      notice. This is `spec.md` §4's predicted failure mode, more severe than
+      predicted, and a textbook instance of the `[Approval]` per-asset
+      guardrail approved the same day.
+      The image was downloaded, its metadata read, and the file **deleted**.
+      `tests/fixtures/face/` was never created; nothing is in git.
+      **A verified replacement is ready and needs one human decision** —
+      `-Elderly Man; Full Face- MET 37.14.52.jpg`, **CC0 1.0**, a c.1850
+      daguerreotype donated by the Metropolitan Museum, which the vendored
+      bundle detects at **1 face / 478 landmarks** (plain grey → 0 faces).
+      Candidates, method and the rejected options:
+      `memory/research/2026-07-26-f5-fixture-replacement-candidates.md`.
+      **Adopting it is a spec amendment** — §4 names `portrait.jpg` explicitly
+      and §5's pinned commands use the filename — so it is human-only, and the
+      vendor-reference assertion against MediaPipe's published expected
+      landmarks is lost (disclosed, per §5's own instruction to say so rather
+      than silently assert less).
+      **This blocks Tasks 4, 5 and 7**, whose criteria all name the fixture.
+      Task 6 (UI) is the only later task independent of it.
 
 - [ ] **Task 4** — `facedetect.py`: the per-frame composite path, on injectable fakes
   - state: TODO
@@ -440,6 +476,19 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    (30 fps worker, drop-don't-queue, release tripwire, throughput floor) → **6**
    the Booth `<img>` → **7** `BoothApi` wiring + window close (**LAST**, FULL §5,
    human-attested manual check).
+3b. **The SECOND designed STOP point fired and did NOT clear (Task 3,
+   2026-07-26).** `portrait.jpg` is a **White House press photograph** (EXIF
+   `Artist = Pete Souza`) whose embedded notice forbids reproduction or
+   dissemination without written permission — committing a fixture is exactly
+   that. Not vendored; downloaded, read, deleted; `tests/fixtures/face/` never
+   created. The Apache-2.0 repo ships only the `portrait_expected_*.pbtxt`
+   outputs, never the image, so the BUILD file's package licence does not reach
+   it. A **CC0** replacement is verified end-to-end — the Met's c.1850
+   `-Elderly Man; Full Face-` daguerreotype, 1 face / 478 landmarks — but
+   adopting it is a **spec amendment**, human-only. Blocks Tasks 4, 5, 7.
+   Evidence: `memory/research/2026-07-26-f5-portrait-fixture-licence.md` and
+   `…-f5-fixture-replacement-candidates.md`.
+
 3. **The FIRST designed STOP point fired and was RESOLVED (Task 2,
    2026-07-26).** Eight primary sources — the artifact, the bucket, the docs,
    the wheel, the repo, Kaggle, web search — said **nothing** about the model
