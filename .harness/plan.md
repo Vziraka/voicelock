@@ -456,7 +456,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 6** — Booth UI: the `<img>` preview in the face disk, `setFaceFrame` / `setFaceIdle`
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: The page's **only** job (`spec.md` §4): assign the pushed data URI to an
