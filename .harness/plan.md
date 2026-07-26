@@ -2,10 +2,12 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Task 1 `DONE`, Task 2 `REVIEW` (awaiting fresh-eyes verification), Task 3 `TODO`.**
+- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Tasks 1–2 `DONE`, Task 3 `TODO`. Next: Task 3, the LAST one.**
   (Spec approved at box 2 by the human 2026-07-26. Mode 3 is the standing "go":
-  Task 1's wrap-up completed, so the session takes Task 2 without a further
-  human word. The feature closes calibration findings 1–3; findings
+  Task 2's wrap-up completed, so the session takes Task 3 without a further
+  human word — but Task 3 carries the FULL spec §5 list and will reach the Gate
+  as ESCALATE_HUMAN on the required 31-second live Booth check, which is the
+  one human touchpoint left. The feature closes calibration findings 1–3; findings
   3-as-`voiceprint.py`-surface and 4 are explicit non-goals, filed for F9.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
@@ -41,8 +43,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed — the whole F1–F4 suite still green after the lock regeneration; F4's measured constants are untouched)
   - feedback: (none)
 
-- [ ] **Task 2** — `FakeStream` delivers frames through the REAL callback + a re-entrant-teardown tripwire
-  - state: REVIEW
+- [x] **Task 2** — `FakeStream` delivers frames through the REAL callback + a re-entrant-teardown tripwire
+  - state: DONE
   - rejects: 0
   - files: `tests/test_capture.py`
   - notes: Test-harness only — **`capture.py` is not touched in this task.** This is
@@ -152,10 +154,11 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **Task 1 is `DONE` (verdict `2026-07-26-F4.5-T1.json`, APPROVE,
-   first pass, subagent). `soundfile>=0.14.0` is now a declared main dependency;
-   no code changed and no package version moved. Tasks 2–3 remain — next is
-   Task 2.**
+1. 2026-07-26 — **Tasks 1 and 2 are `DONE`, both APPROVE on the first pass via
+   subagent (verdicts `2026-07-26-F4.5-T1.json`, `-T2.json`). `soundfile>=0.14.0`
+   is declared; `FakeStream` now delivers through the real callback and trips on
+   re-entrant teardown. Only Task 3 — the actual `capture.py` fix — remains, and
+   it carries the FULL spec §5 list plus the human-attested live check.**
 2. What F4.5 closes: the PortAudio callback **self-deadlock** (`_on_audio` calls
    `_close_stream()` → `stream.stop()`, which blocks until the callback returns —
    the code does the opposite of its own comment), the **zero coverage** of that

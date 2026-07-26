@@ -1,0 +1,27 @@
+{
+  "task": "T2",
+  "spec": "spec.md@be78be5",
+  "change": "8f86fc7..f2a1013",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_capture.py -q",
+      "uv run python -c \"import pathlib; t = pathlib.Path('tests/test_capture.py').read_text(encoding='utf-8'); assert 'callback' in t, 'the capture tests still never mention the callback'\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "All four exited 0. tests/test_capture.py: '8 passed in 0.40s' (5 pre-existing pump tests + 3 new). Whole suite: '86 passed in 50.11s', 0 failed, inside the 10-minute budget against F4's 48 s baseline. Intermediate task, so the plan.md done-criteria list applied, not the full spec Verification list (that lands on Task 3)."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Spec axis: 2-D (frames, channels) delivery at test_capture.py:52 is the real contract, since capture.py:114 does indata[:, 0] and would break on a 1-D fake — not superficial compliance; delivery halts after CallbackStop (:50-51, :56-58); the tripwire guards both stop() and close() (:36, :40, :62-64) and its BaseException nature is proven empirically at :179-183 by wrapping deliver() in the same blanket except Exception that capture.py:135-142 uses, rather than by asserting the class hierarchy; spec 5 feature test 1 satisfied at :147-166 with no pump() call. The five pump-driven tests are unmodified, honoring spec 3's no-broader-refactor non-goal. Standards axis: conventions held; no new dependency (sounddevice and pytest already declared); the F4 earned guardrail is satisfied member by member — deliver (3 tests), delivering/callback_stopped (:201-202), _forbid_reentrant_teardown (:179 raising, existing pump tests non-raising); no speculative surface (no callback-is-None guard, no re-entrancy counter). Approved first pass, rejects: 0. The verifier explicitly declined to score the absent cap-through-callback test as a coverage gap, per plan.md:78-82.",
+    "handoff_doubts": "Four raised, all resolved without changing the verdict: (1) the third test beyond the plan's two is justified — the plan mandates branch (b) at plan.md:57-58 but names tests only for (a) and (c), so without it (b) is exactly the uncovered branch the guardrail forbids; covering a branch the plan required is not scope creep and the deviation log was correctly not invoked; (2) deliver() absorbing CallbackStop instead of re-raising matches PortAudio, and spec 5 test 3's propagation stays observable at Task 3; (3) sd.CallbackStop derives from Exception, so the BaseException tripwire escapes both handlers as designed; (4) the implementor's disclosure that the new tests were never executed was the material risk, and the Gate retired it 8/8 and 86/86 green."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-26",
+  "note": "Learn scan outcome: no lesson met the bar. Nothing recurred and nothing cost rework — approved first pass, rejects 0, no human course-correction. The two candidates were both examined and both rejected as lessons: (a) 'a fake must invoke the callback it is handed' is the substance of THIS feature, already captured in spec.md and in plan.md Task 2's notes as the pattern F5 is to inherit, so a guardrail would restate the work rather than generalize it — and it will be more honestly assessable after F5 actually inherits it; (b) 'a test tripwire must escape the handler it is testing through' was found during planning, not during this build, and it is already written down in plan.md Task 2 and the memory spine. Both fail the bar's 'non-obvious pattern that took 5+ tool calls to find' clause for this task specifically. No idea was declined by the human during this task, so no .out-of-scope/ file was owed. Filename uses F4.5 because the roadmap feature is numbered 4.5."
+}
