@@ -114,6 +114,6 @@ measured until it is built.
 
 ## Commits
 
-Base for this session: `0fdb90e` (the F5 spec approval) → head: the plan commit
-recorded below.
+Base for this session: `0fdb90e` (the F5 spec approval) → head `b9b70e3` (the
+plan commit), plus this bookkeeping commit recording the pair.
 Remote: **none** — local history only, nothing pushed.
