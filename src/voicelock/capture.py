@@ -114,10 +114,10 @@ class CaptureEngine:
         mono = np.asarray(indata[:, 0], dtype=DTYPE).copy()
         self._ingest(mono)
         if self._started_at is not None and (self.clock() - self._started_at) >= self.max_seconds:
-            # Callback can't safely join the stream; mark for stop via pump/stop.
-            self._close_stream()
-            self.status = CaptureStatus.IDLE
-            self._started_at = None
+            # Tearing the stream down here would deadlock: Pa_StopStream blocks
+            # until this callback returns. Raise sounddevice's supported
+            # in-callback stop and let pump()/stop() converge the engine state.
+            raise sd.CallbackStop
 
     def _ingest(self, mono: np.ndarray) -> None:
         if mono.size == 0:

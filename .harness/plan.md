@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Tasks 1–2 `DONE`, Task 3 `DOING` (the LAST one).**
+- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Tasks 1–2 `DONE`, Task 3 `REVIEW` — the LAST task, carrying the FULL spec §5 list.**
   (Spec approved at box 2 by the human 2026-07-26. Mode 3 is the standing "go":
   Task 2's wrap-up completed, so the session takes Task 3 without a further
   human word — but Task 3 carries the FULL spec §5 list and will reach the Gate
@@ -93,7 +93,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — `_on_audio` raises `sd.CallbackStop` instead of tearing down its own stream (LAST task — FULL §5)
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/capture.py`, `tests/test_capture.py`
   - notes: The defect fix, landed **with** its regression tests so the fixed

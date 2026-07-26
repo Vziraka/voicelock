@@ -185,6 +185,55 @@ def test_teardown_from_inside_the_callback_trips_the_wire() -> None:
     assert not stream.stopped
 
 
+def _recording_engine_with_stream(clock: FakeClock) -> tuple[CaptureEngine, FakeStream]:
+    """Start an engine on a FakeStream and hand back both, so the test can
+    drive the real `_on_audio` through `stream.deliver()`."""
+    streams: list[FakeStream] = []
+
+    def open_input(**kwargs) -> FakeStream:
+        stream = FakeStream(**kwargs)
+        streams.append(stream)
+        return stream
+
+    engine = CaptureEngine(open_input=open_input, clock=clock, max_seconds=30.0)
+    engine.start()
+    return engine, streams[0]
+
+
+def test_cap_does_not_tear_down_the_stream_from_inside_the_callback() -> None:
+    """The deadlock: Pa_StopStream blocks until the callback returns."""
+    clock = FakeClock()
+    engine, stream = _recording_engine_with_stream(clock)
+
+    stream.deliver(_tone(160))
+    clock.advance(30.0)
+    stream.deliver(_tone(160))  # this delivery reaches the cap
+
+    assert not stream.stopped
+    assert not stream.closed
+    assert engine.pcm_buffer().size == 320
+
+
+def test_cap_raises_callback_stop_and_pump_converges_to_idle() -> None:
+    """`sd.CallbackStop` is the stop; `pump()` does the teardown afterwards."""
+    clock = FakeClock()
+    engine, stream = _recording_engine_with_stream(clock)
+
+    stream.deliver(_tone(160))
+    clock.advance(30.0)
+    stream.deliver(_tone(160))
+
+    assert stream.callback_stopped  # sd.CallbackStop left _on_audio
+    stream.deliver(_tone(160))  # PortAudio would not call the callback again
+    assert engine.pcm_buffer().size == 320
+
+    engine.pump()  # the path app.py polls every 50 ms
+
+    assert engine.status == CaptureStatus.IDLE
+    assert engine.pcm_buffer().size == 320
+    assert stream.stopped and stream.closed
+
+
 def test_delivery_halts_once_the_callback_raises_callback_stop() -> None:
     """PortAudio's contract: after CallbackStop, no further frames arrive."""
     frame_counts: list[int] = []
