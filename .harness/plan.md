@@ -2,22 +2,14 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: **ESCALATED TO HUMAN** — Tasks 1–4 `DONE`, Task 5 `REVIEW`
-  (all automated work is complete and verified; F4 cannot be marked DONE until the
-  human runs and attests spec §5's required manual Booth demo)
-  (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
-  accuracy levers in §3/§4, which re-opened approval **box 2**. The human
-  **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
-  human` — so the gate is closed and Mode 3 is the standing "go" for the tasks
-  inside F4. Grilling re-scanned after the amendment — still zero markers.
-  Tasks 1–3 are `DONE`, each verified by a clean-context subagent. Task 2
-  separated genuine from impostor with a wide margin, so its `BLOCKED` branch
-  never fired. Task 3 was `BLOCKED` on a plan contradiction (human resolved it,
-  `memory/deviations.md`), then REJECTed once on the Standards axis and APPROVEd
-  on retry 1 — `rejects: 1`. **The vault is now genuinely two-locked, but the
-  Booth UI still reads the old `auth` error string, so the live demo cannot show
-  the two distinct rejects until Task 5.** Next is **Task 4**; Tasks 4–5 stay
-  `TODO` under WIP=1.)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: **COMPLETE — all 5 tasks DONE**
+  (F4 was approved 2026-07-23, amended 2026-07-26 with five accuracy levers, and
+  re-approved at box 2 the same day. All five tasks are `DONE`, each verified by a
+  clean-context subagent; Tasks 3, 4 and 5 each took exactly one REJECT and were
+  APPROVEd on retry 1. The final Gate returned ESCALATE_HUMAN on spec §5's
+  required manual Booth demo, which the **human attested PASS on 2026-07-26**.
+  `roadmap.md`'s F4 box is checked and `memory/codebase-map.md` is refreshed.
+  Completion report is in `handoff.md`; the commit checkpoint is the human's.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -294,8 +286,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          handoff note defending it was factually wrong** — that claim is retracted.
          **Fix: delete the branch.**
 
-- [ ] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
-  - state: REVIEW — **ESCALATE_HUMAN, awaiting the manual demo attestation**
+- [x] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
+  - state: DONE — manual demo attested PASS by the human 2026-07-26
   - verified 2026-07-26 (retry 1): **GATE ESCALATE_HUMAN · REVIEW APPROVE (both
     axes), conditional on the human attesting the manual line.** Five of the six
     §5 commands ran and exited 0 — ruff, full suite (83), `test_middlelock` (36),
@@ -394,8 +386,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4 building: Tasks 1–4 `DONE` (all verified by subagent), only Task 5 left.** The engine is complete and two-locked; Tasks 3 and 4 each took one Standards-axis REJECT (both for speculative dead code) and were APPROVEd on retry 1. **Task 5 is the LAST task — its done-criterion is the FULL spec §5 list, including the human-attested manual demo an agent cannot perform.**
-2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
-3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
-4. **The main build risk is retired: Task 2 separated cleanly.** Over 200 independent commits — genuine 0, harder same-speaker 63, impostor floor 156, `CORRECTION_RADIUS = 110` at the midpoint; the verifier reproduced it on its own 60. Remaining honest caveat: fixtures cannot prove cross-session robustness, so the required manual demo in Task 5 is still the real proof.
-5. **The feature is not demo-able until Task 5:** `src/voicelock/ui/index.html` still tests `error === "auth"` and its fallback renders "wrong passphrase" for every error, so the live Booth collapses both rejects and cannot bank enrollment takes. Task 5 owns that wiring plus the required manual demo. Open human items: spec's "~20 MB" model-size wording is wrong (actual ~85 MB); spec §0's amendment prose still says "awaiting the human's `x`" though box 2 is checked.
+1. 2026-07-26 — **F4 is COMPLETE. All 5 tasks `DONE`, roadmap box checked, manual demo attested by the human.** The voiceprint is now a real cryptographic lock, not a meter.
+2. What F4 built: a hand-rolled pure-numpy code-offset fuzzy commitment (`middlelock.py`, **no new dependency**) turning the ECAPA voiceprint into a stable key; a **v2 nested vault** (passphrase outer around voice middle, helper data inside the outer box, v1 refused with a re-enroll prompt); and a Booth that shows the two impostor classes as **visibly distinct** rejects.
+3. Measured, not assumed: over 200 independent commits the genuine probe leaves **0** residual bits, the hardest same-speaker clip 63, the impostor never below 156 — `CORRECTION_RADIUS = 110` sits at the midpoint. Verifiers re-measured this independently and reproduced it.
+4. Process truth from this feature: Tasks 3, 4 and 5 each took **one REJECT**, and all three were the same defect — code nothing called or tested. That became this repo's first earned guardrail in `project.md`. Task 3 also stopped `BLOCKED` on a genuine plan contradiction (`memory/deviations.md`).
+5. Open for next session: **curate is due** (19 verdicts vs `Last curated: never`); the F5 spec is not drafted; `spec.md`'s "~20 MB" model-size wording is still wrong (~85 MB) and its §0 amendment prose still says "awaiting the human's `x`" though box 2 is checked.

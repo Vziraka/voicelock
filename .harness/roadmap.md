@@ -150,7 +150,7 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   Built: vendored ECAPA (offline), `voiceprint.py` engine, Booth 3-band meter +
   Set reference + Reset (amendment). Human manual demo attested.
 
-- [ ] **F4 — Voice as the middle lock (stacked)** · blocked-by: F2, F3
+- [x] **F4 — Voice as the middle lock (stacked)** · blocked-by: F2, F3 · **DONE 2026-07-26 (Mode 3)**
   Fuzzy-reconcile the voiceprint into a stable key; wrap the outer-sealed box
   inside the voice lock. Unlock needs passphrase **and** voice.
   *Demo:* right voice + passphrase → in; wrong passphrase → REJECT (outer);

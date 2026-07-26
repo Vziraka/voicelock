@@ -1,127 +1,94 @@
-# Handoff — F4 Task 5 (Booth UI) · /implement session · 2026-07-26
+# F4 — COMPLETION REPORT · Voice as the middle lock · 2026-07-26 (Mode 3)
 
-## Where we are
-Tasks 1–4 `DONE`. **Task 5 is `REVIEW`** — the feature's LAST task. The automated
-half of spec §5 is green; the **required human-attested manual demo is not and
-cannot be done by an agent**.
+**Feature complete.** All five tasks `DONE`, `roadmap.md`'s F4 box checked,
+`memory/codebase-map.md` refreshed. The commit checkpoint is the human's.
 
-- base: `09b4e39` (Task 5 `DOING`, committed before building)
-- head: **`7ec2fb8`** (retry-1 build commit — supersedes `6c0a908`)
-- **retry 1 of 3** after a correctness REJECT; `rejects: 1`
+## Outcome vs the spec's Outcome section
+Spec §1 asked to "make the **voiceprint** a real cryptographic lock, not just an
+on-screen meter", with three visibly distinct demo outcomes. Delivered:
 
-## Changed
-- `src/voicelock/ui/index.html` — enroll voice step (5 sentences, per-take dots,
-  need-more-audio hint, Enroll disabled until 5 banked), unlock full-sentence
-  prompt, `chip-wrong-voice` + `chip-legacy-vault`, and the reject routing
-- `src/voicelock/app.py` — `reset_enroll_takes()` (retry 1; Task 5's `files:` line
-  pre-authorizes `app.py` "if wiring gaps surface")
-- `tests/test_booth_api.py` — two tests for the reset, plus the unused-fixture nit
-  the Task 4 verifier flagged
+| Spec §1 promise | Status |
+|---|---|
+| Fuzzy-reconcile the voiceprint into a stable key with non-secret helper data | `middlelock.py` — code-offset fuzzy commitment, pure numpy, **no new dependency** |
+| Middle lock as an AEAD layer wrapping the F2 outer box | `vault.py` v2: profile sealed with the voice key, wrapped in `{helper_data, middle_ciphertext}` sealed with the passphrase key |
+| Unlock needs passphrase **and** the enrolled speaker's voice | peel order outer→middle; a wrong passphrase raises before the voice is consulted |
+| right passphrase + right voice → **unlocked** (name shown) | attested live |
+| **wrong passphrase** → outer REJECT "wrong passphrase" | attested live |
+| right passphrase + **different person** → middle REJECT "voice did not match" | attested live |
 
-## The REJECT, and what changed (retry 1)
-The verifier found a **real correctness defect**, not a style point:
-`resetEnrollVoiceStep()` cleared only the JS counter. The bridge's
-`_enroll_voiceprints` was appended by `enroll_take()` and cleared only on a
-successful `enroll()`, so an abandoned run survived: bank 2 → Cancel → re-open
-showed `0 / 5` while the bridge held 2, the next bank jumped the dots 0→3,
-sentences 2 and 3 were never read, and the vault got sealed from the two
-**abandoned** takes plus three new ones. For a feature whose point is that the
-enrolled speaker's voice is the key, that could bind the middle key partly to
-discarded audio — possibly a different person's, mid-demo — and it was reachable
-in the very manual demo below.
+Non-goals held: no face/camera/liveness, no tolerance-tuning UI, single vault, no
+recovery, and the honest limits stayed honest — helper data is non-secret, the
+secret is short, and F4 does **not** stop replay of a recording (that is F8).
 
-Fixed by restoring `BoothApi.reset_enroll_takes()` — this time genuinely called
-(open / cancel / post-seal) and **tested**, which is exactly the condition the
-Task 3 verdict set when it deleted the speculative version. Both call sites
-`await` it, so the bridge has dropped the old takes before a new one can be
-banked. The second, minor finding (an enroll "BRIDGE MISSING" branch this task's
-own change had made unreachable) is deleted.
+## Final Gate evidence (all run this session)
+| Command | Exit |
+|---|---|
+| `uv run ruff check .` | 0 — `All checks passed!` |
+| `uv run pytest` | 0 — **83 passed in 48.15s** |
+| `uv run pytest tests/test_middlelock.py -q` | 0 — 36 passed (§5 cases 1–7) |
+| `uv run pytest tests/test_booth_api.py -q` | 0 — 19 passed (distinct `auth_outer`/`auth_voice`) |
+| UI copy + offline assertion (`plan.md` T5) | 0 |
+| **Manual Booth demo** (required, human-attested) | **PASS — attested by the human 2026-07-26** after the verifier's GATE ESCALATE_HUMAN |
 
-## The defect this task actually fixes
-Before this diff the live Booth could not demo the feature at all. The unlock
-handler tested `error === "auth"` — a string the bridge stopped returning in
-Task 3 — and its fallthrough called `showWrongPassphrase()` for **every** failure.
-So a wrong voice, a legacy vault and a short take all rendered as "Wrong
-passphrase", collapsing exactly the two impostor classes the feature exists to
-tell apart. Each reason now has its own chip and status line, and the
-catch-all fallthrough is gone.
+## Retry counts
+| Task | rejects | Note |
+|---|---|---|
+| 1 — enrollment fixtures | 0 | |
+| 2 — `middlelock.py` | 0 | the feature's riskiest task passed first time |
+| 3 — `vault.py` v2 | 1 | also stopped `BLOCKED` once on a plan contradiction |
+| 4 — lever 5 capture quality | 1 | |
+| 5 — Booth UI | 1 | the reject was a real correctness defect, see below |
 
-## Spec §5 status — the honest split
-**Automated (all run this session, all exit 0):**
-- `uv run ruff check .` → 0 (`All checks passed!`)
-- `uv run pytest` → 0 (**83 passed in 48.73s**)
-- `uv run pytest tests/test_middlelock.py -q` → 0 (36 passed) — §5 cases 1–7
-- `uv run pytest tests/test_booth_api.py -q` → 0 (19 passed) — distinct
-  `auth_outer` vs `auth_voice`, neither returning a name
-- the UI assertion one-liner from Task 5's done-criteria → 0
+## Deviations logged during the feature
+One entry in `memory/deviations.md` (2026-07-26, F4-T3): Task 3's `files:` line
+and its green-full-suite done-criterion were mutually exclusive, because the task
+changed `vault.enroll`/`vault.unlock` and `app.py` calls them. The session
+**stopped `BLOCKED`** rather than interpret (Mode 3 forbids unsupervised
+interpretation); the human chose to extend Task 3 with the bridge fix. The entry
+also records honestly that the human's option said "no new bridge behaviour" and
+that this proved unachievable, so the smallest coherent change was taken instead.
 
-**Manual — NOT done, and not doable by an agent:**
-> `uv run voicelock` → enroll (name + passphrase + read the 5 sentences) → unlock
-> with the right passphrase + the enrolled voice → unlocked; **wrong passphrase**
-> → outer REJECT; a **different person** speaks with the right passphrase →
-> middle REJECT.
+## Escalation-worthy things that resolved themselves
+- **Task 2 was expected to be able to fail** — the plan required a `BLOCKED`
+  report rather than a loosened correction radius if genuine and impostor would
+  not separate. They separated with a wide margin (genuine 0 residual bits,
+  impostor floor 156, radius 110 at the midpoint of that gap), measured over 200
+  independent commits and independently reproduced by the verifier. No radius was
+  ever loosened.
+- **The one defect that mattered** was caught at Task 5, not by the tests: an
+  abandoned enrollment left banked takes in the bridge while the UI showed "0 / 5",
+  so the vault could have been sealed from discarded audio — possibly a different
+  person's — and it was reachable in the manual demo itself. Fixed at the source.
 
-It needs a real microphone, the human's own voice, and a second person. I have
-not run it and cannot attest it. **The Gate should return ESCALATE_HUMAN on this
-line** — the same shape as F3 Task 5, whose verdict records "Manual Booth demo
-attested PASS by the human 2026-07-23 ('looks good') after verifier
-ESCALATE_HUMAN".
+## What this feature taught (one guardrail, human-approved and written)
+`constitution/project.md` now holds its first earned rule:
+> **[Forbidden]** Never add a helper, method, or branch that no caller and no test
+> exercises… `warn` · expires: 2027-01-31
 
-## What the human must do for the manual demo
-1. **Re-enroll first.** Your existing `~/.voicelock/vault.vl` is a v1 vault and is
-   now refused with the re-enroll message — that refusal is itself part of the
-   demo if you want to see it.
-2. `uv run voicelock` → Enroll → type name + passphrase → for each of the five
-   sentences: **Record → Stop → "Bank this sentence"**. Enroll unlocks only after
-   all five bank. Read them in one natural voice.
-3. Unlock: type the passphrase, **Record → Stop** a full sentence, press Unlock.
-4. Wrong passphrase with your own voice → should read "Wrong passphrase".
-5. Right passphrase with **someone else** speaking → should read "Voice didn't
-   match". If both rejects read the same, the feature has failed its point.
+All three of this feature's REJECTs were that same defect. A second proposal (a
+signature change owning its in-repo callers) was **declined/parked** — the real
+fix belongs in the `plan` skill, not in a rule someone must remember.
 
-## Doubts the verifier should weigh
-1. **No automated test drives `index.html`.** The UI done-criterion is a string
-   assertion over the file — it proves the copy and the wiring text exist, not
-   that the window behaves. That gap is exactly what the manual demo covers, and
-   spec §5 calls it "a required check, not accepted risk".
-2. **Banking a take is a separate button press** ("Bank this sentence") rather
-   than automatic on Stop. Record/Stop/Play stay untouched (spec §4), so the
-   bridge needs an explicit call to consume the buffer; auto-banking would have
-   meant modifying the F1 stop path.
-3. **`enroll` consumes the banked takes on success**, so the overwrite/re-enroll
-   flow requires re-reading all five sentences. The UI resets its dots to match.
-4. **Five sentence texts are my wording**, chosen to be vowel/voiced-heavy per
-   spec §3. They are content, not logic — change them freely.
+A third candidate surfaced at Task 5 and is **proposed, not written** — awaiting
+the human:
+> **[Forbidden]** The UI must not keep its own copy of state the engine owns —
+> render the engine's value instead of a local mirror. `warn`
+> _Evidence:_ F4 Task 5 — `resetEnrollVoiceStep()` zeroed a JS take-counter while
+> the bridge kept its banked takes, so the panel showed `0 / 5` over a non-empty
+> engine and the next enrollment would have sealed abandoned takes into the vault.
+> Relevant beyond this bug: F5–F8 add FaceView, liveness and more UI state to a
+> project whose stated convention is already "Python owns state; JS renders only".
 
-## next_action
-Verify Task 5 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, task
-`F4-T5`, base `09b4e39`, head `7ec2fb8`. It is the LAST task, so the Gate runs the
-FULL spec §5 list and will hit the manual line.
+## Next
+- **Curate is due** — 19 verdict files vs `project.md`'s `Last curated: never ·
+  verdicts then: 0`. Human-invoked; nothing blocks on it.
+- **F5 — Camera booth** is next in `roadmap.md` and carries a **TECH-PICK**
+  (offline face detect/landmark/embedding stack). Its spec is not drafted.
+- Carried, still open for the human: `spec.md`'s "~20 MB" model-size wording is
+  wrong (the vendored ECAPA is ~85 MB), and §0's amendment paragraph still reads
+  "awaiting the human's `x`" though box 2 is checked.
 
-## Guardrails
-**APPROVED and written 2026-07-26** — `constitution/project.md` "Earned
-guardrails" now holds its first real rule:
-> **[Forbidden]** Never add a helper, method, or branch that no caller and no
-> test exercises… `warn` · expires: 2027-01-31
-
-Evidence is the three F4 REJECTs, all the same defect. Note the past verdict
-files for Tasks 3 and 4 still read `"lesson": "proposed — pending approval"` —
-`memory/verdicts/` is protected and append-only, so a recorded verdict is never
-edited after the fact. The approval lives in `project.md` and here, which is the
-correct place for it.
-
-**Still parked, NOT approved:** the Task 3 proposal about a signature change
-owning its in-repo callers. My own recommendation was to decline it as written —
-the real fix is a caller-scan step in the `plan` skill rather than a rule someone
-must remember, and it has only one occurrence of evidence. Left for a future
-`curate` or a `plan`-skill change.
-
-## Commits (this session, on `main`)
-… → `df29337` (T4 done) → `09b4e39` (T5 DOING) → `6c0a908` (T5 build).
-Remote: **none** — local history only, no push.
-
-## Notes for the human (carried)
-- `spec.md` §0's amendment paragraph still says "awaiting the human's `x`" though
-  box 2 is `[x]`. Stale prose only.
-- `spec.md`'s "~20 MB" model-size wording is wrong — the vendored ECAPA is ~85 MB.
-- **Curate is due** — 18 verdicts vs `Last curated: never`.
+## Commits
+This session ran `a13d891` → `41d5391` on `main` (Task 1 DOING through the Task 5
+escalation), plus the approved-guardrail commit. Remote: **none** — local history
+only, nothing pushed.

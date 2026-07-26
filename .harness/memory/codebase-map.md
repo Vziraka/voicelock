@@ -4,10 +4,13 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Updated: 2026-07-23 after F3. Solid = built (F1 booth + F2 outer lock + F3
-  voiceprint-on-screen diagnostic); dashed = planned (F4–F9). F3 added the
-  offline ECAPA voiceprint engine + Booth match meter (Set reference / Reset);
-  it is a diagnostic only — NOT wired into the lock (that is F4).
+- Updated: 2026-07-26 after F4. Solid = built (F1 booth + F2 outer lock + F3
+  voiceprint diagnostic + F4 voice middle lock); dashed = planned (F5–F9). F4
+  made the voiceprint a real lock: a hand-rolled numpy code-offset fuzzy
+  commitment turns it into a stable key, the vault is now **two nested AEAD
+  layers** (passphrase outer around voice middle), and the Booth shows two
+  visibly distinct rejects. F3's match meter survives untouched as an
+  independent diagnostic.
 
 ## Architecture (data flow)
 
@@ -62,7 +65,7 @@ flowchart TB
     Liveness -- "gate before unlock" --> Inner
 
     classDef planned stroke-dasharray:6 4
-    class FaceView,FaceDetect,Faceprint,FuzzyV,FuzzyF,Middle,Inner,Liveness planned
+    class FaceView,FaceDetect,Faceprint,FuzzyF,Inner,Liveness planned
 ```
 
 ## Shape
@@ -75,21 +78,35 @@ flowchart TB
 ## Key modules
 - `src/voicelock/capture.py` — 16 kHz mono capture, levels, 30s soft cap, mic error
 - `src/voicelock/playback.py` — play / stop PCM buffers
-- `src/voicelock/vault.py` — outer lock (Argon2id + SecretBox), VLCK file format
+- `src/voicelock/vault.py` — **v2 nested vault** (F4): profile JSON sealed with the
+  voice-derived middle key, wrapped in `{helper_data, middle_ciphertext}` sealed
+  with F2's passphrase key; `VLCK` + version byte 2. Peel order outer→middle, so a
+  wrong passphrase raises `AuthError` before the voice is consulted; `VoiceAuthError`
+  is the middle REJECT and `LegacyVaultError` refuses a v1 vault (re-enroll, no
+  passphrase-only bypass)
+- `src/voicelock/middlelock.py` — middle lock (F4): hand-rolled code-offset fuzzy
+  commitment in pure numpy, no new dependency. `commit` / `reconcile` /
+  `derive_key` / `residual_bits`; 4096-bit LSH pool masked to 512 reliable bits by
+  cross-take unanimity, 32-bit secret repeated 16x, soft-decision decoding,
+  `CORRECTION_RADIUS = 110` pinned from 200 measured commits
 - `src/voicelock/voiceprint.py` — offline ECAPA speaker embedding (F3): `embed`,
   `set_reference` (3-take L2-avg, injectable path), `cosine_distance`, `compare`
   → (distance, band) with pinned `ACCEPT/REJECT_CUTOFF`
 - `src/voicelock/models/ecapa/` — vendored SpeechBrain ECAPA (Apache-2.0), loaded
   offline (`HF_HUB_OFFLINE`, `pretrained_path` override + `LocalStrategy.NO_LINK`)
 - `src/voicelock/app.py` — pywebview host + JS bridge (`BoothApi`
-  record/enroll/unlock + F3 `set_reference`/`compare`/`reset_reference`)
+  record/enroll/unlock + F3 `set_reference`/`compare`/`reset_reference` + F4
+  `enroll_take`/`reset_enroll_takes` and `lock_voiceprint()`, which enforces the
+  raised `MIN_LOCK_SECONDS` floor and window-averages each lock take)
 - `src/voicelock/ui/index.html` — Booth chrome + Record/Stop/Play + Enroll/Unlock
-  + F3 voiceprint panel (3-band meter, Set reference, Reset)
+  + F3 voiceprint panel (3-band meter, Set reference, Reset) + F4 enroll voice
+  step (5 sentences, per-take dots) and two distinct reject chips
+  ("Wrong passphrase" / "Voice didn't match")
 - `src/voicelock/__main__.py` — `python -m voicelock`
 
 ## Where things live
 - Entry point(s): `uv run voicelock`
-- Vault path: `~/.voicelock/vault.vl`
+- Vault path: `~/.voicelock/vault.vl` (format **v2** since F4; v1 vaults are refused with a re-enroll prompt)
 - Voiceprint reference: `~/.voicelock/voiceprint.ref` (F3, plaintext sibling, not the vault)
 - Tests: `tests/` via `uv run pytest`
 - Config: `pyproject.toml` + `uv.lock` (includes `pynacl`)

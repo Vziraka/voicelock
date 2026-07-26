@@ -1,0 +1,28 @@
+{
+  "task": "T5",
+  "spec": "spec.md@a13d891",
+  "change": "09b4e39..7ec2fb8",
+  "gate": {
+    "commands": [
+      "uv run python -c \"<index.html copy + offline assertion>\"",
+      "uv run ruff check .",
+      "uv run pytest",
+      "uv run pytest tests/test_middlelock.py -q",
+      "uv run pytest tests/test_booth_api.py -q",
+      "Manual (human-attested): uv run voicelock -> enroll (5 sentences) -> genuine unlock -> wrong passphrase = outer REJECT -> different person = middle REJECT"
+    ],
+    "exit": 0,
+    "note": "Retry 1 of 3. LAST task of F4, so the Gate ran the FULL spec-5 Verification list. Automated: UI assertion 0, ruff 'All checks passed!', full suite 83 passed, test_middlelock 36, test_booth_api 19. The verifier returned GATE ESCALATE_HUMAN because the required manual line cannot be run by an agent (real mic, the human's voice, a second speaker) and the Gate skill forbids skipping it and passing on the rest. Manual demo attested PASS by the human 2026-07-26 ('the manual test all passed') after that ESCALATE_HUMAN -- the same pattern as 2026-07-23-F3-T5.json."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "APPROVE on retry 1 after one REJECT (rejects: 1 of 3), conditional on the manual attestation that has since been given. The REJECT was a REAL CORRECTNESS DEFECT, not a style point: resetEnrollVoiceStep() cleared only the JS counter while the bridge's _enroll_voiceprints was cleared solely on a successful enroll(), so an abandoned run leaked takes -- bank 2, Cancel, re-open showed 0/5 while the engine held 2, the dots then jumped 0->3, sentences 2 and 3 were never read, and the vault would have been sealed from the two ABANDONED takes plus three new ones, binding the middle key partly to discarded audio (possibly a different speaker's) and reachable in the very manual demo. Fixed at the source by restoring BoothApi.reset_enroll_takes() -- this time with three call sites and two tests, exactly the condition the Task 3 verdict set when it deleted the speculative version -- and both call sites await it so the bridge is empty before a new take can bank. Second, minor finding (an enroll 'BRIDGE MISSING' branch made unreachable by this same diff) also fixed. Reviewer confirmed the headline requirement: auth_outer and auth_voice route to separate chips, statuses and prompts, and the old catch-all fallthrough that rendered 'Wrong passphrase' for EVERY error is gone -- before this task the live Booth could not demo the feature at all.",
+    "history": "REJECT (6c0a908) -> fix -> APPROVE (7ec2fb8), GATE ESCALATE_HUMAN -> human attested"
+  },
+  "mechanism": "subagent",
+  "lesson": "proposed — pending approval",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-26"
+}
