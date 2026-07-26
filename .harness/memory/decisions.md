@@ -159,17 +159,25 @@ Format:
   - rejected: none — human accepted recommendation
   - link: `constitution/project.md`
 
-- 2026-07-22 · **Approach B — two stacked locks for the profile vault**
-  - why: always-both factors with crisp, independent impostor rejects for a learning demo
-  - rejected: A voice-as-gate-only (voice wouldn't seal bytes); C single combined key (failures blur)
-  - link: `roadmap.md` Approach · `adr/0001-two-stacked-locks.md`
-
 - 2026-07-22 · **Anti-spoof bar: speaker match + challenge-response; no deepfake-proof claim**
   - why: full three-impostor demo without lying about live voice cloning
   - rejected: strong anti-deepfake as a must-have (research-heavy, oversell risk); robotic heuristic parked as optional F7
   - link: `roadmap.md` Intent · Out of scope
 
+## Archive
+
+Superseded entries, MOVED here by `curate` (2026-07-26) — never edited, never
+deleted. They were true when made; a later decision replaced them. Kept so the
+reasoning chain stays readable.
+
+- 2026-07-22 · **Approach B — two stacked locks for the profile vault**
+  - why: always-both factors with crisp, independent impostor rejects for a learning demo
+  - rejected: A voice-as-gate-only (voice wouldn't seal bytes); C single combined key (failures blur)
+  - link: `roadmap.md` Approach · `adr/0001-two-stacked-locks.md`
+  - _Superseded by:_ 2026-07-22 **Approach B′ — three nested locks: passphrase → voice → face** (and `adr/0002-three-nested-locks.md` supersedes `adr/0001`). Archived 2026-07-26.
+
 - 2026-07-22 · **Must-build F1–F6; park F7 (weak robotic heuristic)**
   - why: full demo arc at F5; F6 makes it presentable; F7 is optional exploration only
   - rejected: bundling F7 into the must-build path
   - link: `roadmap.md` Features
+  - _Superseded by:_ the three-factor pivot and the Order A build order — the feature numbering this entry describes no longer exists (today's F7 is "Face as the inner lock", F8 is lip-sync liveness, F9 is demo reliability). Archived 2026-07-26.

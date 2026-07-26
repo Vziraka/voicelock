@@ -15,7 +15,8 @@
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
-A task is `DONE` only when the Gate exited 0 **and** the Reviewer approved.
+A task is `DONE` only per `constitution/universal.md`'s [Done] rules — Gate exited 0,
+Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 

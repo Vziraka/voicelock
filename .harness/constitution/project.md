@@ -30,7 +30,7 @@ repo). The non-negotiables go here; the full detail lives in
   (promises until F1 wires them).
 
 ## Earned guardrails
-Last curated: never · verdicts then: 0
+Last curated: 2026-07-26 · verdicts then: 19
 
 Each entry = one failure turned into a rule. Keep them few and current — the
 `curate` skill dedups and retires expired ones.
