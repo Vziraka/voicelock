@@ -15,7 +15,7 @@
   Resolved as **fetched-not-committed** — the image is `.gitignore`d and never
   entered git, while the Apache-2.0 `portrait_expected_face_landmarks.pbtxt` IS
   committed, preserving the **vendor reference** that exists for this image and
-  no other. Next is **Task 4** — `facedetect.py`, the first engine code of F5.
+  no other. **Task 4 `DOING`** — `facedetect.py`, the first engine code of F5.
   Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
   the enforcement check for the per-asset licence guardrail; (2) the fixture
   change.**
@@ -274,7 +274,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       Task 6 (UI) is the only later task independent of it.
 
 - [ ] **Task 4** — `facedetect.py`: the per-frame composite path, on injectable fakes
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/facedetect.py` (new), `tests/test_facedetect.py` (new)
   - notes: The engine's **pure** half — one frame in, one composited data URI plus
