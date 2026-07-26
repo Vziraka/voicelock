@@ -12,11 +12,13 @@
   **Task 3 `BLOCKED`, unblocking in progress:** its licence STOP condition fired
   and did **not** clear — `portrait.jpg` is a White House press photograph whose
   embedded notice forbids reproduction/dissemination, so nothing was committed.
-  The human chose the CC0 replacement (the Met's c.1850 `-Elderly Man; Full
-  Face-`, verified at 1 face / 478 landmarks), which is a **spec amendment**, so
-  `spec.md`'s box 2 is re-opened and **Task 3 resumes when the human checks it**.
-  Tasks 4, 5 and 7 name the fixture and are blocked with it; Task 6 (UI) is the
-  only later task independent of it.
+  The human chose **fetched-not-committed**: keep `portrait.jpg`, `.gitignore`
+  it, fetch it locally, and commit the Apache-2.0
+  `portrait_expected_face_landmarks.pbtxt` beside it — which preserves the
+  **vendor reference** that exists for this image and no other. That is a **spec
+  amendment**, so `spec.md`'s box 2 is re-opened and **Task 3 resumes when the
+  human checks it**. Tasks 4, 5 and 7 name the fixture and are blocked with it;
+  Task 6 (UI) is the only later task independent of it.
   Two amendments were made 2026-07-26: (1) the enforcement check for the new
   per-asset licence guardrail, approved and in force; (2) this fixture change,
   awaiting box 2.**
@@ -36,9 +38,9 @@ Tasks 2 and 3 each downloaded an asset and **verified its licence at download**.
 The spec forbids substituting a different model or image silently (`spec.md` §4).
 Both fired, exactly as designed — **Task 2's cleared** (Apache-2.0, established
 from Google's three model cards) and **Task 3's did not** (a White House press
-photograph; replaced by a CC0 image on the human's decision, via amendment).
-Splitting them into separate tasks earned its keep: the model was not held
-hostage by the fixture.
+photograph; resolved on the human's decision by keeping the image but **never
+committing it**, via amendment). Splitting them into separate tasks earned its
+keep: the model was not held hostage by the fixture.
 
 ### The module contract, pinned here so later tasks' criteria are runnable
 Task 4 introduces `src/voicelock/facedetect.py` with this surface; Tasks 5–7 and
@@ -177,52 +179,66 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       `src/voicelock/models/face_landmarker/face_landmarker.task`. Human-only
       in every mode.
 
-- [ ] **Task 3** — Vendor the CC0 `met_elderly_man.jpg` face fixture + its provenance README
+- [ ] **Task 3** — Face fixture: fetch `portrait.jpg` (gitignored) + commit the vendor reference and provenance README
   - state: BLOCKED
   - rejects: 0
-  - files: `tests/fixtures/face/met_elderly_man.jpg`, `tests/fixtures/face/README.md`
+  - files: `tests/fixtures/face/README.md`,
+    `tests/fixtures/face/portrait_expected_face_landmarks.pbtxt`, `.gitignore`
+    (**not** `tests/fixtures/face/portrait.jpg` — that is fetched locally and
+    deliberately never committed)
   - notes: Assets only again — **still no engine code.** Separated from Task 2 on
     purpose: the two licence checks can fail independently, and a blocked fixture
     must not also block the model. That separation earned its keep — Task 2
     cleared and this one did not.
-    **REWRITTEN by the 2026-07-26 fixture amendment.** The original fixture,
-    MediaPipe's `portrait.jpg`, **failed** its download-time licence check: it is
-    a White House press photograph (EXIF `Artist = Pete Souza`) whose notice
-    forbids reproduction or dissemination without written permission. Committing
-    a fixture is exactly that. It was downloaded, read, and **deleted**; it never
-    entered the repo. The vendor-reference bonus went with it — MediaPipe
-    publishes expected landmarks for `portrait.jpg` only.
-    Source now (`spec.md` §4, amended):
-    `https://upload.wikimedia.org/wikipedia/commons/8/82/-Elderly_Man%3B_Full_Face-_MET_37.14.52.jpg`
-    — `-Elderly Man; Full Face-` (Met accession 37.14.52), a **circa-1850
-    daguerreotype** by Southworth & Hawes, **CC0 1.0**, donated to Wikimedia
-    Commons by the Metropolitan Museum of Art under its Open Access Policy.
-    Licence established **per asset** from the Commons API's per-file
-    `extmetadata` (`LicenseShortName: CC0`), the standard `project.md`'s
-    `[Approval]` guardrail requires — not inherited from the hosting project,
-    which is the mistake this whole episode exists to prevent.
-    Already verified against the **vendored** bundle before the amendment was
-    written: **1 face / 478 landmarks**, and a plain grey 640×480 image yields
-    **0** faces — both halves of `spec.md` §5's real-model test.
+    **REWRITTEN by the 2026-07-26 fixture amendment.** `portrait.jpg` **failed**
+    its download-time licence check: it is a White House press photograph (EXIF
+    `Artist = Pete Souza`) whose notice forbids reproduction or dissemination
+    without written permission. Its "personal use only" clause is granted to
+    **the subjects of the photograph**, not to whoever is using it for a personal
+    project — the human weighed exactly that and chose **fetched-not-committed**
+    over both committing it and substituting a CC0 image.
+    So this task does NOT vendor the photo. It:
+    1. adds `tests/fixtures/face/portrait.jpg` to `.gitignore`;
+    2. fetches the image locally from
+       `https://storage.googleapis.com/mediapipe-assets/portrait.jpg` so the
+       Gate can run here (176 561 bytes, SHA-256 `A6F11EFA…2749DE3E`);
+    3. **commits** `portrait_expected_face_landmarks.pbtxt` from
+       `mediapipe/tasks/testdata/vision/` in the Apache-2.0
+       `google-ai-edge/mediapipe` repo — that file genuinely ships there and is
+       freely redistributable; **only the photograph is restricted**;
+    4. writes the provenance README.
+    **Why keep this image at all:** MediaPipe publishes expected landmarks for
+    `portrait.jpg` and for **no other image**, so it is the only fixture against
+    which Task 4's real-model test can assert **Google's own published
+    coordinates** rather than a self-generated expectation. A fully-vendored CC0
+    alternative was researched and verified (the Met's c.1850 daguerreotype,
+    1 face / 478 landmarks) and is the **documented fallback**, but it cannot
+    carry that reference.
+    **The skip must not be silent** (`spec.md` §4, §5): a test that quietly
+    skips when the fixture is absent is the F4.5 defect class in a new shape — a
+    green Gate proving nothing. Task 4's real-model test `pytest.skip`s with an
+    explicit reason naming the README, and the **presence check below** is what
+    stops the Gate passing while it skips.
     The README follows the shape `tests/fixtures/voiceprint/README.md` already
-    established: what the file is, where it came from, its licence, the fetch
-    date, and any honest caveat. **Two caveats are mandatory here** (`spec.md`
-    §5, amended): (1) there is **no vendor reference** to assert against, and
-    why; (2) the fixture is a **grayscale daguerreotype**, so it proves the
-    detector works on a real human face and nothing more.
+    established, and must carry: the **exact fetch command**, the **full quoted
+    copyright notice**, why the file is absent from git, and the note that this
+    **inverts F3's precedent** — `.gitignore` already carries
+    `!tests/fixtures/voiceprint/*.wav` precisely so "the Gate needs them on a
+    clean checkout", and this is the first asset the Gate needs but the repo
+    cannot ship.
     **Explicitly NOT a photo of the repo's owner** (`spec.md` §4): committing the
     owner's biometrics is a poor default and makes the fixture withdrawable, i.e.
     a test that breaks later. The owner's face is proven **live**, in Task 7's
-    required manual check, never in git. The same reasoning is why a c.1850
-    sitter was preferred over a CC0 photo of an identifiable living person.
-    Flagged forward: **F6 needs a second face**, and its source is now Wikimedia
-    Commons under a verified per-file licence rather than MediaPipe's assets.
-    `.jpg` is not matched by any `.gitignore` rule, so no ignore-exception is
-    needed.
+    required manual check, never in git.
+    Flagged forward: **F6 needs a second face** and now inherits this
+    arrangement as well as the gap, plus a researched CC0 shortlist
+    (`memory/research/2026-07-26-f5-fixture-replacement-candidates.md`).
   - done-criteria:
-    - `uv run python -c "import pathlib; p = pathlib.Path('tests/fixtures/face/met_elderly_man.jpg'); assert p.is_file(), 'the face fixture is not committed'; assert p.stat().st_size > 10_000, f'fixture is implausibly small: {p.stat().st_size} bytes'; r = pathlib.Path('tests/fixtures/face/README.md'); assert r.is_file(), 'the fixture has no provenance README'; t = r.read_text(encoding='utf-8').lower(); assert 'cc0' in t, 'the README does not state the CC0 licence'; assert 'wikimedia' in t, 'the README does not state the source URL'; assert 'vendor reference' in t, 'the README does not disclose the withdrawn vendor-reference assertion'"` → exit 0
-    - `uv run python -c "import cv2; img = cv2.imread('tests/fixtures/face/met_elderly_man.jpg'); assert img is not None, 'the fixture is not a decodable image'; print(img.shape)"` → exit 0 (a real image, not a truncated download)
-    - `uv run python -c "import cv2, mediapipe as mp; from mediapipe.tasks.python import vision, BaseOptions; o = vision.FaceLandmarkerOptions(base_options=BaseOptions(model_asset_path='src/voicelock/models/face_landmarker/face_landmarker.task'), running_mode=vision.RunningMode.IMAGE); lm = vision.FaceLandmarker.create_from_options(o); img = cv2.cvtColor(cv2.imread('tests/fixtures/face/met_elderly_man.jpg'), cv2.COLOR_BGR2RGB); r = lm.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=img)); lm.close(); assert len(r.face_landmarks) == 1, f'expected exactly one face, got {len(r.face_landmarks)}'; assert len(r.face_landmarks[0]) == 478, f'expected 478 landmarks, got {len(r.face_landmarks[0])}'"` → exit 0 (the fixture is **usable**, not merely licensed — a correctly-licensed image the model cannot see would be a useless fixture, and Task 4's real-model test depends on this holding)
+    - `uv run python -c "import pathlib; p = pathlib.Path('tests/fixtures/face/portrait.jpg'); assert p.is_file(), 'the face fixture is not present — fetch it per tests/fixtures/face/README.md; it is licence-restricted and deliberately not committed'; assert p.stat().st_size > 10_000, f'fixture is implausibly small: {p.stat().st_size} bytes'"` → exit 0 (`spec.md` §5's pinned presence check, verbatim — the thing that stops a skipping test turning the Gate green)
+    - `uv run python -c "import subprocess; out = subprocess.run(['git', 'check-ignore', 'tests/fixtures/face/portrait.jpg'], capture_output=True, text=True); assert out.returncode == 0, 'the licence-restricted fixture is NOT gitignored'; out2 = subprocess.run(['git', 'ls-files', '--error-unmatch', 'tests/fixtures/face/portrait.jpg'], capture_output=True, text=True); assert out2.returncode != 0, 'the licence-restricted fixture is TRACKED by git — it must never be committed'"` → exit 0 (**both halves matter**: ignored *and* not already tracked. This is the criterion that actually enforces the human's decision; without it the arrangement is a comment, not a guarantee)
+    - `uv run python -c "import pathlib; r = pathlib.Path('tests/fixtures/face/README.md'); assert r.is_file(), 'the fixture has no provenance README'; t = r.read_text(encoding='utf-8'); low = t.lower(); assert 'mediapipe-assets' in low, 'the README does not state the source URL'; assert 'white house' in low, 'the README does not quote the copyright notice'; assert 'gitignore' in low, 'the README does not explain why the file is absent from git'; assert 'portrait_expected_face_landmarks' in low, 'the README does not mention the committed vendor reference'"` → exit 0
+    - `uv run python -c "import pathlib; p = pathlib.Path('tests/fixtures/face/portrait_expected_face_landmarks.pbtxt'); assert p.is_file(), 'the Apache-2.0 vendor reference is not committed'; assert p.stat().st_size > 10_000, f'vendor reference is implausibly small: {p.stat().st_size} bytes'"` → exit 0 (the reference IS redistributable and must be in the repo — it is what Task 4 asserts against)
+    - `uv run python -c "import cv2; img = cv2.imread('tests/fixtures/face/portrait.jpg'); assert img is not None, 'the fixture is not a decodable image'; print(img.shape)"` → exit 0 (a real image, not a truncated download)
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback:
@@ -319,7 +335,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       (3b) **the preview is mirrored, and only the pixels are** — the composited output is the horizontal mirror of the unflipped composite, while `FrameResult.landmarks` is **unflipped**. An asymmetric synthetic frame makes this unambiguous. This is the test that catches someone "fixing" the mirror by flipping coordinates instead of pixels;
       (4) **no face in frame is a normal state** — a frame is still produced, the overlay is absent, no ERROR;
       (7) **camera-open failure surfaces as ERROR** — both `isOpened()` False and `read()` returning `(False, None)` produce an ERROR status with a human-readable message, and no crash and no spin
-    - **The real model detects a real face** — a test in `tests/test_facedetect.py` that runs the **vendored bundle** (no injected landmarker) against `tests/fixtures/face/met_elderly_man.jpg` and asserts a face is found with 478 landmarks, and that a plain-colour image yields **no** face. This is the line that separates "the bundle is on disk" from "the bundle works". **Amended 2026-07-26:** the vendor-reference half is **withdrawn** — MediaPipe publishes expected landmarks for `portrait.jpg` only, and that image is not redistributable — so assert the 478-landmark detection and the no-face case, and disclose the missing vendor reference in `tests/fixtures/face/README.md` rather than silently asserting less
+    - **The real model detects a real face** — a test in `tests/test_facedetect.py` that runs the **vendored bundle** (no injected landmarker) against `tests/fixtures/face/portrait.jpg` and asserts a face is found with 478 landmarks, and that a plain-colour image yields **no** face. This is the line that separates "the bundle is on disk" from "the bundle works". Assert against MediaPipe's committed `portrait_expected_face_landmarks.pbtxt` — a **vendor reference**, not a self-generated expectation — where the format is practical to parse; if not, say so in the README. **Amended 2026-07-26:** the image is fetched-not-committed, so this test must `pytest.skip` with an explicit reason naming the README when it is absent — never silently, never with fabricated landmarks as a proxy; the pinned presence check is what keeps the Gate honest
     - `uv run python -c "import inspect; from voicelock import facedetect; s = inspect.getsource(facedetect); assert 'model_asset_path' in s, 'model is not loaded from a local path'; assert 'http://' not in s and 'https://' not in s, 'facedetect.py references a URL'"` → exit 0 (`spec.md` §5's pinned command, verbatim — the offline guarantee at source level)
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
@@ -377,7 +393,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       and every Task 4 test still passes unchanged
     - `uv run python -c "import pathlib; t = pathlib.Path('tests/test_facedetect.py').read_text(encoding='utf-8'); assert 'release' in t, 'the camera tests never mention release'; assert 'read' in t, 'the camera tests never drive the real read path'"` → exit 0 (`spec.md` §5's pinned command, verbatim — the per-module analog of F4.5's `assert 'callback' in <test file>`, adapted honestly to a **polling** device)
     - `uv run python -c "import inspect; from voicelock import facedetect; s = inspect.getsource(facedetect); assert 'TARGET_FPS' in s, 'the frame rate is not a named constant'"` → exit 0 (pins §4's one-line-fallback requirement)
-    - **Throughput floor**, against the **real** vendored model and the `met_elderly_man.jpg` fixture: `uv run python -c "import time, cv2, numpy as np; from voicelock import facedetect; eng = facedetect.FaceEngine(); frame = cv2.resize(cv2.imread('tests/fixtures/face/met_elderly_man.jpg'), (facedetect.CAPTURE_WIDTH, facedetect.CAPTURE_HEIGHT)); [eng.process_frame(frame) for _ in range(3)]; t0 = time.perf_counter(); [eng.process_frame(frame) for _ in range(30)]; ms = (time.perf_counter() - t0) / 30 * 1000; print(f'{ms:.1f} ms/frame'); assert ms < 33, f'engine cannot sustain the 30 fps target: {ms:.1f} ms/frame'"` → exit 0, and **the printed number goes in the completion report**. Covers detect + overlay + crop + flip + JPEG encode for 30 consecutive 640×480 frames, averaging under 33 ms
+    - **Throughput floor**, against the **real** vendored model and the `portrait.jpg` fixture: `uv run python -c "import time, cv2, numpy as np; from voicelock import facedetect; eng = facedetect.FaceEngine(); frame = cv2.resize(cv2.imread('tests/fixtures/face/portrait.jpg'), (facedetect.CAPTURE_WIDTH, facedetect.CAPTURE_HEIGHT)); [eng.process_frame(frame) for _ in range(3)]; t0 = time.perf_counter(); [eng.process_frame(frame) for _ in range(30)]; ms = (time.perf_counter() - t0) / 30 * 1000; print(f'{ms:.1f} ms/frame'); assert ms < 33, f'engine cannot sustain the 30 fps target: {ms:.1f} ms/frame'"` → exit 0, and **the printed number goes in the completion report**. Covers detect + overlay + crop + flip + JPEG encode for 30 consecutive 640×480 frames, averaging under 33 ms
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
@@ -455,7 +471,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0 (stdout/stderr contain no ruff error findings)
     - `uv run pytest` → exit 0 (final summary reports 0 failed — the whole existing suite, including all F1–F4.5 tests, still green). Runtime budget: F4.5's final Gate measured **88 passed in 50.42 s**; MediaPipe adds a model load, the real-model detection test and the throughput probe. Whole-suite budget is **within the 10-minute default**; **if the suite exceeds 5 minutes, say so in the completion report** rather than quietly accepting it
     - `uv run pytest tests/test_facedetect.py -q` → exit 0; final summary reports 0 failed. Covers, using only injectable fakes (no real webcam), items (1) (2) (3) (3b) (4) (5) (6) (7) from `spec.md` §5 — built in Tasks 4 and 5
-    - **The real model detects a real face** — the vendored bundle (no injected landmarker) against `tests/fixtures/face/met_elderly_man.jpg`: a face with 478 landmarks; a plain-colour image yields none (vendor-reference assertion withdrawn by the 2026-07-26 amendment; disclosed in the fixture README)
+    - **The real model detects a real face** — the vendored bundle (no injected landmarker) against `tests/fixtures/face/portrait.jpg`: a face with 478 landmarks asserted against the committed vendor reference; a plain-colour image yields none. Skips explicitly if the fetched-not-committed fixture is absent, and the pinned presence check below fails the Gate in that case
     - `uv run pytest tests/test_booth_api.py -q` → exit 0; final summary reports 0 failed. Must **additionally** cover that `start_record` starts the camera and `stop_record` stops it, and that a camera failure does **not** prevent audio recording
     - `uv run python -c "import inspect; from voicelock import facedetect; s = inspect.getsource(facedetect); assert 'model_asset_path' in s, 'model is not loaded from a local path'; assert 'http://' not in s and 'https://' not in s, 'facedetect.py references a URL'"` → exit 0
     - `uv run python -c "import pathlib; p = pathlib.Path('src/voicelock/models/face_landmarker/face_landmarker.task'); assert p.is_file(), 'the model bundle is not vendored'; assert p.stat().st_size > 1_000_000, f'vendored bundle is implausibly small: {p.stat().st_size} bytes'"` → exit 0
@@ -482,7 +498,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    **A guardrail proposal is parked in `handoff.md`**, unwritten pending human
    approval.
 2. Shape of the build: **1** declare the two approved deps → **2** vendor the
-   `.task` bundle → **3** vendor the CC0 `met_elderly_man.jpg` + provenance → **4**
+   `.task` bundle → **3** fetch (not commit) `portrait.jpg` + commit the vendor reference → **4**
    `facedetect.py` per-frame composite on fakes → **5** camera lifecycle
    (30 fps worker, drop-don't-queue, release tripwire, throughput floor) → **6**
    the Booth `<img>` → **7** `BoothApi` wiring + window close (**LAST**, FULL §5,
@@ -491,12 +507,20 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    2026-07-26).** `portrait.jpg` is a **White House press photograph** (EXIF
    `Artist = Pete Souza`) whose embedded notice forbids reproduction or
    dissemination without written permission — committing a fixture is exactly
-   that. Not vendored; downloaded, read, deleted; `tests/fixtures/face/` never
-   created. The Apache-2.0 repo ships only the `portrait_expected_*.pbtxt`
-   outputs, never the image, so the BUILD file's package licence does not reach
-   it. A **CC0** replacement is verified end-to-end — the Met's c.1850
-   `-Elderly Man; Full Face-` daguerreotype, 1 face / 478 landmarks — but
-   adopting it is a **spec amendment**, human-only. Blocks Tasks 4, 5, 7.
+   that. Its "personal use only" clause is granted to **the subjects of the
+   photograph**, not to whoever is using it for a personal project. The
+   Apache-2.0 repo ships only the `portrait_expected_*.pbtxt` outputs, never the
+   image, so the BUILD file's package licence does not reach it.
+   **Resolution (human, 2026-07-26): fetched-not-committed.** Keep
+   `portrait.jpg`, `.gitignore` it, fetch it locally, and **commit** the
+   Apache-2.0 `portrait_expected_face_landmarks.pbtxt` beside it — preserving
+   the **vendor reference**, which exists for this image and no other. A
+   fully-vendored **CC0** alternative was researched and verified end-to-end
+   (the Met's c.1850 `-Elderly Man; Full Face-`, 1 face / 478 landmarks) and is
+   the documented fallback. The arrangement's own risk — a silently skipping
+   test turning the Gate green — is closed by an explicit `pytest.skip` reason
+   plus a pinned **presence check** in §5. Adopting it is a **spec amendment**,
+   human-only, awaiting box 2. Blocks Tasks 4, 5, 7.
    Evidence: `memory/research/2026-07-26-f5-portrait-fixture-licence.md` and
    `…-f5-fixture-replacement-candidates.md`.
 

@@ -30,3 +30,10 @@ vaults/
 
 # ...but committed test fixtures are the exception (Gate needs them on a clean checkout)
 !tests/fixtures/voiceprint/*.wav
+
+# Licence-restricted face fixture — fetched locally, deliberately NEVER committed.
+# It is a White House press photograph whose own notice forbids reproduction or
+# dissemination without written permission; committing it into git history is
+# exactly that. Fetch it per tests/fixtures/face/README.md. The Apache-2.0
+# vendor reference (portrait_expected_face_landmarks.pbtxt) IS committed beside it.
+tests/fixtures/face/portrait.jpg

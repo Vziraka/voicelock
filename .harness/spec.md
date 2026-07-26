@@ -9,27 +9,31 @@ Feature: Feature 5 from `roadmap.md`
   hits in this file)
 - [ ] Approved by human
 
-> **AMENDMENT 2 of 2026-07-26 — the FIXTURE changed. Box 2 re-opened,
-> awaiting the human's `x`.**
-> `spec.md` originally named MediaPipe's `portrait.jpg`. Its download-time
-> licence check **failed**: it is a White House press photograph (EXIF
-> `Artist = Pete Souza`) whose notice forbids reproduction or dissemination
-> without written permission from the White House Photo Office — which is what
-> committing a fixture does. It was downloaded, read, and **deleted**; it never
-> entered the repo. The human chose the replacement on 2026-07-26.
-> **What changed:** §4's "Fixture provenance" block now names
-> `-Elderly Man; Full Face-` (Met 37.14.52) — **CC0 1.0**, a c.1850
-> daguerreotype donated by the Metropolitan Museum — vendored as
-> `tests/fixtures/face/met_elderly_man.jpg`; §5's real-model test and
-> throughput floor point at the new filename; §5's **vendor-reference**
-> sub-requirement is **withdrawn** (MediaPipe publishes expected landmarks for
-> `portrait.jpg` only, which we cannot ship) and replaced by an explicit
-> disclosure requirement in the fixture README; §4's F6 note now points at
-> Wikimedia Commons as the source for face B.
+> **AMENDMENT 2 of 2026-07-26 — the fixture becomes FETCHED-NOT-COMMITTED.
+> Box 2 re-opened, awaiting the human's `x`.**
+> `spec.md` named MediaPipe's `portrait.jpg`. Its download-time licence check
+> **failed**: it is a White House press photograph (EXIF `Artist = Pete Souza`)
+> whose notice forbids reproduction or dissemination without written permission
+> from the White House Photo Office. Critically, its "personal use only" clause
+> is granted to **the subjects of the photograph**, not to whoever is using it
+> for a personal project — the human weighed exactly that distinction on
+> 2026-07-26 and chose this arrangement.
+> **What changed:** the image stays `portrait.jpg` but is **fetched to the
+> developer's machine and never committed** — added to `.gitignore`. The repo
+> carries the README and the **committed** `portrait_expected_face_landmarks.pbtxt`
+> (Apache-2.0, genuinely shipped in `google-ai-edge/mediapipe`; only the
+> photograph is restricted). §5's real-model test **keeps its vendor-reference
+> assertion** and must `pytest.skip` with an explicit reason when the fixture is
+> absent; a **new pinned Gate command** asserts the fixture is present, so the
+> Gate cannot go green while that test is skipping. §4's F6 note now says F6
+> inherits the arrangement plus a researched CC0 shortlist.
 > **What did NOT change:** scope, outcome, non-goals, the camera architecture,
 > the 30 fps target, the engine contract, and every other Verification command.
-> The replacement was verified against the **vendored** bundle before this was
-> written: 1 face / 478 landmarks, and plain grey 640×480 → 0 faces.
+> **Rejected, and kept as the documented fallback:** vendoring a CC0 substitute
+> (the Met's c.1850 `-Elderly Man; Full Face-`, researched and verified at
+> 1 face / 478 landmarks). It was offered first; the human chose
+> fetched-not-committed because it preserves the vendor reference, which exists
+> for `portrait.jpg` and for no other image.
 > Re-scan of the changed sections: **zero** clarification markers; Grilling
 > record stays `CLEAR`.
 > Tasks 1 and 2 are `DONE` and unaffected. Task 3 is `BLOCKED` and resumes when
@@ -341,58 +345,65 @@ must raise a `BaseException` **subclass** if the engine's teardown path wraps
 anything in a blanket `except Exception`, so it cannot be silently swallowed;
 verify that deliberately rather than assuming.
 
-**Fixture provenance (AMENDED 2026-07-26 — the original choice failed its own
-licence check):** at least one test runs the **real** vendored model against a
-real face image, so the bundle is proven to *detect* rather than merely to exist.
+**Fixture provenance (AMENDED 2026-07-26 — the licence check failed, and the
+fixture is now FETCHED-NOT-COMMITTED):** at least one test runs the **real**
+vendored model against a real face image, so the bundle is proven to *detect*
+rather than merely to exist.
 
-The fixture is **`-Elderly Man; Full Face-` (Met accession 37.14.52)**, a circa-1850
-daguerreotype by Southworth & Hawes, released **CC0 1.0** by the Metropolitan
-Museum of Art via Wikimedia Commons, vendored as
-`tests/fixtures/face/met_elderly_man.jpg`:
-`https://upload.wikimedia.org/wikipedia/commons/8/82/-Elderly_Man%3B_Full_Face-_MET_37.14.52.jpg`
+The fixture is still MediaPipe's canonical `portrait.jpg` —
+`https://storage.googleapis.com/mediapipe-assets/portrait.jpg` — but it is
+**fetched to the developer's machine and never committed**. It is named in
+`.gitignore`; the repo carries only the README and the vendor reference.
 
-**Why not MediaPipe's `portrait.jpg`, which this spec originally named.** The
-download-time licence check ran and **failed**: that image carries its own EXIF
-copyright notice — `Artist = Pete Souza`, and a White House statement that it
-*"may be printed by the subject(s) in the photograph for personal use only …
-may not be manipulated in any way and may not otherwise be reproduced,
-disseminated or broadcast, without the written permission of the White House
-Photo Office."* Committing a fixture **is** reproducing and disseminating it.
-Its presence in an Apache-2.0 `BUILD` file does not help: the repo ships only
-the `portrait_expected_*.pbtxt` **outputs** and no `.jpg` at all, and a
-package-level Bazel licence cannot override an asset's own embedded notice.
-The image was downloaded, read, and deleted; it never entered the repo.
+**Why it is not committed.** The download-time licence check ran and **failed**:
+the image carries its own EXIF copyright notice — `Artist = Pete Souza`, and a
+White House statement that it *"may be printed by the subject(s) in the
+photograph for personal use only … may not be manipulated in any way and may not
+otherwise be reproduced, disseminated or broadcast, without the written
+permission of the White House Photo Office."* The personal-use permission is
+granted to **the subjects of the photograph**, not to whoever is using it for a
+personal project — a distinction the human explicitly weighed on 2026-07-26.
+Committing the file into git **is** reproducing and disseminating it, and git
+history is effectively permanent; keeping a working copy on one's own disk is
+not. Its presence in an Apache-2.0 `BUILD` file does not help either: the repo
+ships only the `portrait_expected_*.pbtxt` **outputs** and no `.jpg` at all, and
+a package-level Bazel licence cannot override an asset's own embedded notice.
 Full evidence: `memory/research/2026-07-26-f5-portrait-fixture-licence.md`.
 
-This still follows F3's precedent in shape — its voice fixtures were "derived
-offline from the SpeechBrain `spkrec-ecapa-voxceleb` model repo's own example
-clips (Apache-2.0), the same source as the vendored model"
-(`tests/fixtures/voiceprint/README.md`) — but **not** in source: the fixture no
-longer comes from the model's own project, because that project's image is not
-redistributable.
+**What this buys, and why it was chosen over a CC0 substitute.** A fully-vendored
+CC0 alternative was researched, verified and offered (the Met's c.1850
+`-Elderly Man; Full Face-`, 1 face / 478 landmarks —
+`memory/research/2026-07-26-f5-fixture-replacement-candidates.md`, kept as the
+documented fallback). The human chose fetched-not-committed because it keeps the
+**vendor reference**: MediaPipe publishes expected landmarks for `portrait.jpg`
+and for no other image, so this is the only fixture against which the test can
+assert Google's own published coordinates rather than a self-generated
+expectation.
 
-- **The licence is established per asset, from a source that names it:**
-Wikimedia Commons' API returns `LicenseShortName: CC0` and
-`UsageTerms: Creative Commons Zero, Public Domain Dedication` for this exact
-file, corroborated by the Met's Open Access Policy. That is the standard
-`project.md`'s `[Approval]` guardrail requires.
-- **No living subject.** The sitter and both photographers died in the 19th
-century. This is the same reasoning that keeps the repo owner's face out of git
-(below), applied consistently: it does not stop at the owner. It also makes the
-fixture **stable** — a c.1850 museum donation cannot ask to be withdrawn, so it
-will not become a test that breaks later.
-- **Lost by the change, and disclosed rather than hidden:** MediaPipe publishes
-expected output for `portrait.jpg` only
-(`portrait_expected_face_landmarks.pbtxt` in `mediapipe/tasks/testdata/vision/`),
-so the test can no longer assert against a **vendor reference**. What remains is
-the assertion this spec calls the important one: a real face found with **478**
-landmarks, and a plain-colour image yielding none. Both were confirmed against
-the vendored bundle before this amendment was written. Say so in the fixture
-README rather than silently asserting less.
+- **`portrait_expected_face_landmarks.pbtxt` IS committed.** It ships in the
+Apache-2.0 `google-ai-edge/mediapipe` repo (`mediapipe/tasks/testdata/vision/`)
+and is freely redistributable — only the photograph is not. Committing the
+reference while ignoring the image is the whole point of this arrangement.
+- **The skip must not be silent.** A test that quietly skips when the fixture is
+absent is the F4.5 defect class in a new shape — a green Gate proving nothing.
+So: `pytest` **skips with an explicit reason** naming the README (friendly on a
+bare checkout), **and** the Verification section pins a separate command
+asserting the fixture is present. The Gate — which is what declares a task done
+— therefore cannot pass without the real image, while `uv run pytest` alone
+stays usable.
+- **This is a deliberate, disclosed departure from F3's precedent.** F3's voice
+fixtures are committed, and `.gitignore` already carries
+`!tests/fixtures/voiceprint/*.wav` to guarantee "the Gate needs them on a clean
+checkout". This fixture inverts that: it is the first asset in the repo the Gate
+needs but cannot ship. The README must say so plainly.
 - Provenance and licence go in `tests/fixtures/face/README.md`, in the shape
-`tests/fixtures/voiceprint/README.md` already established. **The licence must be
-verified at download**, exactly as for the `.task` bundle; if it does not check
-out, STOP and escalate rather than substituting another image.
+`tests/fixtures/voiceprint/README.md` already established, and must include the
+**exact fetch command**, the full copyright notice quoted above, and the reason
+the file is absent from git.
+- **The licence must be verified at download**, exactly as for the `.task`
+bundle; if it does not check out, STOP and escalate rather than substituting
+another image. That is what happened here, and the escalation produced this
+arrangement.
 - **That check has teeth — "it comes from Google's MediaPipe project" is NOT
 sufficient evidence.** Written before the check ran, and **vindicated by it**:
 this spec predicted the failure mode from MediaPipe's face_detector sample,
@@ -417,11 +428,12 @@ This is the same wall F3 hit (its model repo shipped one clip per speaker, which
 is why its same-speaker probe is a window of the same recording, disclosed as a
 caveat). A photo cannot be split that way, so **F6's spec must say where face B
 comes from**. Named here so it surfaces at spec time rather than mid-build.
-**Updated by the 2026-07-26 amendment:** F6's source is now Wikimedia Commons
-under a verified per-file licence, not MediaPipe's assets — the documented
-fallback `'head shot' JRCDP.jpg` (CC0, detects at 478 landmarks) is one
-candidate, though its identifiable living subject is the reservation recorded in
-`memory/research/2026-07-26-f5-fixture-replacement-candidates.md`.
+**Sharpened by the 2026-07-26 amendment:** F5's fixture is fetched-not-committed,
+so F6 inherits the *arrangement* as well as the gap — it must decide whether its
+two faces are committed or fetched, and it now has a researched CC0 shortlist to
+draw on (`memory/research/2026-07-26-f5-fixture-replacement-candidates.md`:
+the Met daguerreotype, and `'head shot' JRCDP.jpg` with its identifiable-living-
+subject reservation).
 - Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
 `uv run pytest` → exit 0.
 
@@ -486,17 +498,22 @@ flow again;
 human-readable message, and no crash and no spin.
 - **The real model detects a real face** — a test in `tests/test_facedetect.py`
 that runs the **vendored bundle** (no injected landmarker) against
-`tests/fixtures/face/met_elderly_man.jpg` and asserts a face is found with 478
+`tests/fixtures/face/portrait.jpg` and asserts a face is found with 478
 landmarks, and that a plain-colour image yields **no** face. This is the line
-that separates "the bundle is on disk" from "the bundle works".
-**Amended 2026-07-26:** the vendor-reference half of this criterion is
-**withdrawn** — MediaPipe publishes expected landmarks for `portrait.jpg` only,
-and that image is not redistributable (§4), so there is no vendor reference for
-the fixture we can legally ship. Assert the 478-landmark detection and the
-no-face-on-plain-colour case, and **state the missing vendor reference** in
-`tests/fixtures/face/README.md` rather than silently asserting less. Both
-assertions were confirmed against the vendored bundle before this amendment was
-written (1 face / 478 landmarks; plain grey 640×480 → 0 faces).
+that separates "the bundle is on disk" from "the bundle works". Assert the
+landmarks against MediaPipe's published
+`portrait_expected_face_landmarks.pbtxt` — a **vendor reference**, not a
+self-generated expectation — where the format is practical to parse; if it is
+not, say so in `tests/fixtures/face/README.md` rather than silently asserting
+less.
+**Amended 2026-07-26:** the image is **fetched, not committed** (§4), so this
+test must `pytest.skip` with an explicit reason naming the README when the
+fixture is absent — never fail silently, and never fabricate landmarks as a
+proxy. The Gate closes that hole with the presence check pinned below.
+- `uv run python -c "import pathlib; p = pathlib.Path('tests/fixtures/face/portrait.jpg'); assert p.is_file(), 'the face fixture is not present — fetch it per tests/fixtures/face/README.md; it is licence-restricted and deliberately not committed'; assert p.stat().st_size > 10_000, f'fixture is implausibly small: {p.stat().st_size} bytes'"`
+→ exit 0. **Added by the 2026-07-26 amendment.** This is what stops the
+fetched-not-committed arrangement from turning a green Gate into a lie: the
+real-model test above may skip, but the Gate may not pass while it is skipping.
 - `uv run pytest tests/test_booth_api.py -q` → exit 0; final summary reports 0
 failed. Must additionally cover that `start_record` starts the camera and
 `stop_record` stops it, and that a camera failure does **not** prevent audio
@@ -513,7 +530,7 @@ tripwire, adapted honestly to a **polling** device: `cv2.VideoCapture` exposes
 no callback, so `read()` **is** the real path a fake must deliver through, and
 `release()` is the teardown a fake must trip on.
 - **Throughput floor**, run against the **real** vendored model and the
-`met_elderly_man.jpg` fixture: `uv run python -c "..."` → exit 0, asserting that
+`portrait.jpg` fixture: `uv run python -c "..."` → exit 0, asserting that
 detect + overlay + crop + flip + JPEG encode for 30 consecutive 640×480 frames
 averages **under 33 ms per frame** — i.e. the engine alone sustains the 30 fps
 target before the bridge is involved. Pin the measured number in the completion
