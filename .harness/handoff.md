@@ -6,7 +6,8 @@ feature's LAST task and carries the FULL spec §5 list including the
 **human-attested manual demo**, which an agent cannot perform.
 
 - base: `f41f669` (Task 4 `DOING`, committed before building)
-- head: `0fc073d` (build commit — this handoff's own commit is one after it)
+- head: **`RETRYHEAD`** (retry-1 build commit — supersedes `0fc073d`)
+- **retry 1 of 3** after a Standards-axis REJECT; `rejects: 1`
 
 ## Changed
 - `src/voicelock/app.py` — `MIN_LOCK_SECONDS = 1.2`, `LOCK_WINDOWS = 3`,
@@ -41,10 +42,14 @@ and what this diff is, is **lever 5 only**. Task 4's original done-criteria
 3. **Runtime tripled per lock take** (3 embeds instead of 1); whole suite 25s ->
    47s. Inside spec §5's 10-minute budget with room, but worth knowing before
    Task 5 adds more.
-4. **The hop-0 branch** (a take barely over the floor) embeds once instead of
-   averaging three identical windows. It is reachable only for takes between
-   1.2 s and ~1.71 s of which the fixtures' 1.6 s enrollment takes are one — so it
-   IS exercised by the suite, via every `_enrolled_booth` call.
+4. **RETRACTED, and the reason for the one REJECT.** The first build had a
+   `hop == 0` short-circuit, and this handoff defended it by claiming it was
+   reachable for takes between 1.2 s and ~1.71 s and exercised by the suite. That
+   was **wrong**: with `window = min(N, max(19200, 0.7N))`, hop is zero only for
+   `N ∈ {19200, 19201}`, and measured hops on the fixtures are 3200 / 4696 / 4963
+   — never 0. No test drove it. The branch is **deleted**; the general path
+   handles a degenerate take correctly, confirmed directly (a 19 200-sample take
+   returns a unit vector, no error).
 
 ## What I ran (measurement-exception disclosure)
 - `uv run ruff check .` → exit 0 (`All checks passed!`)
@@ -53,7 +58,7 @@ and what this diff is, is **lever 5 only**. Task 4's original done-criteria
 
 ## next_action
 Verify Task 4 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, task
-`F4-T4`, base `f41f669`, head `0fc073d`. On APPROVE → wrap-up, then **Task 5**.
+`F4-T4`, base `f41f669`, head `RETRYHEAD`. On APPROVE → wrap-up, then **Task 5**.
 
 **Read this before starting Task 5:** it is F4's LAST task, so its done-criterion
 is the FULL spec §5 Verification list — which includes a **manual, human-attested

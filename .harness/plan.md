@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, Task 4 `DOING` (retry 1 of 3)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, Task 4 `REVIEW` (retry 1 applied)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -225,7 +225,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          write).
 
 - [ ] **Task 4** — Bridge: `BoothApi` 5-take voice enroll + voice unlock with distinct reject reasons
-  - state: DOING
+  - state: REVIEW
   - built 2026-07-26 (lever 5, the reduced scope): `app.py` gains
     `MIN_LOCK_SECONDS = 1.2` (3x F3's 0.4 s diagnostic floor), `LOCK_WINDOWS = 3`,
     `LOCK_WINDOW_FRACTION = 0.7`, and `lock_voiceprint()` — which embeds a take as

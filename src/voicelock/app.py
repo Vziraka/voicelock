@@ -58,12 +58,9 @@ def lock_voiceprint(audio: np.ndarray) -> np.ndarray:
         signal.size,
         max(int(MIN_LOCK_SECONDS * SAMPLE_RATE), int(signal.size * LOCK_WINDOW_FRACTION)),
     )
+    # A take sitting exactly on the floor gives hop 0, so the three windows are
+    # the same audio — averaging them is a no-op rather than a special case.
     hop = (signal.size - window) // (LOCK_WINDOWS - 1)
-    if hop == 0:
-        # The take is barely over the floor, so every window would be the same
-        # audio — average nothing and just embed it once.
-        return voiceprint.embed(signal)
-
     embeddings = [
         voiceprint.embed(signal[index * hop : index * hop + window])
         for index in range(LOCK_WINDOWS)
