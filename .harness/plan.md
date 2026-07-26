@@ -2,11 +2,11 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Task 1 `REVIEW` (awaiting fresh-eyes verification), Tasks 2–3 `TODO`**
+- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1 `DONE`, Tasks 2–3 `TODO`. Next: Task 2.**
   (Spec approved at box 2 by the human 2026-07-26. Mode 3 is the standing "go":
-  implement starts Task 1 in a fresh session without a further human word. The
-  feature closes calibration findings 1–3; findings 3-as-`voiceprint.py`-surface
-  and 4 are explicit non-goals, filed for F9.)
+  Task 1's wrap-up completed, so the session takes Task 2 without a further
+  human word. The feature closes calibration findings 1–3; findings
+  3-as-`voiceprint.py`-surface and 4 are explicit non-goals, filed for F9.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -17,8 +17,8 @@ Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — Declare `soundfile` as a main dependency (manifest only, no code change)
-  - state: REVIEW
+- [x] **Task 1** — Declare `soundfile` as a main dependency (manifest only, no code change)
+  - state: DONE
   - rejects: 0
   - files: `pyproject.toml`, `uv.lock`
   - notes: `uv add soundfile` — nothing else. The TECH-PICK is already run and
@@ -152,8 +152,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4.5 is planned: 3 tasks, all `TODO`, Mode 3.** F4 is COMPLETE and
-   archived in git (`22e6a4a`); its ledger is gone from this file by design.
+1. 2026-07-26 — **Task 1 is `DONE` (verdict `2026-07-26-F4.5-T1.json`, APPROVE,
+   first pass, subagent). `soundfile>=0.14.0` is now a declared main dependency;
+   no code changed and no package version moved. Tasks 2–3 remain — next is
+   Task 2.**
 2. What F4.5 closes: the PortAudio callback **self-deadlock** (`_on_audio` calls
    `_close_stream()` → `stream.stop()`, which blocks until the callback returns —
    the code does the opposite of its own comment), the **zero coverage** of that

@@ -1,0 +1,26 @@
+{
+  "task": "T1",
+  "spec": "spec.md@be78be5",
+  "change": "727fbbc..0ae0fd3",
+  "gate": {
+    "commands": [
+      "uv run python -c \"import tomllib, pathlib; deps = tomllib.loads(pathlib.Path('pyproject.toml').read_text(encoding='utf-8'))['project']['dependencies']; assert any(d.replace(' ', '').lower().startswith('soundfile') for d in deps), 'soundfile is not a declared dependency'\"",
+      "uv run python -c \"import soundfile; print(soundfile.__version__)\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "All four exited 0. soundfile resolved to 0.14.0; ruff 'All checks passed!'; pytest '83 passed in 53.80s' against the spec's ~48 s reference, inside the 10-minute default budget. Intermediate task, so the plan.md done-criteria list applied, not the full spec Verification list (that lands on Task 3)."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Spec axis: soundfile>=0.14.0 sits in [project].dependencies (pyproject.toml:11), not the dev group; zero .py/src/tests/UI files in the diff, so spec 4's 'no code change' holds literally; uv.lock gained only the two direct-edge lines under the voicelock package (the soundfile block at uv.lock:1372 pre-existed as a SpeechBrain transitive), so no package version moved and F3/F4's measured cutoffs face no resolution-change risk. Standards axis: uv add (not bare pip) evidenced by the dual dependencies/requires-dist lock edit; the TECH-PICK at memory/decisions.md:25-27 is human-approved and pre-dates the spec; neither earned guardrail is triggered (no new helper/branch, no UI file). Handoff doubts folded in and both cleared: the CRLF warnings are working-copy only (3 insertions / 0 deletions across the manifests), and the 'main dependency no runtime path uses' limit was pre-weighed and accepted at TECH-PICK time, not a fresh defect. Approved first pass, rejects: 0."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-26",
+  "note": "Filename uses F4.5 because the roadmap feature is literally numbered 4.5 (a feature inserted between F4 and F5 by human decision 2026-07-26); the README's {date}-F{n}-T{n} convention is followed with n = 4.5. Learn scan outcome: no lesson met the bar. The task was a one-command manifest edit, approved on the first pass with zero rework, no human course-correction, and no non-obvious pattern uncovered — the only judgment in it (soundfile vs torchaudio vs dev-group vs stdlib wave) was made and recorded during the TECH-PICK before the spec existed, so there is nothing the build itself taught that would recur. No idea was declined by the human during this task, so no .out-of-scope/ file was owed."
+}
