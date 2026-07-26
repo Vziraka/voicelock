@@ -12,11 +12,14 @@ import webview
 
 from voicelock import voiceprint
 from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, SAMPLE_RATE
+from voicelock.middlelock import ENROLLMENT_TAKES
 from voicelock.playback import PlaybackEngine
 from voicelock.vault import (
     AuthError,
+    LegacyVaultError,
     NoVaultError,
     ValidationError,
+    VoiceAuthError,
     default_vault_path,
     enroll as vault_enroll,
     unlock as vault_unlock,
@@ -40,6 +43,10 @@ class BoothApi:
         self.vault_path = vault_path if vault_path is not None else default_vault_path()
         self.ref_path = ref_path if ref_path is not None else voiceprint.default_reference_path()
         self._reference_takes: list[np.ndarray] = []
+        # F4 enrollment voiceprints, banked one per sentence by enroll_take().
+        # Kept separate from _reference_takes: that list belongs to the F3
+        # diagnostic panel, which spec §3 keeps as an independent thing.
+        self._enroll_voiceprints: list[np.ndarray] = []
         self._window: Any = None
         self._pumping = False
         self._pump_thread: threading.Thread | None = None
@@ -56,8 +63,39 @@ class BoothApi:
             return {"ok": False, "error": error}
         return {"ok": True}
 
+    def enroll_take(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Bank the last captured take as one of the enrollment sentences.
+
+        Called once per recorded sentence until ``ENROLLMENT_TAKES`` are banked;
+        ``enroll`` then seals the vault from them. A too-short or silent take is
+        rejected with ``need_more_audio`` and does NOT advance progress — the
+        caller re-records just that sentence, with no penalty.
+        """
+        buf = self.capture.pcm_buffer()
+        try:
+            embedding = voiceprint.embed(buf)
+        except voiceprint.NeedMoreAudioError:
+            return {
+                "ok": False,
+                "error": "need_more_audio",
+                "progress": len(self._enroll_voiceprints),
+            }
+        self._enroll_voiceprints.append(embedding)
+        progress = len(self._enroll_voiceprints)
+        return {
+            "ok": True,
+            "done": progress >= ENROLLMENT_TAKES,
+            "progress": progress,
+            "needed": ENROLLMENT_TAKES,
+        }
+
+    def reset_enroll_takes(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Discard any half-finished enrollment run."""
+        self._enroll_voiceprints = []
+        return {"ok": True, "progress": 0, "needed": ENROLLMENT_TAKES}
+
     def enroll(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Seal (or overwrite) the Vault with name + passphrase."""
+        """Seal (or overwrite) the Vault with name + passphrase + the banked voice."""
         data = payload or {}
         name = str(data.get("name", "") or "")
         passphrase = str(data.get("passphrase", "") or "")
@@ -66,8 +104,17 @@ class BoothApi:
         if self.vault_path.is_file() and not overwrite:
             return {"ok": False, "needs_confirm": True}
 
+        if len(self._enroll_voiceprints) < ENROLLMENT_TAKES:
+            return {
+                "ok": False,
+                "error": "need_voice_takes",
+                "progress": len(self._enroll_voiceprints),
+                "needed": ENROLLMENT_TAKES,
+            }
+
+        voiceprints = self._enroll_voiceprints[:ENROLLMENT_TAKES]
         try:
-            vault_enroll(name, passphrase, path=self.vault_path)
+            vault_enroll(name, passphrase, voiceprints, path=self.vault_path)
         except ValidationError as exc:
             return {
                 "ok": False,
@@ -76,18 +123,37 @@ class BoothApi:
             }
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": str(exc) or "Enroll failed"}
+        self._enroll_voiceprints = []  # a sealed vault consumes the run
         return {"ok": True, "name": name.strip(), "path": str(self.vault_path)}
 
     def unlock(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Open the outer lock; return the enrolled display name."""
+        """Peel the outer then the middle lock; return the enrolled display name.
+
+        The two REJECT reasons stay visibly distinct, per spec §3: ``auth_outer``
+        for a wrong passphrase, ``auth_voice`` for a voice that did not match.
+        No failure path returns a ``name``.
+        """
         data = payload or {}
         passphrase = str(data.get("passphrase", "") or "")
+
+        if not self.vault_path.is_file():
+            return {"ok": False, "error": "no_vault"}
+
         try:
-            name = vault_unlock(passphrase, path=self.vault_path)
+            voiceprint_vector = voiceprint.embed(self.capture.pcm_buffer())
+        except voiceprint.NeedMoreAudioError:
+            return {"ok": False, "error": "need_more_audio"}
+
+        try:
+            name = vault_unlock(passphrase, voiceprint_vector, path=self.vault_path)
         except NoVaultError:
             return {"ok": False, "error": "no_vault"}
         except AuthError:
-            return {"ok": False, "error": "auth"}
+            return {"ok": False, "error": "auth_outer"}
+        except VoiceAuthError:
+            return {"ok": False, "error": "auth_voice"}
+        except LegacyVaultError:
+            return {"ok": False, "error": "legacy_vault"}
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": str(exc) or "Unlock failed"}
         return {"ok": True, "name": name}
