@@ -26,7 +26,12 @@
   verifier**, including the `wait(FRAME_INTERVAL)` mutation that exposed the
   original gap. **Throughput ~8 ms/frame** against the 33 ms budget, so
   `TARGET_FPS` stays at **30**. Suite: **114 passed**.
-  **Task 6 is next** — UI only, the `<img>` preview in the existing face disk.
+  **Task 6 `DONE`** (verdict `…-F5-T6.json`, APPROVE first pass, `rejects: 0`) —
+  the Booth `<img>` sits in the existing 172 px disk with zero layout shift, no
+  page-side cropping/scaling/mirroring, and **no camera state in JS**.
+  **Task 7 is the LAST task** — `BoothApi` wiring + window-close release, whose
+  done-criterion is the FULL `spec.md` Verification list and which will
+  **`ESCALATE_HUMAN`** on the human-attested manual demo.
   Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
   the enforcement check for the per-asset licence guardrail; (2) the fixture
   change.**
@@ -455,8 +460,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
 
-- [ ] **Task 6** — Booth UI: the `<img>` preview in the face disk, `setFaceFrame` / `setFaceIdle`
-  - state: REVIEW
+- [x] **Task 6** — Booth UI: the `<img>` preview in the face disk, `setFaceFrame` / `setFaceIdle`
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: The page's **only** job (`spec.md` §4): assign the pushed data URI to an
@@ -542,10 +547,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F5 is BUILDING: Tasks 1–5 `DONE`, 2 remain.** Tasks 1–4 landed
-   APPROVE on the first pass; **Task 5 took one REJECT** (`rejects: 1`) for an
-   untested branch and a tautological pacing test, both since fixed and
-   mutation-checked. Dependencies declared
+1. 2026-07-26 — **F5 is BUILDING: Tasks 1–6 `DONE`, only Task 7 remains.** Five
+   of six landed APPROVE on the first pass; **Task 5 took one REJECT**
+   (`rejects: 1`) for an untested branch and a tautological pacing test, both
+   since fixed and mutation-checked 4/4. Dependencies declared
    (`mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`) with **nothing
    moved underneath F4** — `numpy` 2.2.6, `torch` 2.13.0 — so
    `CORRECTION_RADIUS = 110` and `ACCEPT_CUTOFF = 0.45` are undisturbed; the
@@ -556,8 +561,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    against MediaPipe's published coordinates at 0.005645 max deviation; and the
    **camera lifecycle** runs on its own daemon thread with halt→join→release
    ordering, drop-don't-queue pacing and a `BaseException` release tripwire, at
-   **~8 ms/frame** against the 33 ms budget. Suite: **114 passed**.
-   Remaining: **6** Booth `<img>` → **7** wiring + the human-attested demo.
+   **~8 ms/frame** against the 33 ms budget; and the **Booth `<img>`** renders
+   what Python pushes, in the existing disk, holding no camera state of its own.
+   Suite: **114 passed**. Remaining: **Task 7 only** — `BoothApi` wiring,
+   window-close release, the FULL §5 list, and the human-attested live demo.
    **Verification runs on the subagent path** for F5 — human-authorized
    2026-07-26, which closed the previous handoff's open item 1.
    **A guardrail UPDATE is parked in `handoff.md`**, unwritten pending human

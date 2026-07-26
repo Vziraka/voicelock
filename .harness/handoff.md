@@ -1,8 +1,12 @@
-# Handoff — F5 Task 6 built, now `REVIEW`
+# Handoff — F5 Tasks 1–6 `DONE`; only Task 7 remains
 
-Session of 2026-07-26. Tasks 1–5 `DONE` (Task 5 with `rejects: 1`). Task 6 — the
-Booth `<img>` preview — is built and `REVIEW`. **Task 7 is the last one**, and
-it needs a human at the end.
+Session of 2026-07-26. Six of seven tasks closed — five APPROVE on the first
+pass, Task 5 with `rejects: 1`. Task 6 is now `DONE` too (Gate 4/4, Review
+APPROVE both axes, verdict `memory/verdicts/2026-07-26-F5-T6.json`).
+
+**Task 7 is the last one, and it ends with a human touchpoint** — its
+done-criterion is the FULL `spec.md` Verification list including the manual
+camera demo, which no automated check can stand in for.
 
 ## Changed
 
@@ -106,9 +110,11 @@ only"*).
 
 ## next_action
 
-**Verify Task 6** — clean-context verifier via `formats/VERIFIER-PROMPT.md`,
-verbatim, spawned by this session. Task 6's done-criteria are its `plan.md`
-list; it is an intermediate task, so the full §5 list belongs to Task 7.
+**`/implement` F5 Task 7 — wire `BoothApi` to Record/Stop and release the camera
+on window close.** `Mode: Mode 3` is the standing "go" and Task 6's wrap-up
+completed. **This is the feature's last task**: expect the Gate to return
+`ESCALATE_HUMAN` on the manual demo line, and do not mark it `DONE` or write its
+verdict until the human attests the live check.
 
 ## Commits
 
