@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DONE`, Task 2 `DOING`
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DONE`, Task 2 `REVIEW`
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -10,8 +10,9 @@
   inside F4. Grilling re-scanned after the amendment — still zero markers.
   Task 1 is `DONE` — verified by a clean-context subagent (GATE PASS, REVIEW
   APPROVE, both axes), verdict `memory/verdicts/2026-07-26-F4-T1.json`.
-  **Task 2 (`middlelock.py`) is `DOING`** — the feature's riskiest task; Tasks
-  3–5 stay `TODO` under WIP=1.)
+  **Task 2 (`middlelock.py`) is `REVIEW`** — it separated genuine from impostor
+  with a wide margin, so the `BLOCKED` branch did not fire; Tasks 3–5 stay
+  `TODO` under WIP=1.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -67,7 +68,26 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — `middlelock.py`: LSH binarize + reliability mask + repetition ECC + commit/reconcile + key derive
-  - state: DOING
+  - state: REVIEW
+  - built 2026-07-26 — **it separates, with a wide margin; not BLOCKED.** Pinned
+    constants: `CANDIDATE_BITS=4096`, `RELIABLE_BITS=512`, `KEY_BITS=32`,
+    `REPETITION=16`, `CORRECTION_RADIUS=110`. Measured over **200 independent
+    commits** (each draws a fresh random LSH seed): the same-speaker probe and all
+    five enrollment takes leave **0** residual bits; the harder same-speaker F3
+    thirds (cosine 0.12–0.43 from the enrollment mean) reach **63**; the impostor
+    never fell below **156**. The radius is the midpoint of that 63…156 gap.
+    Lever findings, honestly: (1) **soft decoding makes no measurable difference
+    on these fixtures** — worst genuine 51 either way, impostor floor 167 soft vs
+    165 hard — because the fixtures never approach the decision boundary; kept
+    anyway since it cannot lose and the fixtures under-represent real noise;
+    (2) unanimity + margin masking is what does the work; (6) **centering: the
+    vendored `mean_var_norm_emb.ckpt` is NOT applied** — `encode_batch`'s
+    `normalize` defaults to `False` and `voiceprint.embed` never passes it.
+    Enabling it changes the gap by 1 bit (117 vs 116), i.e. nothing, and would
+    require editing F3's `voiceprint.py` which spec §4 forbids. Measured, not
+    adopted. KDF choice: **Argon2id INTERACTIVE** for the middle lock (the outer
+    lock already pays MODERATE, and this layer is only reachable once the outer
+    has fallen); two stretches per unlock; full suite runs in ~11 s.
   - rejects: 0
   - files: `src/voicelock/middlelock.py`, `tests/test_middlelock.py`
   - notes: The spec's keystone (§4, as amended 2026-07-26), hand-rolled in **pure
