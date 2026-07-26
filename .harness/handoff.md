@@ -1,7 +1,42 @@
-# Handoff — F5 Task 7 built, now `REVIEW` (the LAST task)
+# Handoff — F5 Task 7 rebuilt after REJECT #1, now `REVIEW` (the LAST task)
 
-Session of 2026-07-26. Tasks 1–6 `DONE`. **Task 7 — the wiring that makes the
-demo real — is built and `REVIEW`.**
+Session of 2026-07-26. Tasks 1–6 `DONE`. **Task 7 was rejected once, is fixed,
+and is back at `REVIEW` with `rejects: 1`.**
+
+## The REJECT, and the fix
+
+**The camera was never released when a take ended by itself.** F4.5's 30 s soft
+cap ends a recording with nobody pressing Stop; `_pump_loop` noticed, pushed
+`onCaptureEnded` and exited — but never stopped the camera. Press Record, wait
+30 s, and the take ends while **the webcam light stays on and the preview keeps
+streaming**. The verifier reproduced it against the real `BoothApi`. Fixed by
+calling `_stop_camera()` in that branch.
+
+**A second, related ordering bug surfaced while testing the fix:**
+`start_record` called `_start_pump()` *before* `_start_camera()`, so the pump
+loop — the thing that tears the camera down — could run before the camera had
+started. Unreachable with a real 30 s cap, but wrong on its own terms. The
+camera now starts before the pump; capture still starts first of all, so a
+camera failure never costs the take.
+
+**Mutation-checked 4/4**, source restored byte-identical:
+
+| Mutation | Result |
+|---|---|
+| drop `_stop_camera()` from the auto-stop branch (the rejected defect) | **CAUGHT** |
+| drop `_stop_camera()` from `stop_record` | **CAUGHT** |
+| drop `face.stop()` from `shutdown` | **CAUGHT** |
+| make `start_record` bail out when the camera fails | **CAUGHT** |
+
+**The other two findings, both non-blocking, handled rather than ignored:**
+
+- *A camera error paints the mic-error banner and never clears* — logged to
+  **F9** in `roadmap.md`, which owns per-cause messaging, so it survives handoff
+  rewrites.
+- *`shutdown()` does not stop the microphone* — made **deliberate**: the
+  docstring now states that the spec scopes the close handler to the camera, an
+  in-flight PortAudio stream is closed by process exit, and that has been the
+  behaviour since F1. A decision, not an omission.
 
 The **full `spec.md` Verification list** ran for this last task: **11/11
 automated lines exit 0**. The only line outstanding is the **human-attested
@@ -35,10 +70,11 @@ Suite: **121 passed**. Throughput: **8.0 ms/frame** against the 33 ms budget.
 | per-module tripwire (`release`/`read`) | exit 0 |
 | every `models/*/` dir carries `LICENSE` + `NOTICE` | exit 0 |
 | face fixture present (fetched-not-committed) | exit 0 |
-| **throughput floor < 33 ms/frame** | exit 0 — **8.0 ms/frame** |
+| **throughput floor < 33 ms/frame** | exit 0 — **8.4 ms/frame** |
 | **manual camera demo** | **OUTSTANDING — human only** |
 
-Suite runtime 36.21 s, well under the spec's 5-minute disclosure threshold.
+Re-run after the retry: **122 passed in 35.79 s**, well under the spec's
+5-minute disclosure threshold.
 
 ## What it does
 
@@ -104,8 +140,10 @@ Run `uv run voicelock`, then press **Record**:
   it runs.
 
 Then press **Stop**: the smiley returns and **the webcam light goes out**. Press
-**Record a second time**: the preview comes back. Finally, **close the window
-while recording**: the webcam light goes out.
+**Record a second time**: the preview comes back. **Then press Record and wait
+30 s without pressing Stop** — F4.5's soft cap ends the take by itself, and the
+webcam light must go out then too (this is the case REJECT #1 was about).
+Finally, **close the window while recording**: the webcam light goes out.
 
 The automated tests prove the pipeline's logic against fakes; they do **not**
 prove the composited frames reach the page fast enough to look like video, nor
@@ -135,8 +173,9 @@ and produce the Mode 3 completion report.
 ## Commits
 
 - Tasks 1–6: `878186c`…`edf2da3`
-- Task 7: `1259753` (DOING) → **`2edcb68` (build)**
-- Base for the Gate diff: **`1259753`** · head: **`2edcb68`**
+- Task 7: `1259753` → `2edcb68` (first build) → `f1d6662` (REJECT recorded) →
+  `5bfdde7` (DOING, retry) → **`43c789a` (retry build)**
+- Base for the Gate diff: **`5bfdde7`** · head: **`43c789a`**
 - Plus this bookkeeping commit, putting actual HEAD one ahead — expected.
 
 Session base was `b718038`. Remote: **none** — local history only, nothing pushed.
