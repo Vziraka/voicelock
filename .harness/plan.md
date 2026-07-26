@@ -2,17 +2,20 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, Task 3 `REVIEW` (retry 1 of 3 applied)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–3 `DONE`, next is Task 4
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
   human` — so the gate is closed and Mode 3 is the standing "go" for the tasks
   inside F4. Grilling re-scanned after the amendment — still zero markers.
-  Tasks 1 and 2 are `DONE`, each verified by a clean-context subagent (GATE PASS,
-  REVIEW APPROVE, both axes) — verdicts `memory/verdicts/2026-07-26-F4-T1.json`
-  and `-F4-T2.json`. **Task 2 separated genuine from impostor with a wide margin,
-  so the `BLOCKED` branch never fired.** Next is **Task 3** (`vault.py` v2
-  nesting); Tasks 3–5 stay `TODO` under WIP=1.)
+  Tasks 1–3 are `DONE`, each verified by a clean-context subagent. Task 2
+  separated genuine from impostor with a wide margin, so its `BLOCKED` branch
+  never fired. Task 3 was `BLOCKED` on a plan contradiction (human resolved it,
+  `memory/deviations.md`), then REJECTed once on the Standards axis and APPROVEd
+  on retry 1 — `rejects: 1`. **The vault is now genuinely two-locked, but the
+  Booth UI still reads the old `auth` error string, so the live demo cannot show
+  the two distinct rejects until Task 5.** Next is **Task 4**; Tasks 4–5 stay
+  `TODO` under WIP=1.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -151,8 +154,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed — full suite still green)
   - feedback: (none)
 
-- [ ] **Task 3** — `vault.py` v2: nested outer(passphrase) → middle(voice) layout + v1 refusal
-  - state: REVIEW
+- [x] **Task 3** — `vault.py` v2: nested outer(passphrase) → middle(voice) layout + v1 refusal
+  - state: DONE
   - **scope extended 2026-07-26 by human decision (UNBLOCKED).** Was `BLOCKED` for
     the contradiction described below; the human chose "extend Task 3 with the
     minimal `app.py` fix — Task 4 keeps the real bridge work". `files:` for this
@@ -311,8 +314,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4 building: Tasks 1–2 `DONE` (both verified by subagent, GATE PASS / REVIEW APPROVE), Tasks 3–5 `TODO`.** Fixtures exist and the middle-lock engine works. Next is **Task 3 (`vault.py` v2 nesting)**. Mode 3 is the standing "go" inside F4.
+1. 2026-07-26 — **F4 building: Tasks 1–3 `DONE` (all verified by subagent), Tasks 4–5 `TODO`.** Fixtures, the middle-lock engine, and the nested v2 vault all land; Task 3 took one Standards-axis REJECT (`rejects: 1`) after a human-resolved plan contradiction. Next is **Task 4**. Mode 3 is the standing "go" inside F4.
 2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
 3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
 4. **The main build risk is retired: Task 2 separated cleanly.** Over 200 independent commits — genuine 0, harder same-speaker 63, impostor floor 156, `CORRECTION_RADIUS = 110` at the midpoint; the verifier reproduced it on its own 60. Remaining honest caveat: fixtures cannot prove cross-session robustness, so the required manual demo in Task 5 is still the real proof.
-5. Task 3 nests `middlelock`'s helper data inside the outer passphrase box: `commit` returns `(secret, helper_data)` already JSON-safe, and `derive_key` takes the `salt` carried in that helper — not a fresh one. Open human items: spec's "~20 MB" model-size wording is wrong (actual ~85 MB); spec §0's amendment prose still says "awaiting the human's `x`" though box 2 is checked.
+5. **The feature is not demo-able until Task 5:** `src/voicelock/ui/index.html` still tests `error === "auth"` and its fallback renders "wrong passphrase" for every error, so the live Booth collapses both rejects and cannot bank enrollment takes. Task 5 owns that wiring plus the required manual demo. Open human items: spec's "~20 MB" model-size wording is wrong (actual ~85 MB); spec §0's amendment prose still says "awaiting the human's `x`" though box 2 is checked.

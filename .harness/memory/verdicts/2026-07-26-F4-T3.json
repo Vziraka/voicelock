@@ -1,0 +1,26 @@
+{
+  "task": "T3",
+  "spec": "spec.md@a13d891",
+  "change": "3a88ed3..eb7d4ce",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_middlelock.py -q",
+      "uv run pytest tests/test_vault.py -q",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "Retry 1 of 3. 36 passed (middlelock), 9 passed (vault), ruff 'All checks passed!', full suite 78 passed in 28.13s. Scope: the six declared code/test files plus three state files; deviations.md gained one appended entry only, honoring append-only. The first build (1488925) PASSed the Gate too — the reject was Standards-axis only."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "APPROVE on retry 1 after one REJECT (rejects: 1 of 3). First review passed the Gate and found no crypto or peel-order defect but rejected on two Standards findings: (1) app.py's reset_enroll_takes() was unrequired, uncalled and untested -- speculative work past the human's 'minimal app.py fix' decision; (2) plan.md's files: line contradicted its own scope-extension paragraph. Both fixed and independently re-checked: reset_enroll_takes has zero occurrences repo-wide, and the files: line now matches the six-file scope. Second review confirmed the v2 nested layout matches spec 4 exactly, the outer-then-middle peel order is load-bearing (AuthError raised before middlelock.reconcile is reached, asserted by a both-factors-wrong test), AuthError and VoiceAuthError are siblings not subclasses so the two rejects cannot collapse, and the v1 refusal fires on the version byte before any key derivation (tested with the CORRECT passphrase, which is the right way to prove no bypass). Spec 5 cases (1)(2)(3)(4)(6)(7) all present. Reviewer noted, explicitly NOT as a finding, that src/voicelock/ui/index.html still tests error === 'auth' so the live Booth collapses both rejects today -- that file is out of Task 3's declared scope and plan.md Task 5 owns it; editing it here would have repeated the over-reach the first review rejected. The feature is not demo-able until Task 5 lands.",
+    "history": "REJECT (1488925) -> fix -> APPROVE (eb7d4ce)"
+  },
+  "mechanism": "subagent",
+  "lesson": "proposed — pending approval",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-26"
+}
