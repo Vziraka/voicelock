@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import numpy as np
@@ -464,6 +465,55 @@ def test_shutdown_does_not_cancel_the_window_close(tmp_path: Path) -> None:
     api, _, _ = _recording_booth(tmp_path)
 
     assert api.shutdown() is not False
+
+
+class _SelfStoppingCapture(_StubRecordingCapture):
+    """Ends its own take mid-pump, the way F4.5's 30s soft cap does."""
+
+    def __init__(self, pumps_before_stop: int = 1) -> None:
+        super().__init__()
+        self._remaining = pumps_before_stop
+
+    def pump(self, frames: np.ndarray | None = None) -> None:
+        del frames
+        if self.status != CaptureStatus.RECORDING:
+            return
+        self._remaining -= 1
+        if self._remaining <= 0:
+            self.status = CaptureStatus.IDLE  # the soft cap firing
+
+
+def test_the_30s_auto_stop_releases_the_camera_too(tmp_path: Path) -> None:
+    """A take can end without anyone pressing Stop — F4.5's soft cap.
+
+    Without this the webcam light stays on and the preview keeps streaming
+    after the recording is over, which is the defect the spec headlines.
+    """
+    cap = _SelfStoppingCapture()
+    face = _StubFace()
+    api = BoothApi(
+        capture=cap,
+        vault_path=tmp_path / "vault.vl",
+        ref_path=tmp_path / "voiceprint.ref",
+        face=face,
+    )
+    scripts: list[str] = []
+    api._eval = scripts.append  # type: ignore[method-assign]
+
+    assert api.start_record()["ok"] is True
+    assert face.starts == 1  # the take may already have self-ended by now
+
+    # The pump thread notices the take ended by itself. Wait on the observable
+    # end state — the page being told to go idle — rather than on a counter the
+    # stub bumps part-way through its own stop().
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline and not any("setFaceIdle" in s for s in scripts):
+        time.sleep(0.01)
+
+    assert face.stops == 1, "the camera was left running after the take self-ended"
+    assert face.status == FaceStatus.IDLE
+    assert any("setFaceIdle" in s for s in scripts), "the smiley never came back"
+    assert any("onCaptureEnded" in s for s in scripts), "the take never ended"
 
 
 def test_frames_are_pushed_to_the_page_as_a_data_uri(tmp_path: Path) -> None:

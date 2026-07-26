@@ -265,8 +265,12 @@ class BoothApi:
             error = self.capture.error_message or "No microphone available"
             self._push_mic_error(error)
             return {"ok": False, "error": error}
-        self._start_pump()
+        # Camera before pump: the pump loop is what notices a take ending and
+        # tears the camera down, so it must not be able to run before the camera
+        # has started. (Capture stays first of all — a camera failure must never
+        # cost the take.)
         self._start_camera()
+        self._start_pump()
         self._eval(
             "window.voicelockBooth && window.voicelockBooth.setRecording && "
             "window.voicelockBooth.setRecording(true)"
@@ -348,6 +352,10 @@ class BoothApi:
             self.capture.pump()
             if not self.capture.is_recording:
                 self._pumping = False
+                # The take ended without anyone pressing Stop — F4.5's 30s soft
+                # cap. Release the camera here too, or the webcam light stays on
+                # and the preview keeps streaming after the recording is over.
+                self._stop_camera()
                 samples = int(self.capture.pcm_buffer().size)
                 self._eval(
                     "window.voicelockBooth && window.voicelockBooth.onCaptureEnded && "
@@ -416,6 +424,11 @@ class BoothApi:
         A webcam light still on after the app exits is the same defect as one
         that never turned off on Stop. `FaceEngine.stop()` is safe to call twice
         and after a failed start, which is what lets this run unconditionally.
+
+        The microphone is deliberately NOT stopped here. The spec scopes the
+        close handler to the camera, an in-flight PortAudio stream is closed by
+        process exit, and that has been the behaviour since F1 — this handler
+        exists to fix the camera, not to quietly change the audio path.
         """
         self._stop_pump()
         self.face.stop()
