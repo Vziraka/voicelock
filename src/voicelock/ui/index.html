@@ -146,6 +146,49 @@
     display: flex;
     gap: 8px;
   }
+  /* F4 voice-capture step — enroll reads 5 sentences; unlock speaks one. */
+  .voice-step {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .voice-step-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .voice-take-dots {
+    display: flex;
+    gap: 5px;
+  }
+  .voice-take-dot {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .voice-take-dot.filled {
+    background: rgba(120, 200, 150, 0.75);
+  }
+  .voice-sentence {
+    font-size: 13px;
+    line-height: 1.45;
+    color: #e7e9ee;
+  }
+  .voice-hint {
+    font-size: 10px;
+    color: #6f7681;
+  }
+  .voice-hint.warn {
+    color: #f0b0b0;
+  }
+  .voice-hint.done {
+    color: #8fd0a8;
+  }
   .chip.reject-visible {
     display: inline-flex;
     border-color: rgba(240, 96, 96, 0.45);
@@ -501,6 +544,22 @@
         <div class="enroll-panel" id="enroll-panel" aria-hidden="true">
           <input class="field-input" id="enroll-name" type="text" placeholder="Display name" autocomplete="off">
           <input class="field-input mono" id="enroll-pass" type="password" placeholder="Passphrase" autocomplete="new-password">
+          <div class="voice-step" id="enroll-voice-step">
+            <div class="voice-step-head">
+              <span class="mono" style="font-size:10px;letter-spacing:0.08em;color:#8b93a1">VOICE · 5 SENTENCES</span>
+              <span class="mono" id="enroll-voice-count" style="font-size:10px;color:#6f7681">0 / 5</span>
+            </div>
+            <div class="voice-take-dots" id="enroll-take-dots">
+              <span class="voice-take-dot"></span>
+              <span class="voice-take-dot"></span>
+              <span class="voice-take-dot"></span>
+              <span class="voice-take-dot"></span>
+              <span class="voice-take-dot"></span>
+            </div>
+            <div class="voice-sentence" id="enroll-sentence">The morning rain will linger along the wide green valley.</div>
+            <div class="voice-hint mono" id="enroll-voice-hint">Record the sentence with Record / Stop, then bank it.</div>
+            <button type="button" class="btn btn-secondary" id="btn-enroll-take">Bank this sentence</button>
+          </div>
           <div id="overwrite-confirm" class="confirm-banner" role="alertdialog" aria-hidden="true">
             A vault already exists. Overwrite it?
             <div class="confirm-actions">
@@ -559,12 +618,15 @@
             <input class="pass-input mono" id="pass-input" type="password" placeholder="Enter passphrase" autocomplete="current-password">
             <button type="button" class="btn" id="btn-unlock">Unlock</button>
           </div>
+          <div class="voice-hint mono" id="unlock-voice-hint">Then record a full sentence in your normal speaking voice and press Unlock.</div>
         </div>
 
         <div class="chips" id="result-chips" aria-live="polite">
           <span class="chip mono hidden" id="chip-success">Unlocked</span>
           <span class="chip mono hidden" id="chip-wrong-pass">Wrong passphrase</span>
+          <span class="chip mono hidden" id="chip-wrong-voice">Voice didn't match</span>
           <span class="chip mono hidden" id="chip-no-vault">No vault yet — enroll first</span>
+          <span class="chip mono hidden" id="chip-legacy-vault">This vault predates voice — re-enroll to add the voice lock</span>
         </div>
 
         <div class="voiceprint" id="voiceprint-panel">
@@ -625,7 +687,30 @@
     const btnUnlock = document.getElementById("btn-unlock");
     const chipSuccess = document.getElementById("chip-success");
     const chipWrongPass = document.getElementById("chip-wrong-pass");
+    const chipWrongVoice = document.getElementById("chip-wrong-voice");
     const chipNoVault = document.getElementById("chip-no-vault");
+    const chipLegacyVault = document.getElementById("chip-legacy-vault");
+    const btnEnrollTake = document.getElementById("btn-enroll-take");
+    const enrollTakeDots = document.getElementById("enroll-take-dots");
+    const enrollSentence = document.getElementById("enroll-sentence");
+    const enrollVoiceHint = document.getElementById("enroll-voice-hint");
+    const enrollVoiceCount = document.getElementById("enroll-voice-count");
+
+    /* The five enrollment sentences (spec §3, amendment 2026-07-26): full
+       sentences of roughly 3-5 s, phonetically varied and vowel/voiced-heavy —
+       vowels and voiced consonants (m, n, l, r) carry the speaker-identity
+       signal, unvoiced fricatives (s, f, sh) carry much less. Read all five in
+       ONE consistent, natural speaking voice: deliberately varying emotion,
+       pitch or loudness was explicitly rejected, because it widens the spread
+       between takes and starves the cross-take stability filter. */
+    const ENROLL_SENTENCES = [
+      "The morning rain will linger along the wide green valley.",
+      "My brother remembers a long winter and the yellow lantern glow.",
+      "Eleven marble hallways were warm and unusually well lit.",
+      "Every wandering melody will eventually lead me home again.",
+      "No one really remembers when the old rowan tree grew unruly.",
+    ];
+    let enrollTakesBanked = 0;
     const profileName = document.getElementById("profile-name");
     const profileMeta = document.getElementById("profile-meta");
     const profileAvatar = document.getElementById("profile-avatar");
@@ -741,12 +826,50 @@
     }
 
     function hideResultChips() {
-      chipSuccess.classList.add("hidden");
-      chipSuccess.classList.remove("reject-visible");
-      chipWrongPass.classList.add("hidden");
-      chipWrongPass.classList.remove("reject-visible");
-      chipNoVault.classList.add("hidden");
-      chipNoVault.classList.remove("reject-visible");
+      const chips = [
+        chipSuccess,
+        chipWrongPass,
+        chipWrongVoice,
+        chipNoVault,
+        chipLegacyVault,
+      ];
+      chips.forEach(function (chip) {
+        chip.classList.add("hidden");
+        chip.classList.remove("reject-visible");
+      });
+    }
+
+    /* --- F4 enrollment voice step. JS renders only; Python owns the embedding,
+       the "need more audio" decision, and the take count. --- */
+    function setEnrollTakeProgress(banked) {
+      enrollTakesBanked = Number(banked) || 0;
+      const dots = enrollTakeDots.querySelectorAll(".voice-take-dot");
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle("filled", i < enrollTakesBanked);
+      });
+      enrollVoiceCount.textContent = enrollTakesBanked + " / " + ENROLL_SENTENCES.length;
+      const next = Math.min(enrollTakesBanked, ENROLL_SENTENCES.length - 1);
+      enrollSentence.textContent = ENROLL_SENTENCES[next];
+      const done = enrollTakesBanked >= ENROLL_SENTENCES.length;
+      btnEnroll.disabled = !done;
+      btnEnrollTake.disabled = done;
+      if (done) {
+        setEnrollVoiceHint("all five sentences banked — Enroll is ready", "done");
+      }
+    }
+
+    function setEnrollVoiceHint(text, tone) {
+      enrollVoiceHint.textContent = text;
+      enrollVoiceHint.classList.toggle("warn", tone === "warn");
+      enrollVoiceHint.classList.toggle("done", tone === "done");
+    }
+
+    function resetEnrollVoiceStep() {
+      setEnrollTakeProgress(0);
+      setEnrollVoiceHint(
+        "Record the sentence with Record / Stop, then bank it. Use one natural speaking voice for all five.",
+        ""
+      );
     }
 
     function showEnrollPanel(open) {
@@ -781,7 +904,7 @@
         return;
       }
       profileName.textContent = display;
-      profileMeta.textContent = "unlocked · outer lock";
+      profileMeta.textContent = "unlocked · passphrase + voice";
       profileAvatar.textContent = display.charAt(0).toUpperCase();
       profileDot.hidden = false;
     }
@@ -791,7 +914,7 @@
       chipSuccess.classList.remove("hidden");
       status.textContent = message || "UNLOCKED";
       prompt.textContent = "Vault unlocked";
-      sub.textContent = "outer lock opened with passphrase";
+      sub.textContent = "outer lock opened with passphrase · middle lock opened with your voice";
     }
 
     function showWrongPassphrase() {
@@ -803,6 +926,15 @@
       sub.textContent = "Wrong passphrase";
     }
 
+    function showWrongVoice() {
+      hideResultChips();
+      chipWrongVoice.classList.remove("hidden");
+      chipWrongVoice.classList.add("reject-visible");
+      status.textContent = "REJECT · VOICE DIDN'T MATCH";
+      prompt.textContent = "Unlock rejected";
+      sub.textContent = "Voice didn't match — the passphrase was right";
+    }
+
     function showNoVault() {
       hideResultChips();
       chipNoVault.classList.remove("hidden");
@@ -810,6 +942,22 @@
       status.textContent = "NO VAULT · ENROLL FIRST";
       prompt.textContent = "No vault yet";
       sub.textContent = "No vault yet — enroll first";
+    }
+
+    function showLegacyVault() {
+      hideResultChips();
+      chipLegacyVault.classList.remove("hidden");
+      chipLegacyVault.classList.add("reject-visible");
+      status.textContent = "LEGACY VAULT · RE-ENROLL";
+      prompt.textContent = "This vault predates voice";
+      sub.textContent = "re-enroll to add the voice lock";
+    }
+
+    function showUnlockNeedMoreAudio() {
+      hideResultChips();
+      status.textContent = "UNLOCK · NEED MORE AUDIO";
+      prompt.textContent = "Need more audio";
+      sub.textContent = "need more audio — record a full sentence, then Unlock";
     }
 
     function showValidation(message) {
@@ -871,6 +1019,7 @@
 
     btnEnrollOpen.addEventListener("click", function () {
       showEnrollPanel(true);
+      resetEnrollVoiceStep();
       enrollName.focus();
     });
 
@@ -878,6 +1027,27 @@
       showEnrollPanel(false);
       enrollName.value = "";
       enrollPass.value = "";
+      resetEnrollVoiceStep();
+    });
+
+    btnEnrollTake.addEventListener("click", async function () {
+      const result = await call("enroll_take");
+      if (!result || !result.ok) {
+        if (result && result.error === "need_more_audio") {
+          setEnrollTakeProgress(result.progress);
+          setEnrollVoiceHint(
+            "need more audio — read the whole sentence, then bank it again",
+            "warn"
+          );
+          return;
+        }
+        setEnrollVoiceHint((result && result.error) || "could not bank that take", "warn");
+        return;
+      }
+      setEnrollTakeProgress(result.progress);
+      if (!result.done) {
+        setEnrollVoiceHint("banked — record the next sentence", "");
+      }
     });
 
     btnOverwriteCancel.addEventListener("click", function () {
@@ -919,6 +1089,14 @@
           showValidation(result.message);
           return;
         }
+        if (result && result.error === "need_voice_takes") {
+          setEnrollTakeProgress(result.progress);
+          setEnrollVoiceHint(
+            "read all five sentences before enrolling",
+            "warn"
+          );
+          return;
+        }
         status.textContent = "ENROLL FAILED";
         sub.textContent = (result && result.error) || "Enroll failed";
         return;
@@ -928,24 +1106,39 @@
       showEnrollPanel(false);
       enrollName.value = "";
       enrollPass.value = "";
+      resetEnrollVoiceStep();
       setProfileName(result.name || name);
       profileMeta.textContent = "enrolled · sealed on disk";
       hideResultChips();
       status.textContent = "ENROLLED · VAULT SEALED";
       prompt.textContent = "Vault enrolled";
-      sub.textContent = "passphrase outer lock sealed on disk";
+      sub.textContent = "passphrase outer lock around voice middle lock";
     });
 
     btnUnlock.addEventListener("click", async function () {
       const passphrase = passInput.value || "";
       const result = await call("unlock", { passphrase: passphrase });
       if (!result || !result.ok) {
+        /* Each reject reason renders as its own visibly distinct outcome — the
+           two impostor classes must never collapse into one message. */
         if (result && result.error === "no_vault") {
           showNoVault();
           return;
         }
-        if (result && result.error === "auth") {
+        if (result && result.error === "auth_outer") {
           showWrongPassphrase();
+          return;
+        }
+        if (result && result.error === "auth_voice") {
+          showWrongVoice();
+          return;
+        }
+        if (result && result.error === "legacy_vault") {
+          showLegacyVault();
+          return;
+        }
+        if (result && result.error === "need_more_audio") {
+          showUnlockNeedMoreAudio();
           return;
         }
         if (!(window.pywebview && window.pywebview.api && window.pywebview.api.unlock)) {
@@ -953,7 +1146,9 @@
           sub.textContent = "passphrase field ready but unlock API is missing";
           return;
         }
-        showWrongPassphrase();
+        status.textContent = "UNLOCK FAILED";
+        prompt.textContent = "Unlock failed";
+        sub.textContent = (result && result.error) || "Unlock failed";
         return;
       }
       setProfileName(result.name || "");
@@ -1100,6 +1295,8 @@
       setReferenceProgress: setReferenceProgress,
       showReferenceReady: showReferenceReady,
     };
+
+    resetEnrollVoiceStep();
 
     function onBridgeReady() {
       call("ready").then(function (result) {

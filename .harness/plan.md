@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `DOING` (LAST task — full §5)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `REVIEW` (LAST task — full §5; manual demo needs the human)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -293,7 +293,20 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          **Fix: delete the branch.**
 
 - [ ] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
-  - state: DOING
+  - state: REVIEW
+  - built 2026-07-26: `index.html` gains the enroll voice step (5 suggested
+    sentences, per-take dots driven by `enroll_take()`, "need more audio" hint on
+    a rejected take, **Enroll disabled until all 5 are banked**), an unlock
+    prompt asking for a full sentence, and **two visibly distinct reject chips** —
+    `chip-wrong-pass` now driven by `auth_outer` and a NEW `chip-wrong-voice`
+    ("Voice didn't match") driven by `auth_voice` — plus a `chip-legacy-vault`
+    re-enroll message and a `need_more_audio` unlock path. The old handler tested
+    `error === "auth"` and fell through to "wrong passphrase" for EVERY error,
+    which collapsed the two impostor classes; that fallthrough is gone. Sentences
+    are full, vowel/voiced-heavy, and the copy asks for ONE consistent natural
+    voice — it never prompts for emotional/pitch variation (spec §3 rejected
+    that). JS renders only; every decision still comes from the bridge. Also
+    fixed the unused-fixture nit the Task 4 verifier flagged.
   - rejects: 0
   - files: `src/voicelock/ui/index.html` (+ `src/voicelock/app.py` only if wiring gaps surface)
   - notes: Reuse the existing mock chrome (spec §4 Booth UX). Enroll panel gains a

@@ -167,7 +167,7 @@ def test_lock_take_is_the_average_of_overlapping_windows() -> None:
     assert cosine_distance(averaged, single) < ACCEPT_CUTOFF
 
 
-def test_lock_floor_is_higher_than_the_f3_diagnostic_floor(tmp_path: Path) -> None:
+def test_lock_floor_is_higher_than_the_f3_diagnostic_floor() -> None:
     """A clip good enough for the F3 meter can still be too thin for the lock.
 
     This is the whole point of the raised floor: `voiceprint.MIN_SPEECH_SECONDS`
