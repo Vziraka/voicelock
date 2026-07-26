@@ -6,13 +6,36 @@ half of spec §5 is green; the **required human-attested manual demo is not and
 cannot be done by an agent**.
 
 - base: `09b4e39` (Task 5 `DOING`, committed before building)
-- head: `6c0a908` (build commit — this handoff's own commit is one after it)
+- head: **`7ec2fb8`** (retry-1 build commit — supersedes `6c0a908`)
+- **retry 1 of 3** after a correctness REJECT; `rejects: 1`
 
 ## Changed
 - `src/voicelock/ui/index.html` — enroll voice step (5 sentences, per-take dots,
   need-more-audio hint, Enroll disabled until 5 banked), unlock full-sentence
   prompt, `chip-wrong-voice` + `chip-legacy-vault`, and the reject routing
-- `tests/test_booth_api.py` — the unused-fixture nit the Task 4 verifier flagged
+- `src/voicelock/app.py` — `reset_enroll_takes()` (retry 1; Task 5's `files:` line
+  pre-authorizes `app.py` "if wiring gaps surface")
+- `tests/test_booth_api.py` — two tests for the reset, plus the unused-fixture nit
+  the Task 4 verifier flagged
+
+## The REJECT, and what changed (retry 1)
+The verifier found a **real correctness defect**, not a style point:
+`resetEnrollVoiceStep()` cleared only the JS counter. The bridge's
+`_enroll_voiceprints` was appended by `enroll_take()` and cleared only on a
+successful `enroll()`, so an abandoned run survived: bank 2 → Cancel → re-open
+showed `0 / 5` while the bridge held 2, the next bank jumped the dots 0→3,
+sentences 2 and 3 were never read, and the vault got sealed from the two
+**abandoned** takes plus three new ones. For a feature whose point is that the
+enrolled speaker's voice is the key, that could bind the middle key partly to
+discarded audio — possibly a different person's, mid-demo — and it was reachable
+in the very manual demo below.
+
+Fixed by restoring `BoothApi.reset_enroll_takes()` — this time genuinely called
+(open / cancel / post-seal) and **tested**, which is exactly the condition the
+Task 3 verdict set when it deleted the speculative version. Both call sites
+`await` it, so the bridge has dropped the old takes before a new one can be
+banked. The second, minor finding (an enroll "BRIDGE MISSING" branch this task's
+own change had made unreachable) is deleted.
 
 ## The defect this task actually fixes
 Before this diff the live Booth could not demo the feature at all. The unlock
@@ -26,9 +49,9 @@ catch-all fallthrough is gone.
 ## Spec §5 status — the honest split
 **Automated (all run this session, all exit 0):**
 - `uv run ruff check .` → 0 (`All checks passed!`)
-- `uv run pytest` → 0 (**81 passed in 42.73s**)
+- `uv run pytest` → 0 (**83 passed in 48.73s**)
 - `uv run pytest tests/test_middlelock.py -q` → 0 (36 passed) — §5 cases 1–7
-- `uv run pytest tests/test_booth_api.py -q` → 0 (17 passed) — distinct
+- `uv run pytest tests/test_booth_api.py -q` → 0 (19 passed) — distinct
   `auth_outer` vs `auth_voice`, neither returning a name
 - the UI assertion one-liner from Task 5's done-criteria → 0
 
@@ -72,7 +95,7 @@ ESCALATE_HUMAN".
 
 ## next_action
 Verify Task 5 with **clean context** — `formats/VERIFIER-PROMPT.md` verbatim, task
-`F4-T5`, base `09b4e39`, head `6c0a908`. It is the LAST task, so the Gate runs the
+`F4-T5`, base `09b4e39`, head `7ec2fb8`. It is the LAST task, so the Gate runs the
 FULL spec §5 list and will hit the manual line.
 
 ## Pending guardrails — BOTH still await your approval, neither written
