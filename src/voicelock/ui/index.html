@@ -864,8 +864,12 @@
       enrollVoiceHint.classList.toggle("done", tone === "done");
     }
 
-    function resetEnrollVoiceStep() {
-      setEnrollTakeProgress(0);
+    async function resetEnrollVoiceStep() {
+      /* Clear the bridge's banked takes FIRST — Python owns the real count. A
+         JS-only reset would show 0/5 while the engine still held the takes from
+         an abandoned run, and those would be sealed into the next vault. */
+      const result = await call("reset_enroll_takes");
+      setEnrollTakeProgress(result && typeof result.progress === "number" ? result.progress : 0);
       setEnrollVoiceHint(
         "Record the sentence with Record / Stop, then bank it. Use one natural speaking voice for all five.",
         ""
@@ -1017,17 +1021,19 @@
       return window.pywebview.api[name](payload);
     }
 
-    btnEnrollOpen.addEventListener("click", function () {
+    btnEnrollOpen.addEventListener("click", async function () {
       showEnrollPanel(true);
-      resetEnrollVoiceStep();
+      /* Awaited: the bridge must have dropped any abandoned takes before the
+         user can bank a new one, or the two counts race. */
+      await resetEnrollVoiceStep();
       enrollName.focus();
     });
 
-    btnEnrollCancel.addEventListener("click", function () {
+    btnEnrollCancel.addEventListener("click", async function () {
       showEnrollPanel(false);
       enrollName.value = "";
       enrollPass.value = "";
-      resetEnrollVoiceStep();
+      await resetEnrollVoiceStep();
     });
 
     btnEnrollTake.addEventListener("click", async function () {
@@ -1080,11 +1086,6 @@
         return;
       }
       if (!result || !result.ok) {
-        if (!(window.pywebview && window.pywebview.api && window.pywebview.api.enroll)) {
-          status.textContent = "ENROLL · BRIDGE MISSING";
-          sub.textContent = "name + passphrase ready but enroll API is missing";
-          return;
-        }
         if (result && result.error === "validation") {
           showValidation(result.message);
           return;
@@ -1106,7 +1107,7 @@
       showEnrollPanel(false);
       enrollName.value = "";
       enrollPass.value = "";
-      resetEnrollVoiceStep();
+      await resetEnrollVoiceStep();
       setProfileName(result.name || name);
       profileMeta.textContent = "enrolled · sealed on disk";
       hideResultChips();

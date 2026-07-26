@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `DOING` (retry 1 of 3 — enrollment-take reset defect)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `REVIEW` (retry 1 applied; manual demo still needs the human)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -293,7 +293,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          **Fix: delete the branch.**
 
 - [ ] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
-  - state: DOING
+  - state: REVIEW
   - built 2026-07-26: `index.html` gains the enroll voice step (5 suggested
     sentences, per-take dots driven by `enroll_take()`, "need more audio" hint on
     a rejected take, **Enroll disabled until all 5 are banked**), an unlock

@@ -98,6 +98,44 @@ def test_bridge_enroll_take_rejects_a_short_take(tmp_path: Path) -> None:
     assert rejected["progress"] == 1  # the bad take did not advance progress
 
 
+def test_reset_enroll_takes_discards_an_abandoned_run(tmp_path: Path) -> None:
+    """An abandoned enrollment must not leak takes into the next one.
+
+    Without this the bridge would keep the takes banked before a Cancel, and the
+    next enrollment would seal the vault from those abandoned takes plus new ones
+    — binding the middle key partly to audio the user thought they discarded.
+    """
+    cap = _StubCapture()
+    api = BoothApi(capture=cap, vault_path=tmp_path / "vault.vl")
+
+    cap.set(_fx("speakerA_enroll1.wav"))
+    api.enroll_take()
+    cap.set(_fx("speakerA_enroll2.wav"))
+    assert api.enroll_take()["progress"] == 2
+
+    assert api.reset_enroll_takes() == {"ok": True, "progress": 0, "needed": ENROLLMENT_TAKES}
+
+    # The next take starts the count over, so the UI's dots and the bridge agree.
+    cap.set(_fx("speakerA_enroll3.wav"))
+    assert api.enroll_take()["progress"] == 1
+
+
+def test_enroll_after_reset_uses_only_the_new_takes(tmp_path: Path) -> None:
+    """The vault is sealed from the post-reset takes, not the abandoned ones."""
+    cap = _StubCapture()
+    api = BoothApi(capture=cap, vault_path=tmp_path / "vault.vl")
+
+    cap.set(_fx("speakerB.wav"))  # an abandoned run by a different speaker
+    api.enroll_take()
+    api.reset_enroll_takes()
+
+    _bank_enrollment(api, cap)  # a full, clean run by speaker A
+    assert api.enroll({"name": "Ada", "passphrase": "correct-horse"})["ok"] is True
+
+    cap.set(_fx("speakerA_live.wav"))
+    assert api.unlock({"passphrase": "correct-horse"})["name"] == "Ada"
+
+
 def test_bridge_enroll_without_voice_takes_refuses(tmp_path: Path) -> None:
     vault = tmp_path / "vault.vl"
     api = BoothApi(vault_path=vault)

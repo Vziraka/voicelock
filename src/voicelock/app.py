@@ -130,6 +130,18 @@ class BoothApi:
             "needed": ENROLLMENT_TAKES,
         }
 
+    def reset_enroll_takes(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Discard a half-finished enrollment run.
+
+        The Booth calls this whenever the enroll panel is opened or cancelled.
+        Without it, takes banked during an abandoned attempt would survive and be
+        sealed into the next vault alongside the new ones — so the middle key
+        could end up bound partly to whatever was recorded and thrown away,
+        including a different speaker's voice.
+        """
+        self._enroll_voiceprints = []
+        return {"ok": True, "progress": 0, "needed": ENROLLMENT_TAKES}
+
     def enroll(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         """Seal (or overwrite) the Vault with name + passphrase + the banked voice."""
         data = payload or {}
