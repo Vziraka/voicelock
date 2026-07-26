@@ -61,20 +61,46 @@ Suite: **121 passed**. Throughput: **8.0 ms/frame** against the 33 ms budget.
 | Line | Result |
 |---|---|
 | `ruff check .` | exit 0 |
-| `pytest` (whole suite) | exit 0 — **121 passed in 36.21 s** |
-| `pytest tests/test_facedetect.py` | exit 0 — 26 passed |
-| `pytest tests/test_booth_api.py` | exit 0 — 26 passed |
+| `pytest` (whole suite) | exit 0 — **122 passed** |
+| `pytest tests/test_facedetect.py` | exit 0 — 26 passed, **0 skipped** |
+| `pytest tests/test_booth_api.py` | exit 0 — **27 passed** |
 | offline: `model_asset_path`, no URL | exit 0 |
 | vendored bundle present, > 1 MB | exit 0 |
 | declared deps + single `cv2` | exit 0 |
 | per-module tripwire (`release`/`read`) | exit 0 |
 | every `models/*/` dir carries `LICENSE` + `NOTICE` | exit 0 |
 | face fixture present (fetched-not-committed) | exit 0 |
-| **throughput floor < 33 ms/frame** | exit 0 — **8.4 ms/frame** |
+| **throughput floor < 33 ms/frame** | exit 0 — **8.0 / 8.4 / 10.3 ms/frame** across runs |
 | **manual camera demo** | **OUTSTANDING — human only** |
 
-Re-run after the retry: **122 passed in 35.79 s**, well under the spec's
-5-minute disclosure threshold.
+Suite runtime ~36 s, far under the spec's 5-minute disclosure threshold.
+
+**On the throughput number:** three runs gave 8.0, 8.4 and 10.3 ms/frame — the
+last measured by the verifier. Same order of magnitude, ~3× headroom at worst.
+**The completion report must pin the verifier's Gate figure (10.3 ms/frame)**,
+not a handoff figure, because the Gate run is the one that counts.
+
+## VERDICT — Gate `ESCALATE_HUMAN`, Review `APPROVE`, no feedback
+
+The verifier re-ran the full list (11/11 exit 0) and **mutation-checked the fix
+itself**: deleting `app.py:358` reproduces
+`AssertionError: the camera was left running after the take self-ended`. It
+confirmed the test has substance rather than shape, and that the wait is on the
+observable end state (`setFaceIdle` reaching the page) rather than on a stub's
+internal counter.
+
+Both non-blocking findings were confirmed correctly routed: the camera-error
+banner to F9 in `roadmap.md`, and the mic-not-stopped-on-close decision into
+`shutdown()`'s docstring.
+
+One extra observation, non-blocking: the pump thread can now call `face.stop()`
+while a user-pressed Stop is also inside `_stop_camera`. That is an extension of
+the 5-second join-timeout risk Task 5's verifier already recorded; it opens only
+if a frame read hangs, and a double `release()` is a no-op.
+
+**Task 7 stays `REVIEW` with no verdict file until the human attests the live
+demo.** That is the plan's explicit instruction and the F3-T5 / F4-T5 / F4.5-T3
+precedent.
 
 ## What it does
 
@@ -163,12 +189,18 @@ only"*).
 
 ## next_action
 
-**Verify Task 7** — clean-context verifier via `formats/VERIFIER-PROMPT.md`,
-verbatim. As F5's **last** task its list is the FULL `spec.md` Verification
-section, and it should return **`ESCALATE_HUMAN`** on the manual demo line.
-After that, the human runs the live check; only then does wrap-up write the
-verdict, mark Task 7 `DONE`, check F5's roadmap box, refresh the codebase map,
-and produce the Mode 3 completion report.
+**THE HUMAN RUNS THE MANUAL CAMERA DEMO** (see above). Verification is otherwise
+complete: Gate 11/11 automated, Review APPROVE, no feedback.
+
+On the human's attestation, wrap-up then: writes the Task 7 verdict file, marks
+Task 7 `DONE`, checks **F5's roadmap box**, refreshes
+`memory/codebase-map.md` (F5 adds FaceView + FaceDetect, which the map still
+shows as dashed/planned), runs the `learn` scan, and produces the **Mode 3
+completion report** — after which the feature-end checkpoint asks the human to
+approve the commit.
+
+If the demo **fails**, Task 7 goes back to `TODO` with the failure recorded and
+`rejects: 1 → 2` (cap is 3).
 
 ## Commits
 
