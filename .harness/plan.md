@@ -500,7 +500,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 7** — Wire `BoothApi` to Record/Stop + release on window close (LAST task — FULL §5)
-  - state: TODO
+  - state: DOING
   - rejects: 1
   - measured: FULL §5 automated list **11/11 exit 0** — suite **121 passed**,
     throughput **8.0–8.1 ms/frame** against the 33 ms budget. The **manual
