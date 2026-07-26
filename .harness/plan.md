@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, Task 3 `REVIEW`
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, Task 3 `DOING` (retry 1 of 3 after a Standards-axis REJECT)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -152,7 +152,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — `vault.py` v2: nested outer(passphrase) → middle(voice) layout + v1 refusal
-  - state: REVIEW
+  - state: DOING
   - **scope extended 2026-07-26 by human decision (UNBLOCKED).** Was `BLOCKED` for
     the contradiction described below; the human chose "extend Task 3 with the
     minimal `app.py` fix — Task 4 keeps the real bridge work". `files:` for this
@@ -179,8 +179,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     `test_vault.py` / `test_outer_lock.py` — 47 passed across those three files, ruff
     exit 0. The ONLY failures are the 5 pre-existing `test_booth_api.py` cases that
     call the old signature. Resolution needs a human choice — see `handoff.md`.
-  - rejects: 0
-  - files: `src/voicelock/vault.py`, `tests/test_middlelock.py`, `tests/test_vault.py`
+  - rejects: 1
+  - files: `src/voicelock/vault.py`, `src/voicelock/app.py`, `tests/test_middlelock.py`, `tests/test_vault.py`, `tests/test_outer_lock.py`, `tests/test_booth_api.py` (six-file list per the human's 2026-07-26 scope extension — see the scope note above and `memory/deviations.md`)
   - notes: Bump `FORMAT_VERSION` 1 → 2 and nest, exactly as spec §4 pins:
     innermost plaintext = the profile JSON (`{name, schema_version}`) sealed with
     the **voice-derived middle key** → middle ciphertext; outer plaintext = JSON
@@ -202,7 +202,24 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest tests/test_vault.py -q` → exit 0; final summary reports 0 failed (F2's format/validation/no-vault cases still hold on the v2 signature)
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
-  - feedback: (none)
+  - feedback (newest first):
+    - **2026-07-26 · REJECT 1 of 3** (verifier subagent; GATE PASSed first — 78
+      passed, ruff 0 — so this is a Standards-axis reject only, no crypto or
+      peel-order defect found):
+      1. `src/voicelock/app.py` `reset_enroll_takes()` is **unrequired, uncalled
+         and untested** — zero callers across `*.py`/`*.html`/`*.js`, no test
+         exercises it, and no task's ledger entry asks for it. Unlike the rest of
+         the absorbed bridge work, nothing in the failing suite forced it, so it
+         is over-reach past the human's "minimal `app.py` fix" decision. Violates
+         `topics/code-quality.md` ("No speculative anything"; "Every changed line
+         traces to the task"). **Fix: delete it**; if Task 5's UI needs a "start
+         over" control, add it there with its test.
+      2. `plan.md` contradicted itself: the scope-extension paragraph declared the
+         six-file list while the `files:` line below still read the stale three.
+         `plan.md` is authoritative for task state and must not disagree with
+         itself — a later verifier reading only `files:` would score this diff a
+         scope violation. **Fix: update the `files:` line** (done in this same
+         write).
 
 - [ ] **Task 4** — Bridge: `BoothApi` 5-take voice enroll + voice unlock with distinct reject reasons
   - state: TODO
