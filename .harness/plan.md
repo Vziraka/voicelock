@@ -9,19 +9,16 @@
   human 2026-07-26 (Apache-2.0 per Google's three model cards,
   `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`), and the
   bundle is vendored with LICENSE + NOTICE.
-  **Task 3 `DOING`** — unblocked 2026-07-26. Its licence STOP condition fired
-  and did **not** clear — `portrait.jpg` is a White House press photograph whose
-  embedded notice forbids reproduction/dissemination, so nothing was committed.
-  The human chose **fetched-not-committed**: keep `portrait.jpg`, `.gitignore`
-  it, fetch it locally, and commit the Apache-2.0
-  `portrait_expected_face_landmarks.pbtxt` beside it — which preserves the
-  **vendor reference** that exists for this image and no other. That is a **spec
-  amendment**, so `spec.md`'s box 2 is re-opened and **Task 3 resumes when the
-  human checks it**. Tasks 4, 5 and 7 name the fixture and are blocked with it;
-  Task 6 (UI) is the only later task independent of it.
-  Two amendments were made 2026-07-26: (1) the enforcement check for the new
-  per-asset licence guardrail, approved and in force; (2) this fixture change,
-  awaiting box 2.**
+  **Task 3 `DONE`** (verdict `…-F5-T3.json`, APPROVE first pass, `rejects: 0`) —
+  its licence STOP condition fired and did **not** clear: `portrait.jpg` is a
+  White House press photograph whose notice forbids reproduction/dissemination.
+  Resolved as **fetched-not-committed** — the image is `.gitignore`d and never
+  entered git, while the Apache-2.0 `portrait_expected_face_landmarks.pbtxt` IS
+  committed, preserving the **vendor reference** that exists for this image and
+  no other. Next is **Task 4** — `facedetect.py`, the first engine code of F5.
+  Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
+  the enforcement check for the per-asset licence guardrail; (2) the fixture
+  change.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -179,8 +176,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       `src/voicelock/models/face_landmarker/face_landmarker.task`. Human-only
       in every mode.
 
-- [ ] **Task 3** — Face fixture: fetch `portrait.jpg` (gitignored) + commit the vendor reference and provenance README
-  - state: REVIEW
+- [x] **Task 3** — Face fixture: fetch `portrait.jpg` (gitignored) + commit the vendor reference and provenance README
+  - state: DONE
   - rejects: 0
   - files: `tests/fixtures/face/README.md`,
     `tests/fixtures/face/portrait_expected_face_landmarks.pbtxt`, `.gitignore`
@@ -485,17 +482,17 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F5 is BUILDING: Tasks 1–2 `DONE`, 5 remain.** The two approved
-   dependencies are declared (`mediapipe==0.10.35`,
-   `opencv-contrib-python==4.13.0.92`) with **nothing moved underneath F4** —
-   `numpy` 2.2.6, `torch` 2.13.0, lock diff purely additive — so
-   `CORRECTION_RADIUS = 110` and `ACCEPT_CUTOFF = 0.45` are undisturbed; and the
-   Face Landmarker bundle is vendored (3 758 596 B, Apache-2.0, with LICENSE +
-   NOTICE). Still **zero engine code**: no `facedetect.py`, no fixture. Both
-   tasks APPROVE first pass, `rejects: 0`.
+1. 2026-07-26 — **F5 is BUILDING: Tasks 1–3 `DONE`, 4 remain.** All three asset
+   /manifest tasks landed APPROVE on the first pass, `rejects: 0`. Dependencies
+   declared (`mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`) with
+   **nothing moved underneath F4** — `numpy` 2.2.6, `torch` 2.13.0 — so
+   `CORRECTION_RADIUS = 110` and `ACCEPT_CUTOFF = 0.45` are undisturbed; the
+   Face Landmarker bundle is vendored (Apache-2.0, LICENSE + NOTICE); the face
+   fixture is **fetched-not-committed** with its Apache-2.0 vendor reference
+   committed beside it. **Task 4 begins the engine code** — `facedetect.py`.
    **Verification runs on the subagent path** for F5 — human-authorized
    2026-07-26, which closed the previous handoff's open item 1.
-   **A guardrail proposal is parked in `handoff.md`**, unwritten pending human
+   **A guardrail UPDATE is parked in `handoff.md`**, unwritten pending human
    approval.
 2. Shape of the build: **1** declare the two approved deps → **2** vendor the
    `.task` bundle → **3** fetch (not commit) `portrait.jpg` + commit the vendor reference → **4**
