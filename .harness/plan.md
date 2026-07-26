@@ -4,10 +4,14 @@
 - Updated: 2026-07-26
 - Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1
   `DONE` (verdict `memory/verdicts/2026-07-26-F5-T1.json`, APPROVE first pass,
-  `rejects: 0`). **Task 2 `REVIEW` — its licence STOP condition fired, was
-  RESOLVED by the human 2026-07-26 (Apache-2.0 per Google's three model cards,
+  `rejects: 0`) and **Task 2 `DONE`** (verdict `…-F5-T2.json`, APPROVE first
+  pass, `rejects: 0`) — its licence STOP condition fired, was RESOLVED by the
+  human 2026-07-26 (Apache-2.0 per Google's three model cards,
   `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`), and the
-  bundle is now vendored with LICENSE + NOTICE.** Tasks 3–7 `TODO`.**
+  bundle is vendored with LICENSE + NOTICE. Tasks 3–7 `TODO`; next is Task 3,
+  which carries the **second, unrelated** licence STOP point.
+  **A guardrail proposal is parked in `handoff.md` awaiting human approval** —
+  nothing was written to `project.md`.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -92,8 +96,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed — the whole F1–F4.5 suite still green after the lock regeneration)
   - feedback: (none)
 
-- [ ] **Task 2** — Vendor the Face Landmarker `.task` bundle, licence verified at download
-  - state: REVIEW
+- [x] **Task 2** — Vendor the Face Landmarker `.task` bundle, licence verified at download
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/models/face_landmarker/face_landmarker.task`,
     `src/voicelock/models/face_landmarker/LICENSE` (+ `NOTICE` if the source
@@ -413,15 +417,18 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F5 is BUILDING: Task 1 `DONE`, 6 remain.** The two approved
-   dependencies are declared and installed — `mediapipe==0.10.35`,
-   `opencv-contrib-python==4.13.0.92` — and **nothing moved underneath F4**:
-   `numpy` stayed 2.2.6, `torch` stayed 2.13.0, and the `uv.lock` diff was purely
-   additive, so F4's `CORRECTION_RADIUS = 110` and F3's `ACCEPT_CUTOFF = 0.45`
-   are undisturbed. Still **zero code**: no `facedetect.py`, no model, no fixture.
-   Gate 5/5 exit 0 (`pytest` 88 passed in 59.14 s), APPROVE first pass.
+1. 2026-07-26 — **F5 is BUILDING: Tasks 1–2 `DONE`, 5 remain.** The two approved
+   dependencies are declared (`mediapipe==0.10.35`,
+   `opencv-contrib-python==4.13.0.92`) with **nothing moved underneath F4** —
+   `numpy` 2.2.6, `torch` 2.13.0, lock diff purely additive — so
+   `CORRECTION_RADIUS = 110` and `ACCEPT_CUTOFF = 0.45` are undisturbed; and the
+   Face Landmarker bundle is vendored (3 758 596 B, Apache-2.0, with LICENSE +
+   NOTICE). Still **zero engine code**: no `facedetect.py`, no fixture. Both
+   tasks APPROVE first pass, `rejects: 0`.
    **Verification runs on the subagent path** for F5 — human-authorized
    2026-07-26, which closed the previous handoff's open item 1.
+   **A guardrail proposal is parked in `handoff.md`**, unwritten pending human
+   approval.
 2. Shape of the build: **1** declare the two approved deps → **2** vendor the
    `.task` bundle → **3** vendor `portrait.jpg` + provenance → **4**
    `facedetect.py` per-frame composite on fakes → **5** camera lifecycle

@@ -1,120 +1,118 @@
-# Handoff — F5 Task 2 built, now `REVIEW` (licence escalation resolved)
+# Handoff — F5 Tasks 1–2 `DONE`; Task 3 is next
 
-Session of 2026-07-26. Task 1 `DONE`; Task 2 hit its designed licence STOP
-condition, was **escalated to the human and resolved**, and is now built and
-`REVIEW`. Tasks 3–7 `TODO`.
+Session of 2026-07-26. Tasks 1 and 2 built, verified (subagent) and wrapped up
+`DONE`. Task 2's designed licence STOP condition fired, escalated, and resolved.
+Tasks 3–7 `TODO`.
 
-## Changed
+**One guardrail proposal is parked below and needs your yes/no.**
 
-- **`src/voicelock/models/face_landmarker/face_landmarker.task`** — the vendored
-  bundle. 3 758 596 bytes, SHA-256 `64184E22…4E0BC9FF`.
-- **`src/voicelock/models/face_landmarker/LICENSE`** — Apache-2.0, 11 357 bytes.
-- **`src/voicelock/models/face_landmarker/NOTICE`** — source URL, fetch date,
-  size, hash, and the full licence evidence chain.
-- **`.harness/plan.md`** — Task 2 `BLOCKED → DOING → REVIEW`; Active context and
-  spine bullet 3 updated.
-- Earlier in the session (already committed): `memory/decisions.md` (the
-  resolution) and `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`.
+## Changed (Task 2)
 
-**Zero engine code.** No `facedetect.py` — that is Task 4.
+- **`src/voicelock/models/face_landmarker/`** — `face_landmarker.task`
+  (3 758 596 B, SHA-256 `64184E22…4E0BC9FF`), `LICENSE` (Apache-2.0, 11 357 B),
+  `NOTICE` (source, date, size, hash, and the licence evidence chain).
+- **Zero engine code.** `facedetect.py` is Task 4.
 
-## The escalation, and how it resolved
+Gate 5/5 exit 0 (`pytest` **88 passed in 52.98 s**); Review APPROVE both axes,
+first pass, `rejects: 0`. Verdict: `memory/verdicts/2026-07-26-F5-T2.json`.
 
-The task's STOP condition fired: **eight primary sources state no licence for the
-model weights** — the `.task` embeds none (all four zip entries scanned, zero
-hits; TFLite metadata `license` field unpopulated), the GCS bucket 404s on
-`LICENSE` at three paths, the official guide licences only *page content and code
-samples*, the Apache-2.0 `mediapipe` wheel ships **zero** model files, the
-Apache-2.0 `google-ai-edge/mediapipe` repo ships only `.pbtxt` graphs and **zero**
-`.task` bundles, Kaggle is JS-gated, and web results trace to Apache-2.0 headers
-in *code samples* — the exact class `spec.md` §4 rules insufficient.
+The verifier re-derived the SHA-256 itself and re-ran the "the artifact embeds no
+licence" scan rather than taking the `NOTICE`'s word — both held.
 
-The bundle was **not** committed and the task went `BLOCKED`.
+## PENDING GUARDRAIL — needs your approval before it is written
 
-The answer was in the one place a machine could not read it: Google's three
-**model cards**, which are image-only PDFs with no extractable text and no OCR
-here. **The human opened them and reported the Apache-2.0 licence link.** That
-was then corroborated mechanically rather than taken on trust — PDF link
-annotations are plain objects even on flat-image pages, so extracting every
-`/URI` showed `apache.org/licenses/LICENSE-2.0.html` in **all three** cards,
-which map 1:1 onto the bundle's three `.tflite` models. Provenance is therefore
-established **per asset**, the standard `spec.md` §4 sets.
+The `learn` scan produced a lesson that cleared the bar. **Nothing has been
+written to `project.md`**; that needs a human in every mode.
 
-Recorded in `memory/decisions.md` and the superseding research file **before**
-the build resumed, per write-before-proceed.
+**Why it cleared:** it will recur *immediately* — Task 3 vendors `portrait.jpg`
+behind its own licence STOP point, and roadmap **F6 adds a second vendored model
+dir** for OpenCV's SFace — and it cost a full escalation cycle plus your
+involvement, with the enabling technique taking well over 5 tool calls to find.
+Overlap-checked against all three existing guardrails across problem, root cause,
+fix, files and prevention: **zero overlap**.
 
-## Disclosure — exactly which Gate commands I ran (measurement exception)
+**Proposed prose rule, in `project.md` format:**
 
-Two, and no others:
+> - **[Approval]** A vendored third-party asset's licence must be established
+>   from a source that names **that asset** — the artifact itself, its
+>   distribution page, or its model card. A permissive licence on the framework,
+>   the wheel, or the source repo does **not** license separately-hosted weights
+>   or data files. `block` · expires: 2027-01-31
+>   - _Evidence:_ F5 Task 2 (2026-07-26). Eight primary sources said nothing
+>     about `face_landmarker.task`'s licence: the artifact embeds none (all four
+>     zip entries scanned, zero hits; TFLite metadata `license` field
+>     unpopulated), the GCS bucket 404s on `LICENSE` at three paths, the official
+>     guide licenses only "page content" and "code samples", the **Apache-2.0
+>     `mediapipe` wheel ships zero model files**, and the **Apache-2.0
+>     `google-ai-edge/mediapipe` repo ships only `.pbtxt` graphs and zero `.task`
+>     bundles**. The answer was in Google's three model cards, which map 1:1 onto
+>     the bundle's three `.tflite` models. Had "MediaPipe is Apache-2.0" been
+>     accepted, the repo would have vendored a 3.7 MB binary on reasoning the
+>     spec explicitly rules insufficient — and `spec.md` §4's own counter-example
+>     shows it fails outright, since MediaPipe's face_detector sample ships a
+>     **Pixabay**-licensed image whose terms restrict redistributing unaltered
+>     copies.
+>   - _Added:_ 2026-07-26
 
-1. `uv run ruff check .` → exit 0 ("All checks passed!")
-2. the bundle-loads check (`FaceLandmarkerOptions` … `RunningMode.VIDEO`) →
-   exit 0, printed `bundle loads`
+**Proposed enforcement to go with it** (`learn` step 5 prefers a mechanism over
+remembered prose where one exists). The checkable half really is mechanical:
 
-I did **not** run `uv run pytest`, the file-size assertion, or the LICENSE-file
-assertion. All three remain for the Gate.
+> add to the spec's standing Verification commands —
+> every directory under `src/voicelock/models/*/` must contain a non-stub
+> `LICENSE` **and** a `NOTICE`.
 
-## Doubts, flagged rather than buried
+That enforces the *artifact* exists; whether the evidence behind it is
+*sufficient* still needs judgment, which is why the prose rule stays too. Per the
+`learn` skill this changes real code and goes through the normal spec/approval
+path — **it is not applied during wrap-up**.
 
-1. **The licence rests on the model cards, not on the artifact.** The `.task`
-   demonstrably embeds none. The `NOTICE` says so explicitly rather than
-   implying the file is self-describing — I would rather a verifier judge that
-   honestly-stated chain than find it papered over. What was *machine*-verified
-   is the presence of the Apache-2.0 URL in all three cards; the sentence
-   surrounding it was read by a human, not parsed.
-2. **A second avenue is still unread** — the Kaggle model page's licence field,
-   JS-gated. Not needed, but it is the belt-and-braces confirmation if anyone
-   wants it.
-3. **The vendored `LICENSE` is a copy of `models/ecapa/LICENSE`**, not of the
-   `mediapipe` wheel's. Deliberate: the wheel's has Lucent/Plan 9 third-party
-   notices appended covering the *wheel's code*, which would misdescribe the
-   model. The ECAPA copy is pristine, unmodified Apache-2.0 (its appendix still
-   reads `Copyright [yyyy] [name of copyright owner]`), so both vendored model
-   dirs now carry identical, correct licence text.
-4. **MediaPipe prints `W0000` warnings on load** (XNNPACK delegate, feedback
-   manager). These are normal init logging on stderr, not errors — the command
-   exits 0. Noting it because a verifier will see them and they look alarming.
-5. **`git add -A` hazard, handled.** `.task` matches no `.gitignore` rule, so
-   while the licence was unresolved the downloaded bundle was moved out of the
-   repo tree entirely rather than left untracked. Nothing unlicensed was ever
-   staged.
-6. **Integrity check.** The committed bundle was re-fetched from the canonical
-   URL and compared: byte-for-byte identical.
+Say yes/no to each. Declining is a fine answer and I will record it as declined.
 
 ## Still open for the human
 
-1. **Task 3 carries the second licence STOP point** (`portrait.jpg`) and it is
-   **unrelated to this one** — do not read Task 2's resolution as precedent.
-   `spec.md` §4's cited counter-example is that MediaPipe's own face_detector
-   sample ships a **Pixabay**-licensed image, whose terms restrict
-   redistributing unaltered copies. It may well not clear as easily.
+1. **Task 3 carries the second licence STOP point** (`portrait.jpg`), and it is
+   **unrelated to Task 2's** — do not read this resolution as precedent. The
+   spec's cited counter-example is that MediaPipe's own face_detector sample
+   ships a **Pixabay**-licensed image. It may well not clear as easily, and if it
+   does not, the spec's remedy is a **spec amendment** (human-only).
 2. **`project.md`'s Environment section is stale** — *"Tool(s): Cursor only"*,
-   *"Setup run: 2026-07-21"*. Re-running `setup` refreshes it.
-3. **No guardrail proposal is pending.**
+   *"Setup run: 2026-07-21"*, while this session ran in Claude Code. Re-running
+   `setup` refreshes it.
 
 ## Carried forward, unchanged
 
 - **The unmeasured `evaluate_js` bridge throughput** — Task 5's floor covers the
   engine half, Task 7's live check the bridge half. Fallback: `TARGET_FPS`
-  30 → 20 → 15 **on measured evidence**, never by loosening the assertion.
+  30 → 20 → 15 **on measured evidence**, never by loosening the assertion, and
+  never by reopening the rejected loopback-MJPEG transport without a fresh
+  human decision.
 - **F4.5's fake-stream shape is what Tasks 4–5 inherit** — `read()` is the real
   path the fake must deliver through, `release()` the teardown it must trip on,
-  with a **`BaseException`** subclass.
+  with a **`BaseException`** subclass, since F4.5 proved a plain `Exception` is
+  swallowed by blanket handlers.
+- **The verifier path is settled** — subagent, human-authorized this session
+  (`memory/decisions.md`), which closed the previous handoff's open item 1.
+
+## Where the rest lives
+
+- Task verdicts: `memory/verdicts/2026-07-26-F5-T1.json`, `-F5-T2.json`
+- The licence investigation: `memory/research/2026-07-26-f5-face-landmarker-licence.md`
+  (blocked) → `…-licence-resolved.md` (resolved; supersedes it)
+- Decisions this session: `memory/decisions.md` (verifier path; licence resolution)
+- Task ledger + the pinned `facedetect.py` module contract: `plan.md`
 
 ## next_action
 
-**Verify Task 2** — clean-context verifier via `formats/VERIFIER-PROMPT.md`,
-verbatim, spawned by this session (subagent path, human-authorized). Task 2's
-done-criteria are its `plan.md` list, not the spec's full Verification section —
-Task 2 is an intermediate task.
+**`/implement` F5 Task 3 — "Vendor the `portrait.jpg` face fixture + its
+provenance README, licence verified at download".** `Mode: Mode 3` is the
+standing "go" and Task 2's wrap-up completed, so no further human "go" is needed
+to start. Expect a possible second escalation.
 
 ## Commits
 
 - Task 1: `878186c` → `19b63e5` → `79b022e` → `b21b8ae` (`DONE`)
-- Task 2: `be938c1` (DOING) → `e533720` (BLOCKED escalation) → `6585761`
-  (DOING resumed + resolution recorded) → **`1ddf831` (build)**
-- Base for the Gate diff: **`6585761`** · head: **`1ddf831`**
-- Plus this bookkeeping commit, putting actual HEAD one ahead of the recorded
-  head — expected, per the two-commit rule.
+- Task 2: `be938c1` (DOING) → `e533720` (BLOCKED) → `6585761` (resumed +
+  resolution) → `1ddf831` (build) → `bded558` (bookkeeping) → this wrap-up commit
+- Task 2's Gate diff was `6585761..1ddf831`
 
 Session base was `b718038`. Remote: **none** — local history only, nothing pushed.
