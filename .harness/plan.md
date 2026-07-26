@@ -2,14 +2,16 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `REVIEW`
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Task 1 `DONE`, next is Task 2
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
   human` — so the gate is closed and Mode 3 is the standing "go" for the tasks
   inside F4. Grilling re-scanned after the amendment — still zero markers.
-  Task 1 is `REVIEW`, awaiting a clean-context verifier; Tasks 2–5 stay `TODO`
-  under WIP=1.)
+  Task 1 is `DONE` — verified by a clean-context subagent (GATE PASS, REVIEW
+  APPROVE, both axes), verdict `memory/verdicts/2026-07-26-F4-T1.json`. Next up
+  is **Task 2** (`middlelock.py`) — the feature's riskiest task; Tasks 2–5 stay
+  `TODO` under WIP=1.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -19,8 +21,8 @@ A task is `DONE` only when the Gate exited 0 **and** the Reviewer approved.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — 5-take speaker-A enrollment fixtures + measured same/different separation
-  - state: REVIEW
+- [x] **Task 1** — 5-take speaker-A enrollment fixtures + measured same/different separation
+  - state: DONE
   - rejects: 0
   - files: `tests/fixtures/voiceprint/speakerA_enroll1..5.wav`, `tests/fixtures/voiceprint/README.md`
   - built 2026-07-26: five **1.600 s** windows (25 600 samples) at hop 0.415 s over
@@ -236,8 +238,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F4 amended, then APPROVED: box 2 re-checked by the human, so building is unblocked.** Task 1 is `REVIEW` (5-take enrollment fixtures built + measured); Tasks 2–5 `TODO`. Grilling re-scanned after the amendment (zero markers). Mode 3 is the standing "go" for the remaining tasks inside F4.
+1. 2026-07-26 — **F4 building: Task 1 `DONE` (verified subagent, GATE PASS / REVIEW APPROVE), Tasks 2–5 `TODO`.** The 5-take enrollment fixtures exist and are measured. Next is **Task 2 (`middlelock.py`)**, the feature's riskiest. Mode 3 is the standing "go" inside F4.
 2. Build order: fixtures (5-take enrollment) → `middlelock.py` fuzzy commitment → `vault.py` **v2** nesting → `BoothApi` bridge → Booth UI + the required manual demo (LAST task carries the FULL §5).
 3. Keystone (spec §4): hand-rolled pure-numpy code-offset fuzzy commitment, **no new dependency**; helper data **inside** the outer passphrase box; v1 vaults refused with a re-enroll prompt. **Amendment 2026-07-26 added five required accuracy levers** — soft-decision decoding · cross-take unanimity mask · large pool masked to ~512 · short key + deep repetition · longer window-averaged captures. Centering is test-only; emotion/pitch variation explicitly rejected.
-4. Main build risk: raw ECAPA sign-bits carry ~25 % genuine bit-error, and the research's binomial numbers assume independent flips that correlated LSH bits will not deliver — measured results will be worse than theory. Task 2 must separate genuine from impostor **with a margin** or report `BLOCKED`; never loosen the radius to force a pass.
+4. Main build risk: **measured on the Task-1 fixtures, raw 192-dim sign-BER is 7.8 % genuine vs 43.2 % impostor with 98/192 bits unanimous across the five takes** — better than the research's ~25 % warning, but the research's binomial numbers assume independent flips that correlated LSH bits will not deliver, so measured results will still be worse than theory. Task 2 must separate genuine from impostor **with a margin** or report `BLOCKED`; never loosen the radius to force a pass.
 5. If Task 2 blocks, suspect the FIXTURES first: the source audio is ~3.3 s total so fixture takes are 1.6 s (measured-best; longer only adds fake overlap), still far shorter than a real 3–5 s enrollment. Escalation order: better fixture audio → accept higher false-reject → revisit the declined `komm` dependency. Open human item from F3: spec's "~20 MB" model-size wording is wrong (actual ~85 MB).

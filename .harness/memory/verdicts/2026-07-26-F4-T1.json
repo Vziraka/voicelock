@@ -1,0 +1,24 @@
+{
+  "task": "T1",
+  "spec": "spec.md@a13d891",
+  "change": "a13d891..01667e1",
+  "gate": {
+    "commands": [
+      "uv run python -c \"<5-take embed + same/different separation assert>\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "Verifier re-ran all three of Task 1's plan.md done-criteria: separation check exit 0 (same 0.05832901647226285, diff 0.8450908827361865), ruff 'All checks passed!', full suite 35 passed / 0 failed. Scope check clean: 7 files, all inside Task 1's declared files plus the REVIEW state write; no pyproject.toml/uv.lock change, so 'no new dependency' holds; F3 fixtures byte-identical."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Five 1.600 s windows (25 600 samples, hop 0.415 s) cut from the reassembled 3.261 s speaker-A source. Window length pinned by measurement rather than the plan's '~1.0 s' sketch: 1.6 s is the longest length at which takes 1 and 5 still share zero audio (they overlap above 26 087 samples = 1.630 s), and genuine sign-BER plateaus at ~8 % from there — longer windows would manufacture unanimity from shared audio (128/192 and 137/192 'unanimous' bits at 2.0/2.4 s vs 98/192 at 1.6 s) and corrupt spec 4's cross-take unanimity filter into measuring the cut instead of the speaker. Verifier re-derived every README number independently; all reproduce. Not a [Modes] STOP case (the '~1.0 s' sketch was followable; it was a sizing parameter the task itself told the builder to measure) and no deviations.md entry owed. Measured for Task 2: 5-take mean -> same-speaker 0.0583, -> impostor 0.8451; cross-take pairwise max 0.6241 / mean 0.3062; 98/192 raw sign bits unanimous; genuine sign-BER 7.8 %, impostor 43.2 %."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-26"
+}
