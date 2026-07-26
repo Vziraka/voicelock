@@ -180,7 +180,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       in every mode.
 
 - [ ] **Task 3** — Face fixture: fetch `portrait.jpg` (gitignored) + commit the vendor reference and provenance README
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `tests/fixtures/face/README.md`,
     `tests/fixtures/face/portrait_expected_face_landmarks.pbtxt`, `.gitignore`
