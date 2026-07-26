@@ -1,9 +1,12 @@
-"""Middle-lock tests — spec F4 §5 cases, engine half (Task 2).
+"""Middle-lock tests — spec F4 §5 cases (1)-(7).
 
 Uses the fixed 5-take enrollment fixtures under ``fixtures/voiceprint`` and the
 vendored ECAPA model loaded fully offline (``HF_HUB_OFFLINE``, no network). Every
 tolerance assertion imports the module constants the app uses, so the pass/fail
 boundary is deterministic rather than a judgment call.
+
+Two halves: the fuzzy-commitment engine (Task 2) and the nested v2 vault it seals
+(Task 3, from ``test_nested_vault`` onward).
 """
 
 from __future__ import annotations
@@ -30,9 +33,20 @@ from voicelock.middlelock import (
     reconcile,
     residual_bits,
 )
+from voicelock.vault import (
+    FORMAT_VERSION,
+    MAGIC,
+    AuthError,
+    LegacyVaultError,
+    VoiceAuthError,
+)
+from voicelock.vault import enroll as vault_enroll
+from voicelock.vault import unlock as vault_unlock
 from voicelock.voiceprint import EMBEDDING_DIM, embed, load_wav
 
 FIXTURES = Path(__file__).parent / "fixtures" / "voiceprint"
+PASSPHRASE = "correct-horse-battery-staple"
+NAME = "Ada Lovelace"
 
 
 @pytest.fixture(scope="module")
@@ -291,3 +305,106 @@ def test_no_network_during_commit_and_reconcile(
     monkeypatch.setattr(socket, "getaddrinfo", _blocked)
     secret, helper = commit(enrollment)
     assert reconcile(helper, same_speaker) == secret
+
+
+# =============================================================================
+# The nested v2 vault (Task 3) — spec §5 cases (1)-(7) end to end.
+# =============================================================================
+
+
+@pytest.fixture
+def sealed_vault(tmp_path: Path, enrollment: list[np.ndarray]) -> Path:
+    vault = tmp_path / "vault.vl"
+    vault_enroll(NAME, PASSPHRASE, enrollment, path=vault)
+    return vault
+
+
+# --- case (1): enroll binds a middle key and seals a nested v2 vault ----------
+def test_enroll_seals_a_v2_vault(sealed_vault: Path) -> None:
+    raw = sealed_vault.read_bytes()
+    assert raw[:4] == MAGIC == b"VLCK"
+    assert raw[4] == FORMAT_VERSION == 2
+
+
+# --- case (2): the same speaker unlocks and gets the display name ------------
+def test_same_speaker_unlocks(sealed_vault: Path, same_speaker: np.ndarray) -> None:
+    assert vault_unlock(PASSPHRASE, same_speaker, path=sealed_vault) == NAME
+
+
+def test_each_enrollment_take_unlocks(
+    sealed_vault: Path, enrollment: list[np.ndarray]
+) -> None:
+    for index, take in enumerate(enrollment, start=1):
+        assert vault_unlock(PASSPHRASE, take, path=sealed_vault) == NAME, (
+            f"enrollment take {index} could not unlock"
+        )
+
+
+# --- case (3): a different speaker is a MIDDLE reject, with no name ----------
+def test_different_speaker_is_a_middle_reject(
+    sealed_vault: Path, different_speaker: np.ndarray
+) -> None:
+    with pytest.raises(VoiceAuthError) as caught:
+        vault_unlock(PASSPHRASE, different_speaker, path=sealed_vault)
+    assert NAME not in str(caught.value)
+
+
+# --- case (4): a wrong passphrase is an OUTER reject, before the voice --------
+def test_wrong_passphrase_is_an_outer_reject(
+    sealed_vault: Path, same_speaker: np.ndarray
+) -> None:
+    with pytest.raises(AuthError) as caught:
+        vault_unlock("wrong-passphrase", same_speaker, path=sealed_vault)
+    assert NAME not in str(caught.value)
+
+
+def test_wrong_passphrase_outranks_a_wrong_voice(
+    sealed_vault: Path, different_speaker: np.ndarray
+) -> None:
+    """Both factors wrong reports the OUTER cause — the peel order, asserted.
+
+    ``AuthError`` and ``VoiceAuthError`` are siblings, so this fails loudly if the
+    voice is ever consulted before the passphrase has been proven.
+    """
+    with pytest.raises(AuthError):
+        vault_unlock("wrong-passphrase", different_speaker, path=sealed_vault)
+
+
+def test_the_two_rejects_are_distinct_types(
+    sealed_vault: Path, same_speaker: np.ndarray, different_speaker: np.ndarray
+) -> None:
+    """The demo's whole point: the outer and middle rejects never collapse."""
+    with pytest.raises(AuthError) as outer:
+        vault_unlock("wrong-passphrase", same_speaker, path=sealed_vault)
+    with pytest.raises(VoiceAuthError) as middle:
+        vault_unlock(PASSPHRASE, different_speaker, path=sealed_vault)
+    assert not isinstance(outer.value, VoiceAuthError)
+    assert not isinstance(middle.value, AuthError)
+
+
+# --- case (6): a v1 vault is refused with the re-enroll signal ---------------
+def test_v1_vault_is_refused(sealed_vault: Path, same_speaker: np.ndarray) -> None:
+    raw = bytearray(sealed_vault.read_bytes())
+    raw[4] = 1
+    sealed_vault.write_bytes(bytes(raw))
+    with pytest.raises(LegacyVaultError, match="re-enroll"):
+        vault_unlock(PASSPHRASE, same_speaker, path=sealed_vault)
+
+
+# --- case (7): no leak — helper data and plaintext stay inside the outer box --
+def test_vault_bytes_leak_neither_helper_data_nor_plaintext(
+    sealed_vault: Path, enrollment: list[np.ndarray]
+) -> None:
+    raw = sealed_vault.read_bytes()
+
+    # The display name never appears in the clear.
+    assert NAME.encode("utf-8") not in raw
+    # Nor does the JSON scaffolding of either nested payload — if helper data sat
+    # outside the outer box, these field names would be readable.
+    for marker in (b"helper_data", b"middle_ciphertext", b"schema_version", b"seed"):
+        assert marker not in raw
+
+    # Nor any part of the reference embedding, in either byte order.
+    reference = np.mean(enrollment, axis=0)
+    for dtype in ("<f8", ">f8", "<f4", ">f4"):
+        assert reference.astype(dtype).tobytes()[:32] not in raw

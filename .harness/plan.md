@@ -2,7 +2,7 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–2 `DONE`, Task 3 `DOING`
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BLOCKED — Tasks 1–2 `DONE`, Task 3 `BLOCKED` (plan contradiction, needs a human call)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -152,7 +152,20 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — `vault.py` v2: nested outer(passphrase) → middle(voice) layout + v1 refusal
-  - state: DOING
+  - state: BLOCKED
+  - blocked 2026-07-26 — **the task's own ledger entry is self-contradictory**, which
+    the universal [Modes] rule says a Mode 3 session must STOP on rather than
+    interpret. This task's `files:` line is `vault.py` / `test_middlelock.py` /
+    `test_vault.py`, but its done-criteria include `uv run pytest` → exit 0. Task 3
+    changes the `vault.enroll` / `vault.unlock` signatures, and `src/voicelock/app.py`
+    lines 70 and 86 call them — so the full suite cannot go green without editing
+    `app.py`, which the plan assigns to Task 4. Both criteria cannot hold at once.
+    **Everything inside the declared scope is built and green:** `vault.py` v2 nested
+    layout, `VoiceAuthError` / `LegacyVaultError`, outer-then-middle peel order, plus
+    spec §5 vault cases (1)(2)(3)(4)(6)(7) in `test_middlelock.py` and the updated
+    `test_vault.py` / `test_outer_lock.py` — 47 passed across those three files, ruff
+    exit 0. The ONLY failures are the 5 pre-existing `test_booth_api.py` cases that
+    call the old signature. Resolution needs a human choice — see `handoff.md`.
   - rejects: 0
   - files: `src/voicelock/vault.py`, `tests/test_middlelock.py`, `tests/test_vault.py`
   - notes: Bump `FORMAT_VERSION` 1 → 2 and nest, exactly as spec §4 pins:
