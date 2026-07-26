@@ -7,10 +7,11 @@ Feature: Feature 5 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [ ] Approved by human
+- [x] Approved by human
 
 > **AMENDMENT 2 of 2026-07-26 — the fixture becomes FETCHED-NOT-COMMITTED.
-> Box 2 re-opened, awaiting the human's `x`.**
+> Box 2 was re-opened and the human RE-APPROVED it the same day; gate closed,
+> Task 3 resumed.**
 > `spec.md` named MediaPipe's `portrait.jpg`. Its download-time licence check
 > **failed**: it is a White House press photograph (EXIF `Artist = Pete Souza`)
 > whose notice forbids reproduction or dissemination without written permission
@@ -40,8 +41,8 @@ Feature: Feature 5 from `roadmap.md`
 > this box is checked; Tasks 4, 5 and 7 name the fixture and were blocked with it.
 >
 > *(Amendment 1, earlier the same day and already approved: one line added to
-> §5's Standing list — every `src/voicelock/models/*/` dir must carry a non-stub
-> `LICENSE` and `NOTICE`, the enforcement half of `project.md`'s new per-asset
+> §5's Standing list — every* `src/voicelock/models/*/` *dir must carry a non-stub*
+> `LICENSE` *and* `NOTICE`*, the enforcement half of* `project.md`*'s new per-asset
 > licence guardrail. It remains in force.)*
 
 - **Mode:** Mode 3 (Spec-to-done). Set by the human 2026-07-26. The two
@@ -380,7 +381,7 @@ and for no other image, so this is the only fixture against which the test can
 assert Google's own published coordinates rather than a self-generated
 expectation.
 
-- **`portrait_expected_face_landmarks.pbtxt` IS committed.** It ships in the
+- `portrait_expected_face_landmarks.pbtxt` **IS committed.** It ships in the
 Apache-2.0 `google-ai-edge/mediapipe` repo (`mediapipe/tasks/testdata/vision/`)
 and is freely redistributable — only the photograph is not. Committing the
 reference while ignoring the image is the whole point of this arrangement.
@@ -546,6 +547,8 @@ what the live check below covers, and the split is stated here rather than
 blurred: passing this line means the engine can feed 30 fps, not that 30 fps
 reaches the screen.
 
+
+
 Proof surface: the highest real surface this feature touches is the live
 pywebview Booth driving a real webcam. The automated tests prove the pipeline's
 logic against injectable fakes; they do **not** prove that the composited frames
@@ -568,8 +571,6 @@ smiley returns, **the webcam light goes out**, and pressing **Record a second
 time** brings the preview back. Close the window while recording: the webcam
 light goes out. Observable: the camera is genuinely opened, genuinely drawn on,
 and genuinely released.
-
-
 
 Out-of-scope discoveries during build (Mode 3 default): record in
 `.out-of-scope/`, never build.

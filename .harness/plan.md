@@ -9,7 +9,7 @@
   human 2026-07-26 (Apache-2.0 per Google's three model cards,
   `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`), and the
   bundle is vendored with LICENSE + NOTICE.
-  **Task 3 `BLOCKED`, unblocking in progress:** its licence STOP condition fired
+  **Task 3 `DOING`** — unblocked 2026-07-26. Its licence STOP condition fired
   and did **not** clear — `portrait.jpg` is a White House press photograph whose
   embedded notice forbids reproduction/dissemination, so nothing was committed.
   The human chose **fetched-not-committed**: keep `portrait.jpg`, `.gitignore`
@@ -28,10 +28,10 @@
   already-recorded `Verifier path: subagent`.
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
-- Spec: `spec.md` holds F5's spec, `Status: CLEAR`, zero clarification markers.
-  **Box 2 is currently UN-checked** — re-opened by the 2026-07-26 fixture
-  amendment and awaiting the human's `x`. F4.5's ledger is closed and lives in
-  git (`93bc887`); this file replaces it.
+- Spec: `spec.md` holds F5's spec, `Status: CLEAR`, zero clarification markers,
+  **both boxes checked** — box 2 re-approved 2026-07-26 after the fixture
+  amendment. F4.5's ledger is closed and lives in git (`93bc887`); this file
+  replaces it.
 
 ### The two escalation points, both now fired (Mode 3, mid-build)
 Tasks 2 and 3 each downloaded an asset and **verified its licence at download**.
@@ -180,7 +180,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       in every mode.
 
 - [ ] **Task 3** — Face fixture: fetch `portrait.jpg` (gitignored) + commit the vendor reference and provenance README
-  - state: BLOCKED
+  - state: DOING
   - rejects: 0
   - files: `tests/fixtures/face/README.md`,
     `tests/fixtures/face/portrait_expected_face_landmarks.pbtxt`, `.gitignore`
