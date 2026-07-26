@@ -19,8 +19,11 @@
   `rejects: 0`) — `facedetect.py` exists: the per-frame composite path on
   injectable fakes, 14 new tests, suite at **102 passed**. `TARGET_FPS` and the
   camera lifecycle are deliberately NOT there — they are **Task 5's**, so no
-  constant lands without a caller. **Task 5 is next**, and carries a
-  status-reset observation from Task 4's verifier (see its notes).
+  constant lands without a caller. **Task 5 `REVIEW`** — the lifecycle exists:
+  daemon worker, `stop()` ordering (halt → join → release), drop-don't-queue
+  pacing, and the `BaseException` release tripwire. **Throughput measured at
+  8.1 ms/frame** against the 33 ms budget, so `TARGET_FPS` stays at **30** and
+  the fallback ladder was not needed. Suite: **111 passed**.
   Two amendments were made 2026-07-26, **both human-approved via box 2**: (1)
   the enforcement check for the per-asset licence guardrail; (2) the fixture
   change.**
@@ -344,8 +347,12 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 5** — `facedetect.py`: camera lifecycle — 30 fps worker, drop-don't-queue, release tripwire
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
+  - measured: **throughput floor 8.1 ms/frame** against the 33 ms budget
+    (~123 fps engine-side, ~4x headroom). **`TARGET_FPS` stays at 30** — the
+    fallback ladder was not needed. This measures the engine only; the
+    `evaluate_js` bridge half is Task 7's live check.
   - files: `src/voicelock/facedetect.py`, `tests/test_facedetect.py`
   - notes: The stateful half: `start(on_frame)` opens the camera and runs a
     **daemon thread**; `stop()` halts the loop, **joins**, and only then calls

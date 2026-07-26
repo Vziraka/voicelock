@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,12 +25,16 @@ from voicelock.facedetect import (
     CAPTURE_WIDTH,
     DRAWN_POINTS,
     FACE_OVAL_POINTS,
+    FRAME_INTERVAL,
     LIP_POINTS,
     PREVIEW_PX,
+    TARGET_FPS,
     FaceEngine,
     FaceStatus,
+    FrameResult,
     _centre_crop_square,
     _draw_overlay,
+    pacing_delay,
 )
 
 LANDMARK_COUNT = 478
@@ -68,6 +73,17 @@ class FakeLandmarker:
         return FakeResult(self._landmarks)
 
 
+class CameraUsedAfterRelease(BaseException):
+    """Raised when `read()` happens after `release()`.
+
+    A `BaseException` subclass on purpose, exactly as F4.5's `ReentrantTeardown`:
+    an ordinary `Exception` would be swallowed by any blanket `except Exception`
+    on a teardown path, and the leak would hide. It also records a flag, because
+    an exception raised inside a daemon worker thread dies with that thread and
+    would otherwise never reach the assertion.
+    """
+
+
 class FakeCamera:
     """Hands frames back through the real `read()` the engine calls."""
 
@@ -77,11 +93,15 @@ class FakeCamera:
         *,
         opened: bool = True,
         read_ok: bool = True,
+        repeat: bool = False,
     ) -> None:
         self._frames = list(frames or [])
         self._opened = opened
         self._read_ok = read_ok
+        self._repeat = repeat
         self.released = False
+        self.release_count = 0
+        self.used_after_release = False
         self.props: dict[int, float] = {}
         self.read_count = 0
 
@@ -93,13 +113,19 @@ class FakeCamera:
         return True
 
     def read(self) -> tuple[bool, np.ndarray | None]:
+        if self.released:
+            self.used_after_release = True
+            raise CameraUsedAfterRelease("read() called after release()")
         self.read_count += 1
         if not self._read_ok or not self._frames:
             return False, None
+        if self._repeat:
+            return True, self._frames[(self.read_count - 1) % len(self._frames)]
         return True, self._frames.pop(0)
 
     def release(self) -> None:
         self.released = True
+        self.release_count += 1
 
 
 def _blank(value: int = 30) -> np.ndarray:
@@ -357,3 +383,181 @@ def test_vendored_model_finds_no_face_in_a_plain_colour_image() -> None:
 
     assert result.landmarks == []
     assert engine.status != FaceStatus.ERROR
+
+
+# ---------------------------------------------------------------------------
+# Camera lifecycle
+# ---------------------------------------------------------------------------
+
+
+def _wait_for(predicate, timeout: float = 5.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.005)
+    return False
+
+
+def _running_engine(repeat_frames: int = 3):
+    """An engine wired to a fake camera that keeps yielding frames."""
+    cameras: list[FakeCamera] = []
+
+    def open_camera(index):
+        del index
+        camera = FakeCamera([_blank() for _ in range(repeat_frames)], repeat=True)
+        cameras.append(camera)
+        return camera
+
+    engine = FaceEngine(
+        open_camera=open_camera, landmarker=FakeLandmarker(_face_at(0.5, 0.5))
+    )
+    return engine, cameras
+
+
+# (5) Stop releases the camera
+
+
+def test_stop_joins_the_worker_before_releasing_the_camera() -> None:
+    """A read after release is a bug; the fake trips on it, loudly and from a thread."""
+    engine, cameras = _running_engine()
+    received: list[FrameResult] = []
+
+    engine.start(received.append)
+    assert engine.status == FaceStatus.RUNNING
+    assert _wait_for(lambda: len(received) >= 2), "the worker never delivered frames"
+
+    engine.stop()
+
+    camera = cameras[0]
+    assert camera.released
+    assert camera.release_count == 1, "release() must happen exactly once"
+    assert not camera.used_after_release, "the camera was read after release()"
+    assert engine.status == FaceStatus.IDLE
+    assert engine._thread is None
+    assert all(r.data_uri.startswith("data:image/jpeg;base64,") for r in received)
+
+
+def test_read_after_release_trips_a_wire_a_blanket_handler_cannot_swallow() -> None:
+    """Proves the tripwire is armed — and that `except Exception` misses it."""
+    camera = FakeCamera([_blank()])
+    camera.release()
+
+    with pytest.raises(CameraUsedAfterRelease):
+        try:
+            camera.read()
+        except Exception:  # a blanket handler on a teardown path would eat a plain Exception
+            pytest.fail("the tripwire was swallowed by `except Exception`")
+
+    assert camera.used_after_release
+
+
+def test_stop_is_idempotent_and_safe_after_a_failed_start() -> None:
+    """A window-close handler needs both — it cannot know what state it is in."""
+    engine = FaceEngine(
+        open_camera=lambda index: FakeCamera(opened=False),
+        landmarker=FakeLandmarker(None),
+    )
+    engine.start(lambda result: None)
+    assert engine.status == FaceStatus.ERROR
+
+    engine.stop()
+    engine.stop()
+
+    assert engine.status == FaceStatus.ERROR, "stop() must not erase a camera error"
+    assert engine._thread is None
+
+
+def test_camera_failure_starts_no_worker_thread() -> None:
+    engine = FaceEngine(
+        open_camera=lambda index: FakeCamera(read_ok=True, opened=False),
+        landmarker=FakeLandmarker(None),
+    )
+    engine.start(lambda result: None)
+
+    assert engine.status == FaceStatus.ERROR
+    assert engine._thread is None
+
+
+# (6) a second start after stop works
+
+
+def test_second_start_after_stop_opens_a_fresh_camera_and_frames_flow_again() -> None:
+    engine, cameras = _running_engine()
+
+    first: list[FrameResult] = []
+    engine.start(first.append)
+    assert _wait_for(lambda: len(first) >= 1)
+    engine.stop()
+
+    second: list[FrameResult] = []
+    engine.start(second.append)
+    assert _wait_for(lambda: len(second) >= 1), "a second Record must bring frames back"
+    engine.stop()
+
+    assert len(cameras) == 2, "the second start must open a fresh camera"
+    assert all(camera.released for camera in cameras)
+    assert not any(camera.used_after_release for camera in cameras)
+    assert engine.status == FaceStatus.IDLE
+
+
+def test_start_after_a_failed_start_clears_the_stale_error() -> None:
+    """A successful open is the only thing that should decide the status."""
+    cameras: list[FakeCamera] = []
+
+    def open_camera(index):
+        del index
+        camera = FakeCamera(
+            [_blank() for _ in range(3)], repeat=True, opened=bool(cameras)
+        )
+        cameras.append(camera)
+        return camera
+
+    engine = FaceEngine(
+        open_camera=open_camera, landmarker=FakeLandmarker(_face_at(0.5, 0.5))
+    )
+
+    engine.start(lambda result: None)  # first open fails
+    assert engine.status == FaceStatus.ERROR
+    assert engine.error_message
+
+    received: list[FrameResult] = []
+    engine.start(received.append)  # second open succeeds
+    assert engine.status == FaceStatus.RUNNING
+    assert engine.error_message is None
+    assert _wait_for(lambda: len(received) >= 1)
+    engine.stop()
+
+
+# Drop frames, never queue them
+
+
+def test_frames_are_dropped_not_queued_when_one_overruns_its_budget() -> None:
+    """An overrun yields zero delay — the loop reads the newest frame instead
+    of buffering the ones it missed. A queueing pipeline drifts."""
+    assert pacing_delay(0.0) == pytest.approx(FRAME_INTERVAL)
+    assert pacing_delay(FRAME_INTERVAL / 2) == pytest.approx(FRAME_INTERVAL / 2)
+    assert pacing_delay(FRAME_INTERVAL) == 0.0
+    assert pacing_delay(FRAME_INTERVAL * 4) == 0.0, "an overrun must never be repaid"
+
+
+def test_frame_rate_is_a_named_constant() -> None:
+    """The spec's fallback ladder must be a one-line edit."""
+    assert TARGET_FPS == 30
+    assert FRAME_INTERVAL == pytest.approx(1.0 / TARGET_FPS)
+
+
+def test_worker_paces_itself_with_the_injected_clock() -> None:
+    """A slow frame path must not accumulate a backlog of unprocessed frames."""
+    engine, cameras = _running_engine()
+    ticks = iter([0.0, FRAME_INTERVAL * 3] * 200)
+    engine.clock = lambda: next(ticks, FRAME_INTERVAL * 3)
+
+    received: list[FrameResult] = []
+    engine.start(received.append)
+    assert _wait_for(lambda: len(received) >= 3)
+    engine.stop()
+
+    # One processed frame per read: nothing was queued behind the overrun.
+    assert cameras[0].read_count >= len(received)
+    assert not cameras[0].used_after_release

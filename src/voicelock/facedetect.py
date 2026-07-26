@@ -4,13 +4,15 @@ Shaped after `capture.py`: `open_camera` and `landmarker` are injectable so Gate
 tests never touch a real webcam, and failures surface as an ERROR status with a
 human-readable message rather than an exception.
 
-This module owns the per-frame transform. The camera lifecycle (worker thread,
-frame pacing, release ordering) lands in a later task.
+This module owns both halves: the per-frame transform, and the camera lifecycle
+that drives it on its own daemon thread.
 """
 
 from __future__ import annotations
 
 import base64
+import threading
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -33,6 +35,15 @@ CAPTURE_WIDTH = 640
 CAPTURE_HEIGHT = 480
 PREVIEW_PX = 172
 JPEG_QUALITY = 80
+
+# One named constant, so the spec's fallback ladder (30 -> 20 -> 15, on measured
+# evidence) is a one-line edit rather than a hunt for scattered literals.
+TARGET_FPS = 30
+FRAME_INTERVAL = 1.0 / TARGET_FPS
+
+# How long stop() waits for the worker to finish its current frame. Generous
+# relative to the frame budget so a slow frame is joined rather than abandoned.
+JOIN_TIMEOUT = 5.0
 
 MODEL_PATH = (
     Path(__file__).resolve().parent / "models" / "face_landmarker" / "face_landmarker.task"
@@ -99,9 +110,17 @@ class FaceEngine:
 
     open_camera: Callable[..., Any] = cv2.VideoCapture
     landmarker: Any | None = None
+    clock: Callable[[], float] = time.monotonic
     status: FaceStatus = FaceStatus.IDLE
     error_message: str | None = None
     _timestamp_ms: int = field(default=0, init=False)
+    _camera: Any = field(default=None, init=False)
+    _thread: threading.Thread | None = field(default=None, init=False)
+    _stop_event: threading.Event = field(default_factory=threading.Event, init=False)
+
+    @property
+    def is_running(self) -> bool:
+        return self.status == FaceStatus.RUNNING
 
     def acquire_camera(self) -> Any | None:
         """Open the camera, or set ERROR and return None.
@@ -126,6 +145,59 @@ class FaceEngine:
             camera.release()
             return self._fail("Camera gave no frames")
         return camera
+
+    def start(self, on_frame: Callable[[FrameResult], None]) -> None:
+        """Open the camera and drive it from a daemon thread.
+
+        Its own thread, not `app.py`'s 50 ms pump: that loop serves audio levels
+        and must not be made to wait on a JPEG encode. On camera failure the
+        status is left ERROR and no thread starts — the caller decides what that
+        means for the rest of the take.
+        """
+        if self.is_running:
+            return
+        camera = self.acquire_camera()
+        if camera is None:
+            return
+        self._camera = camera
+        self._stop_event.clear()
+        # Clears any ERROR left by an earlier failed start — a successful open
+        # is the only thing that should decide the current status.
+        self.status = FaceStatus.RUNNING
+        self._thread = threading.Thread(
+            target=self._loop, args=(on_frame,), name="voicelock-face", daemon=True
+        )
+        self._thread.start()
+
+    def stop(self) -> None:
+        """Stop the loop, join the worker, and only THEN release the camera.
+
+        The ordering is the whole point: a frame read after `release()` is a bug,
+        and releasing while the worker is still mid-read is how a webcam stays
+        lit after the app thinks it let go. Safe to call twice, and safe to call
+        after a failed start — a window-close handler needs both.
+        """
+        self._stop_event.set()
+        thread, self._thread = self._thread, None
+        if thread is not None:
+            thread.join(timeout=JOIN_TIMEOUT)
+        camera, self._camera = self._camera, None
+        if camera is not None:
+            camera.release()
+        if self.is_running:
+            self.status = FaceStatus.IDLE
+
+    def _loop(self, on_frame: Callable[[FrameResult], None]) -> None:
+        camera = self._camera
+        while not self._stop_event.is_set():
+            started = self.clock()
+            ok, frame = camera.read()
+            if not ok or frame is None:
+                break
+            on_frame(self.process_frame(frame))
+            # Wait on the stop event rather than sleeping, so Stop is felt
+            # immediately instead of after the rest of the frame budget.
+            self._stop_event.wait(pacing_delay(self.clock() - started))
 
     def process_frame(self, frame: np.ndarray) -> FrameResult:
         """One frame in, one composited data URI plus all 478 landmarks out.
@@ -177,6 +249,18 @@ class FaceEngine:
         self.status = FaceStatus.ERROR
         self.error_message = message
         return None
+
+
+def pacing_delay(elapsed: float) -> float:
+    """How long to wait before reading the next frame.
+
+    Drop, never queue. A frame that overran its budget yields **zero** delay —
+    the loop goes straight back to `read()` for the newest frame instead of
+    buffering the ones it missed. A queueing pipeline does not merely run slow,
+    it drifts: the preview falls further behind reality every frame, which reads
+    as a freeze rather than as a low frame rate.
+    """
+    return max(0.0, FRAME_INTERVAL - elapsed)
 
 
 def load_landmarker() -> FaceLandmarker:
