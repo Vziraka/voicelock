@@ -108,24 +108,52 @@ Base for this session: `a114a49` → head `cf97c77` (the spec commit), plus this
 bookkeeping commit recording the pair.
 Remote: **none** — local history only, nothing pushed.
 
-## Nice-to-haves the human was offered and left at their defaults
+## The eight defaults — four changed after review, four kept
 
-Listed here so none was dropped silently (the `grilling` skill's step 5). All are
-cheap to amend before `/plan`; none is architectural.
+Listed so none was dropped silently (the `grilling` skill's step 5). All were put
+to the human; four were changed before approval, so they are plain edits, not
+amendments.
 
-1. Capture resolution **640×480** — 1280×720 would sharpen landmarks and cost CPU.
-2. Frame-rate target **~15 fps** on a dedicated daemon thread.
-3. MediaPipe **`VIDEO`** running mode rather than `LIVE_STREAM` — deterministic
-   Gate tests over a closer match to the callback guardrail's wording.
-4. Landmark **subset** drawn (face oval, eyes, lip contour) rather than all 478
-   points, which would be a blob at 172 px.
-5. **No startup camera probe** — deliberate divergence from `_probe_mic`.
-6. **Preview not mirrored.** Raised late and worth a decision: webcam previews are
-   conventionally mirrored ("selfie view") because an unmirrored one makes people
-   move the wrong way. OpenCV delivers unmirrored frames. If mirroring is wanted,
-   it must be applied **after** detection and the landmark coordinates flipped
-   with it, or the overlay lands on the wrong side of the face.
-7. **Camera device index 0.** No device picker; a second webcam is not selectable.
-8. **Face-photo fixture licence** — the one item above cosmetic: it decides
-   whether a test runs the *real* vendored model. Spec §4 requires the limitation
-   be written down if no licensed image is found, never proxied silently.
+**Changed:**
+
+1. **Preview is now mirrored** (selfie view). `cv2.flip(img, 1)` runs **after**
+   the overlay is drawn, so pixels flip and **no landmark coordinate does** — the
+   cheap way, and the way that avoids mirror bugs. Detection stays on the
+   unflipped frame, so F6/F7/F8 data is unaffected. Text, if ever added, must be
+   drawn after the flip.
+2. **Frame rate 15 → 30 fps** (human: 15 was too choppy). Two conditions carry
+   more weight than the number: the rate is a **named constant**, and frames are
+   **dropped, never queued** — a queueing pipeline drifts progressively behind
+   reality, which looks like a freeze rather than a low frame rate. The Gate's
+   throughput floor moved to **<33 ms/frame, set AT the target**, with an
+   evidence-driven fallback to 20 then 15 if the hardware cannot meet it.
+3. **Gate fixture pinned: MediaPipe's own `portrait.jpg`**, plus its published
+   `portrait_expected_face_landmarks.pbtxt` as a vendor reference where practical.
+   Same shape as F3's precedent. Explicitly **not** the owner's face — see below.
+4. **The engine returns all 478 landmarks** while drawing only the subset, so F8
+   does not have to reopen `facedetect.py` for the lip points.
+
+**Kept as-is:** 640×480 capture (the bridge is the bottleneck, not the sensor) ·
+MediaPipe `VIDEO` mode (deterministic Gate tests) · no startup camera probe ·
+camera device index 0.
+
+## The fixture-vs-identity distinction, since it came up
+
+The human asked how they would verify it is *them* if the fixture is a stock
+portrait. The two never meet, and the repo already works this way for voice:
+
+| | Committed (the Gate) | Live, never committed (the human) |
+|---|---|---|
+| Voice | `speakerA_*.wav` / `speakerB.wav` — VoxCeleb strangers | their voice → `~/.voicelock/vault.vl` at runtime |
+| Face | `portrait.jpg` — MediaPipe's test image | their face → the live check, and the vault at F7 |
+
+The fixture proves the **model detects a face** with no camera and no human
+present. **Identity** is proven by the required manual check and, from F7, by a
+real enrollment. Committing the owner's photo would not make enrollment more
+theirs — it would put their biometrics in git and make the fixture withdrawable,
+i.e. a test that breaks later.
+
+**Flagged for F6, not solved here:** F6 needs *two* faces (same-person-close,
+different-person-far) and `portrait.jpg` is one image. F3 hit the same wall and
+solved it by windowing one recording — a photo cannot be split that way. **F6's
+spec must say where face B comes from.**

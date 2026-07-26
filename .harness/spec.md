@@ -33,7 +33,10 @@ The preview is **circular**, because the slot it takes over is:
 webcam's 4:3 frame is therefore **centre-cropped to a square** and masked to the
 circle — the left and right edges of the camera's field of view are not shown.
 Detection still runs on the **full** frame, so a face near the edge is found even
-when the crop hides it.
+when the crop hides it. It is also **mirrored**, like every video-call self-view,
+because an unmirrored preview makes people move the wrong way when centring
+themselves — and centring your face is the interaction this feature exists to
+support.
 
 This is the visual analog of F1: F1 proved the microphone reaches the Booth and
 the Visualizer reacts; F5 proves the camera does the same. It is the prefactor
@@ -72,8 +75,8 @@ goes out.
 | ---------------------------------- | ------- | ----------- |
 | Functional scope & behavior        | Clear   | Three items, listed in §1 and bounded in §3. Camera lifecycle is tied to the existing Record/Stop path — the human's answer, 2026-07-26 ("turn into a camera screen when recording happens"). |
 | Domain & data model                | Clear   | No persisted state, no file format, no vault or crypto surface touched. Frames are transient; nothing is written to disk. Faceprints, distances and keys are F6/F7, not here. |
-| Interaction & UX flow              | Clear   | The preview replaces the decorative smiley **in place**, in its existing 172 px circle, with **zero layout shift** — human's answer, 2026-07-26. The preview is therefore **round**: the 4:3 frame is centre-cropped to a square and masked, and the detected face is outlined with an **ellipse**, not a rectangle whose corners would clip (human's answer, 2026-07-26). Expanding to a larger rectangle was explicitly kept open as a later change and is a §3 non-goal here. |
-| Non-functional (perf, security)    | Clear   | Offline-only preserved by vendoring (§4); no crypto surface. Frame-rate floor pinned and measured by the Gate (§5); the bridge half is covered by the required live check. |
+| Interaction & UX flow              | Clear   | The preview replaces the decorative smiley **in place**, in its existing 172 px circle, with **zero layout shift** — human's answer, 2026-07-26. The preview is therefore **round**: the 4:3 frame is centre-cropped to a square and masked, and the detected face is outlined with an **ellipse**, not a rectangle whose corners would clip (human's answer, 2026-07-26). It is **mirrored** (selfie view), flipped after drawing so no coordinate is flipped. Expanding to a larger rectangle was explicitly kept open as a later change and is a §3 non-goal here. |
+| Non-functional (perf, security)    | Clear   | Offline-only preserved by vendoring (§4); no crypto surface. Target **30 fps** (human's call, 2026-07-26), with a Gate floor set **at** the target (<33 ms/frame engine-only) and an evidence-driven fallback ladder if the hardware cannot meet it; frames are dropped, never queued. The bridge half is covered by the required live check. |
 | Integration & dependencies         | Clear   | Two dependencies, `mediapipe` and `opencv-contrib-python`, chosen by a TECH-PICK run and human-approved 2026-07-26 (`memory/decisions.md`; research in `memory/research/2026-07-26-f5-face-stack.md`). InsightFace, facenet-pytorch and OpenCV-only were evaluated and ruled out on evidence. |
 | Edge cases & failure modes         | Clear   | No camera / camera in use by another app; no face in frame; Stop while a frame is mid-flight; a second Record after Stop; camera released on window close (§4). |
 | Completion signals                 | Clear   | §5 pinned: fake-camera tests through the real read path, a camera-release tripwire, an offline-load assertion, two declared-dependency assertions, a measured throughput floor, plus the required human-attested live check. |
@@ -197,7 +200,7 @@ Python composites and pushes one image per frame.
 
     cv2.VideoCapture.read()  ->  MediaPipe detect_for_video  ->
     cv2 draws the oval + landmarks  ->  centre-crop to a square  ->
-    cv2.imencode('.jpg')  ->  base64  ->
+    cv2.flip(img, 1)  ->  cv2.imencode('.jpg')  ->  base64  ->
     evaluate_js("...setFaceFrame('data:image/jpeg;base64,...')")  ->  <img>
 
 The page's only job is assigning that data URI to an `<img>` inside `.face-wrap`,
@@ -213,9 +216,44 @@ but it adds a listening socket to an app whose rule is "offline-only".
   **centre-cropped to a square** and downscaled to the **172 px** the disk shows,
   since the page masks it to a circle. Cropping after detection is deliberate: a
   face at the edge of the field of view is still found, it is simply not shown.
-- Target **~15 fps**, on its **own daemon thread** — not folded into `app.py`'s
-  existing 50 ms `_pump_loop`, which serves audio levels and must not be made to
-  wait on a JPEG encode.
+- **The preview is mirrored** (selfie view), because an unmirrored self-view makes
+  people move the wrong way when centring themselves — and centring your face is
+  the interaction this feature exists to support. Every video-call app mirrors
+  self-view for the same reason.
+  **The flip is the LAST step before encoding, applied after the overlay is
+  drawn** — so the oval and landmarks are already painted into the pixels and
+  flip with them. **No landmark coordinate is ever flipped**, which is what keeps
+  this a one-line change instead of a source of mirror bugs. Detection runs on
+  the unflipped frame, so the landmark *data* F6/F7/F8 consume is unmirrored and
+  unaffected; only the display is mirrored.
+  Consequence to honor: **any text drawn on the frame must be drawn after the
+  flip**, or it renders backwards. F5 draws no text; this is written down so a
+  later feature does not discover it the hard way.
+- **The engine returns all 478 landmarks even though only a subset is drawn.**
+  Drawing is a display concern — the face oval, eyes and lip contour, because 478
+  dots on a 172 px disk is a blob. But the engine's returned structure carries the
+  full set, so F6 and F8 do not have to reopen `facedetect.py` to reach the points
+  they need. F5's stated purpose is being the prefactor those features build on;
+  a display decision must not narrow the data contract. The full set is exercised
+  by the fixture test below, so this is not untested surface under the earned
+  guardrail.
+- Target **30 fps** (human's call, 2026-07-26 — 15 read as too choppy), on its
+  **own daemon thread** — not folded into `app.py`'s existing 50 ms `_pump_loop`,
+  which serves audio levels and must not be made to wait on a JPEG encode. The
+  rate is a **named module constant**, not a scattered literal, so the fallback
+  below is a one-line change.
+- **Drop frames, never queue them.** At 30 fps the per-frame budget is **33 ms**
+  for detect + draw + crop + flip + encode + `evaluate_js`. If a frame overruns
+  it, the next frame is **skipped**, not buffered. This matters more than the
+  target number: a queueing pipeline does not merely run slow, it drifts —
+  the preview falls seconds behind reality and keeps falling, which looks like a
+  freeze rather than like a low frame rate. Always render the **latest** frame.
+- **Honest fallback ladder if 30 is not reachable** (measured, never guessed):
+  lower the constant to 20, then 15, recording the **measured** per-frame cost in
+  the completion report. A target the hardware cannot meet must be lowered on
+  evidence, not left aspirational while the preview stutters. Do **not** reach for
+  the rejected loopback-MJPEG transport without a fresh human decision — that
+  rejection is recorded with its reason in `memory/decisions.md`.
 - The 172 px target is a material risk reduction, not only an aesthetic choice: a
   172 px JPEG is roughly 8 KB where a 440 px one is ~5× that, and `evaluate_js`
   throughput across pywebview's WebView2 bridge is the one thing in this feature
@@ -264,14 +302,45 @@ must raise a **`BaseException` subclass** if the engine's teardown path wraps
 anything in a blanket `except Exception`, so it cannot be silently swallowed;
 verify that deliberately rather than assuming.
 
-**Fixture provenance:** at least one test should run the **real** vendored model
-against a real face image, so the bundle is proven to load and detect rather than
-merely to exist. That needs a face photo whose licence permits inclusion, with
-provenance disclosed in a `tests/fixtures/face/README.md` — the discipline
-`tests/fixtures/voiceprint/README.md` already set in F3. If no suitably licensed
-image can be obtained, the real-model test is **replaced by an explicitly written
-limitation in this section**, never by a silent proxy that fabricates landmarks
-and calls it coverage.
+**Fixture provenance (RESOLVED 2026-07-26):** at least one test runs the **real**
+vendored model against a real face image, so the bundle is proven to *detect*
+rather than merely to exist. The fixture is **MediaPipe's own canonical face test
+image**, `portrait.jpg`, from the same project as the vendored bundle:
+`https://storage.googleapis.com/mediapipe-assets/portrait.jpg`
+
+This follows F3's precedent exactly — its voice fixtures were "derived offline
+from the SpeechBrain `spkrec-ecapa-voxceleb` model repo's own example clips
+(Apache-2.0), the same source as the vendored model"
+(`tests/fixtures/voiceprint/README.md`). Same reasoning, same shape.
+
+- **Bonus, and a reason to prefer it over any other image:** MediaPipe publishes
+  its own **expected output** for this exact image —
+  `portrait_expected_face_landmarks.pbtxt` and
+  `portrait_expected_blendshapes.pbtxt` in `mediapipe/tasks/testdata/vision/`. The
+  test can therefore assert landmarks match a **vendor reference**, not merely
+  that "some landmarks appeared". Use it if the format is practical to parse; if
+  it is not, say so in the fixture README rather than silently asserting less.
+- Provenance and licence go in `tests/fixtures/face/README.md`, in the shape
+  `tests/fixtures/voiceprint/README.md` already established. **The licence must be
+  verified at download**, exactly as for the `.task` bundle; if it does not check
+  out, STOP and escalate rather than substituting another image.
+- **Explicitly NOT a photo of the repo's owner.** A biometrics project committing
+  its owner's face as a permanent fixture is a poor default even with no remote,
+  and a fixture must be stable — one that can be withdrawn later is a test that
+  breaks later. The owner's face is proven **live**, in the required manual check
+  below, never in git. This mirrors what already happens for voice: the repo holds
+  two VoxCeleb strangers, and the owner's actual voice exists only at runtime in
+  `~/.voicelock/`.
+- If no licensed image can be obtained at all, the real-model test is **replaced
+  by an explicitly written limitation in the Verification section**, never by a
+  silent proxy that fabricates landmarks and calls it coverage.
+- **Flagged inheritance for F6, not solved here:** F6 needs *two* faces — a
+  same-person-close and a different-person-far probe — and `portrait.jpg` is one
+  image. This is the same wall F3 hit (its model repo shipped one clip per
+  speaker, which is why its same-speaker probe is a window of the same recording,
+  disclosed as a caveat). A photo cannot be split that way, so **F6's spec must
+  say where face B comes from**. Named here so it surfaces at spec time rather
+  than mid-build.
 
 - Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
   `uv run pytest` → exit 0.
@@ -283,10 +352,10 @@ section by its NAME ("Verification"). Two parts, both required.
 
 Runtime budget: `uv run pytest` already loads torch + the vendored ECAPA model
 and pays Argon2id twice per middlelock unlock — F4.5's final Gate measured
-**88 passed in 50.42 s**. MediaPipe's landmarker adds a model load plus the
-throughput probe below. Whole-suite budget: **within the 10-minute default**; if
-the suite exceeds 5 minutes, say so in the completion report rather than
-quietly accepting it.
+**88 passed in 50.42 s**. MediaPipe's landmarker adds a model load, the
+`portrait.jpg` detection test, and the 30-frame throughput probe below.
+Whole-suite budget: **within the 10-minute default**; if the suite exceeds 5
+minutes, say so in the completion report rather than quietly accepting it.
 
 Standing (project regression net, from `project.md`), pinned:
 - `uv run ruff check .` → exit 0 (stdout/stderr contain no ruff error findings)
@@ -305,8 +374,14 @@ Feature-specific (proves THIS feature works), pinned:
   points land on the expected **pixel** coordinates, and the centre-crop maps
   them correctly into the square that is finally shown (this is where a mirror,
   a normalized-vs-pixel scaling bug, or a crop-offset bug would show);
-  (3) **the lip contour is among the drawn points** — F8 depends on it, so its
-  presence is pinned now, while it is cheap;
+  (3) **the lip contour is among the drawn points, and the engine returns all
+  478** — F8 depends on both, so the drawn subset and the full returned set are
+  pinned now, while it is cheap;
+  (3b) **the preview is mirrored, and only the pixels are** — the composited
+  output is the horizontal mirror of the unflipped composite, while the landmark
+  coordinates the engine returns are **unflipped**. An asymmetric synthetic frame
+  makes this unambiguous. This is the test that catches someone "fixing" the
+  mirror by flipping coordinates instead of pixels;
   (4) **no face in frame is a normal state** — the preview still produces a
   frame, the overlay is absent, and no ERROR is raised;
   (5) **Stop releases the camera** — `release()` is called exactly once, the
@@ -317,6 +392,16 @@ Feature-specific (proves THIS feature works), pinned:
   (7) **camera-open failure surfaces as ERROR** — both `isOpened()` False and
   `read()` returning `(False, None)` produce an ERROR status with a
   human-readable message, and no crash and no spin.
+
+- **The real model detects a real face** — a test in `tests/test_facedetect.py`
+  that runs the **vendored bundle** (no injected landmarker) against
+  `tests/fixtures/face/portrait.jpg` and asserts a face is found with 478
+  landmarks, and that a plain-colour image yields **no** face. This is the line
+  that separates "the bundle is on disk" from "the bundle works". Where
+  MediaPipe's published `portrait_expected_face_landmarks.pbtxt` is practical to
+  parse, assert against that **vendor reference** rather than against a
+  self-generated expectation; if it is not practical, say so in
+  `tests/fixtures/face/README.md`.
 
 - `uv run pytest tests/test_booth_api.py -q` → exit 0; final summary reports 0
   failed. Must additionally cover that `start_record` starts the camera and
@@ -338,13 +423,22 @@ Feature-specific (proves THIS feature works), pinned:
   no callback, so `read()` **is** the real path a fake must deliver through, and
   `release()` is the teardown a fake must trip on.
 
-- **Throughput floor**, run against the **real** vendored model:
-  `uv run python -c "..."` → exit 0, asserting that detect + overlay + JPEG
-  encode for 20 consecutive 640×480 frames averages **under 100 ms per frame**
-  (i.e. the engine sustains ≥10 fps before the bridge is involved). Pin the
-  measured number in the completion report. This measures the **engine**, not
-  the `evaluate_js` bridge — the bridge half is what the live check below
-  covers, and the split is stated here rather than blurred.
+- **Throughput floor**, run against the **real** vendored model and the
+  `portrait.jpg` fixture: `uv run python -c "..."` → exit 0, asserting that
+  detect + overlay + crop + flip + JPEG encode for 30 consecutive 640×480 frames
+  averages **under 33 ms per frame** — i.e. the engine alone sustains the 30 fps
+  target before the bridge is involved. Pin the measured number in the completion
+  report.
+  The floor is deliberately set **at** the target, not below it: if the engine
+  cannot hit 30 fps on its own, a 30 fps target is a fiction, and it is better to
+  learn that from a red Gate than from a stuttering demo. If this line fails, the
+  answer is §4's fallback ladder — lower the constant on the measured evidence
+  and record the number — **not** loosening the assertion to match whatever the
+  code happens to do.
+  This measures the **engine**, not the `evaluate_js` bridge. The bridge half is
+  what the live check below covers, and the split is stated here rather than
+  blurred: passing this line means the engine can feed 30 fps, not that 30 fps
+  reaches the screen.
 
 Proof surface: the highest real surface this feature touches is the live
 pywebview Booth driving a real webcam. The automated tests prove the pipeline's
@@ -357,8 +451,13 @@ answer to the Mode 3 blind-spot question.
 - **Manual (required for F5 done, human-attested):** run `uv run voicelock` →
   press **Record**. The smiley is replaced by a live, **circular** camera image
   in the same 172 px disk, with an oval outline and landmarks **tracking your
-  face as you move**, and the preview looks like video rather than a slideshow.
-  The image fills the disk with no letterboxing. Press **Stop**: the
+  face as you move**, and the preview looks like smooth video rather than a
+  slideshow. The image fills the disk with no letterboxing. It is **mirrored**:
+  raising your right hand moves the hand on the right of the picture, and leaning
+  left moves you left — the way a mirror behaves, not the way a stranger's camera
+  does. The preview must also stay **in step with you** — no drifting behind, no
+  growing lag the longer it runs (the frame-dropping requirement in §4). Press
+  **Stop**: the
   smiley returns, **the webcam light goes out**, and pressing **Record a second
   time** brings the preview back. Close the window while recording: the webcam
   light goes out. Observable: the camera is genuinely opened, genuinely drawn on,
