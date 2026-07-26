@@ -2,13 +2,13 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **Tasks 1–2 `DONE`. Task 3 `REVIEW` — verified, Gate `ESCALATE_HUMAN`, BLOCKED ON THE HUMAN'S LIVE-DEMO ATTESTATION.**
-  (Spec approved at box 2 by the human 2026-07-26. Mode 3 is the standing "go":
-  Task 2's wrap-up completed, so the session takes Task 3 without a further
-  human word — but Task 3 carries the FULL spec §5 list and will reach the Gate
-  as ESCALATE_HUMAN on the required 31-second live Booth check, which is the
-  one human touchpoint left. The feature closes calibration findings 1–3; findings
-  3-as-`voiceprint.py`-surface and 4 are explicit non-goals, filed for F9.)
+- Spec: `spec.md` · Feature: Feature 4.5 from `roadmap.md` · Mode: Mode 3 · Phase: **FEATURE COMPLETE — all 3 tasks `DONE`, `rejects: 0` on every one. F4.5 DONE 2026-07-26 (Mode 3).**
+  (Human attested the 31-second live Booth check 2026-07-26, resolving Task 3's
+  Gate ESCALATE_HUMAN. Completion report is in `handoff.md`. Two items await the
+  human: the proposed guardrail and the feature-end commit checkpoint. Next
+  feature is F5 — Camera booth, starting with its TECH-PICK; it is NOT started
+  here. The feature closed calibration findings 1–3; findings
+  3-as-`voiceprint.py`-surface and 4 were explicit non-goals, filed for F9.)
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 
@@ -92,8 +92,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed)
   - feedback: (none)
 
-- [ ] **Task 3** — `_on_audio` raises `sd.CallbackStop` instead of tearing down its own stream (LAST task — FULL §5)
-  - state: REVIEW
+- [x] **Task 3** — `_on_audio` raises `sd.CallbackStop` instead of tearing down its own stream (LAST task — FULL §5)
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/capture.py`, `tests/test_capture.py`
   - notes: The defect fix, landed **with** its regression tests so the fixed
@@ -166,25 +166,21 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **All three tasks are built and verified; the feature is one
-   human action from done.** Tasks 1–2 `DONE` (verdicts `-F4.5-T1.json`,
-   `-T2.json`, both APPROVE first pass). Task 3 is `REVIEW` with Gate
-   ESCALATE_HUMAN and Review APPROVE: 6/6 automated §5 commands exit 0, and the
-   only thing outstanding is the human running the 31-second live Booth check.
-   Nothing to build. `rejects: 0` on every task.
-2. What F4.5 closes: the PortAudio callback **self-deadlock** (`_on_audio` calls
-   `_close_stream()` → `stream.stop()`, which blocks until the callback returns —
-   the code does the opposite of its own comment), the **zero coverage** of that
-   callback path (`FakeStream` never invokes the callback it is handed), and the
-   **undeclared `soundfile`** that reaches the env only as a SpeechBrain transitive.
-3. Why now, not in F9: **F5 adds a camera stream with its own frame callback** and
-   would copy today's fake-stream pattern. Fixing the pattern once is cheaper than
-   fixing two copies. Task 2 is the pattern F5 is expected to inherit.
-4. Task order and why: manifest (independent) → harness (provable at base, no
-   `capture.py` edit) → fix + regression together. The fix and its tests are one
-   task on purpose — splitting them would land a fixed branch with no test, which
-   is the exact earned guardrail that cost F4 three REJECTs.
-5. Sharpest build trap found while planning: `capture.py:135-142` swallows
-   `Exception` around `stream.stop()`/`close()`, so Task 2's re-entrant tripwire
-   must raise a **`BaseException` subclass** or the Task 3 regression passes while
-   the defect is still live.
+1. 2026-07-26 — **F4.5 is COMPLETE.** All 3 tasks `DONE`, all APPROVE first
+   pass, `rejects: 0` throughout, verdicts `-F4.5-T1/-T2/-T3.json`. Human
+   attested the live Booth check. `roadmap.md`'s F4.5 box is checked and
+   `codebase-map.md` is refreshed.
+2. What shipped: `_on_audio` raises `sd.CallbackStop` and does **no** teardown
+   (tearing down there deadlocks — `Pa_StopStream` blocks until the callback
+   returns); `pump()`'s existing cap check converges the state, so no new state
+   and no new flag. `FakeStream` now delivers 2-D frames through the real
+   callback. `soundfile>=0.14.0` declared. Suite 83 → 88.
+3. **Task 2's fake-stream shape is the pattern F5's camera fake must copy** —
+   deliver through the real callback, halt on `CallbackStop`, and trip a
+   `BaseException` wire on re-entrant teardown. That inheritance is the whole
+   reason F4.5 was inserted before F5.
+4. Two things await the human: the proposed guardrail (a test double must
+   deliver through the real callback it was handed — full text in `handoff.md`)
+   and the feature-end commit checkpoint. Nothing is pushed; there is no remote.
+5. Next: `/spec` for **F5 — Camera booth**, starting with its TECH-PICK
+   (offline face detect / landmark / embedding stack). Not started.

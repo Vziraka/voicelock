@@ -4,13 +4,15 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Updated: 2026-07-26 after F4. Solid = built (F1 booth + F2 outer lock + F3
+- Updated: 2026-07-26 after F4.5. Solid = built (F1 booth + F2 outer lock + F3
   voiceprint diagnostic + F4 voice middle lock); dashed = planned (F5–F9). F4
   made the voiceprint a real lock: a hand-rolled numpy code-offset fuzzy
   commitment turns it into a stable key, the vault is now **two nested AEAD
   layers** (passphrase outer around voice middle), and the Booth shows two
   visibly distinct rejects. F3's match meter survives untouched as an
-  independent diagnostic.
+  independent diagnostic. F4.5 added no components — it fixed the capture
+  callback's self-deadlock and gave the callback path real test coverage, so
+  the diagram is unchanged from F4.
 
 ## Architecture (data flow)
 
@@ -74,9 +76,16 @@ flowchart TB
 - `src/voicelock/` — app engine (capture, playback, vault, pywebview host).
 - `src/voicelock/ui/` — HTML/CSS/JS booth (offline).
 - `tests/` — pytest suite (fake streams / temp vault paths; no real mic in Gate).
+  `tests/test_capture.py`'s `FakeStream` delivers 2-D `(frames, channels)` through
+  the **real** callback and raises a `BaseException` tripwire on re-entrant
+  teardown (F4.5) — the shape F5's camera fake should copy.
 
 ## Key modules
-- `src/voicelock/capture.py` — 16 kHz mono capture, levels, 30s soft cap, mic error
+- `src/voicelock/capture.py` — 16 kHz mono capture, levels, 30s soft cap, mic error.
+  At the cap the PortAudio callback raises `sd.CallbackStop` and does **no**
+  teardown (F4.5 — tearing down there deadlocks: `Pa_StopStream` blocks until the
+  callback returns); `pump()`'s cap check does the teardown, and `app.py` polls it
+  every 50 ms
 - `src/voicelock/playback.py` — play / stop PCM buffers
 - `src/voicelock/vault.py` — **v2 nested vault** (F4): profile JSON sealed with the
   voice-derived middle key, wrapped in `{helper_data, middle_ciphertext}` sealed
@@ -109,7 +118,7 @@ flowchart TB
 - Vault path: `~/.voicelock/vault.vl` (format **v2** since F4; v1 vaults are refused with a re-enroll prompt)
 - Voiceprint reference: `~/.voicelock/voiceprint.ref` (F3, plaintext sibling, not the vault)
 - Tests: `tests/` via `uv run pytest`
-- Config: `pyproject.toml` + `uv.lock` (includes `pynacl`)
+- Config: `pyproject.toml` + `uv.lock` (includes `pynacl`, and `soundfile` since F4.5)
 - Lint: `uv run ruff check .`
 
 ## Conventions

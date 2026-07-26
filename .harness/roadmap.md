@@ -156,7 +156,7 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   *Demo:* right voice + passphrase → in; wrong passphrase → REJECT (outer);
   **different person's voice → REJECT** (middle).
 
-- [ ] **F4.5 — Capture callback + test-harness hygiene** · blocked-by: F4
+- [x] **F4.5 — Capture callback + test-harness hygiene** · blocked-by: F4 · **DONE 2026-07-26 (Mode 3)**
   Inserted 2026-07-26 (human decision) — not an original design feature, but a
   deliberate pause before F5. Fix the PortAudio callback self-deadlock on the
   30 s auto-stop path, make `FakeStream` deliver frames through the real
@@ -168,6 +168,12 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   it is handed. Fix the pattern before it is inherited.
   *Demo:* a 30 s recording auto-stops cleanly instead of hanging; the callback
   path has tests.
+  Built: `_on_audio` raises `sd.CallbackStop` instead of tearing down its own
+  stream (no new state, no new flag); `FakeStream` delivers 2-D frames through
+  the real callback and trips a `BaseException` wire on re-entrant teardown;
+  `soundfile` declared. 3 tasks, `rejects: 0` on every one. Human attested the
+  31-second live Booth check. **Task 2's fake-stream shape is the pattern F5's
+  camera fake is meant to inherit.**
 
 - [ ] **F5 — Camera booth** · blocked-by: F1, F4.5 · **TECH-PICK: offline face detect/landmark/embedding stack**
   Add a live webcam feed to the Booth with face detection + facial landmarks
