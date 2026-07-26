@@ -4,13 +4,10 @@
 - Updated: 2026-07-26
 - Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1
   `DONE` (verdict `memory/verdicts/2026-07-26-F5-T1.json`, APPROVE first pass,
-  `rejects: 0`). **Task 2 `BLOCKED` — the designed licence STOP condition
-  fired: the bundle's licence is `unconfirmed`, so it was NOT committed.
-  Awaiting a human decision (evidence:
-  `memory/research/2026-07-26-f5-face-landmarker-licence.md`).** Tasks 3–7
-  `TODO`. Task 3 is independently startable — the plan split the two asset
-  tasks precisely so a blocked model would not also block the fixture — but
-  Tasks 4–7 all depend on Task 2.**
+  `rejects: 0`). **Task 2 `DOING` — its licence STOP condition fired and was
+  then RESOLVED by the human 2026-07-26: the bundle is Apache-2.0 per Google's
+  three model cards (`memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`).
+  Vendoring proceeds.** Tasks 3–7 `TODO`.**
   Verification runs on the **subagent** path for this feature — human-authorized
   2026-07-26 at the top of the implement session (`memory/decisions.md`), which
   resolves `handoff.md`'s open item 1 in favour of the Environment section's
@@ -96,7 +93,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 2** — Vendor the Face Landmarker `.task` bundle, licence verified at download
-  - state: BLOCKED
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/models/face_landmarker/face_landmarker.task`,
     `src/voicelock/models/face_landmarker/LICENSE` (+ `NOTICE` if the source
@@ -431,16 +428,23 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    (30 fps worker, drop-don't-queue, release tripwire, throughput floor) → **6**
    the Booth `<img>` → **7** `BoothApi` wiring + window close (**LAST**, FULL §5,
    human-attested manual check).
-3. **The FIRST designed STOP point fired (Task 2, 2026-07-26).** The Face
-   Landmarker bundle's licence is **`unconfirmed`** against every primary
-   source checked — the artifact, the bucket, the docs, the wheel, the repo,
-   Kaggle — so it was **not** committed and Task 2 is `BLOCKED` awaiting a
-   human. Evidence: `memory/research/2026-07-26-f5-face-landmarker-licence.md`.
-   Likeliest fix: a human reads the three already-downloaded model-card PDFs
-   (image-only, no OCR here). Task 3's own licence STOP point is still ahead
-   and unrelated. Substituting a different model or image silently is forbidden
-   (`spec.md` §4); changing the vendoring approach, or replacing the real-model
-   test with a written limitation, is a **spec amendment** — human-only.
+3. **The FIRST designed STOP point fired and was RESOLVED (Task 2,
+   2026-07-26).** Eight primary sources — the artifact, the bucket, the docs,
+   the wheel, the repo, Kaggle, web search — said **nothing** about the model
+   weights' licence, so the bundle was not committed and the task went
+   `BLOCKED`. The human then read Google's three model cards (image-only PDFs,
+   no OCR available here) and found the **Apache-2.0** link, corroborated
+   mechanically by extracting each PDF's link annotations: all three cite
+   `apache.org/licenses/LICENSE-2.0.html`, and they map 1:1 onto the bundle's
+   three `.tflite` models. Provenance is therefore established **per asset**,
+   the standard `spec.md` §4 sets. Evidence:
+   `memory/research/2026-07-26-f5-face-landmarker-licence-resolved.md`.
+   **Task 3's own licence STOP point is still ahead and unrelated** — and the
+   spec's cited counter-example (MediaPipe's own sample ships a *Pixabay*-licensed
+   image) says it may well not clear as easily. Substituting a different model
+   or image silently is forbidden; changing the vendoring approach, or replacing
+   the real-model test with a written limitation, is a **spec amendment** —
+   human-only.
 4. **F4.5's fake-stream shape is what Tasks 4–5 inherit**, translated to a
    polling device: `cv2.VideoCapture` has no callback, so **`read()` is the real
    path** the fake must deliver through and **`release()` is the teardown** it
