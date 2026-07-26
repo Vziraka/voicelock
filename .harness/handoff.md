@@ -1,59 +1,90 @@
-# Handoff — F4.5 Task 1 DONE, Task 2 next · 2026-07-26
+# Handoff — F4.5 Task 2 built, awaiting verification · 2026-07-26
 
-Session type: `/implement` → subagent verification → `wrap-up`. Task 1 of 3.
-Mode 3, so the session continues to Task 2 without a human word.
+Session type: `/implement` (build), chained after Task 1's completed wrap-up.
+Task 2 of 3. Mode 3.
+
+## Entry gate — quoted, not remembered
+- Trigger satisfied per the implement skill: Task 1's wrap-up **fully
+  completed** — verdict file `memory/verdicts/2026-07-26-F4.5-T1.json` exists
+  and state was committed (`8f86fc7`). A previous task merely finishing is not
+  the trigger; the artifacts are.
+- `plan.md` ledger scan: the one `DONE` task (Task 1) has its matching verdict
+  file. Nothing to invalidate.
+- Not a retry — `rejects: 0`, feedback log empty.
+- No pending guardrail to surface.
 
 ## Changed this session
-- **`pyproject.toml`** — `"soundfile>=0.14.0"` declared in
-  `[project].dependencies`. **`uv.lock`** — the two direct-edge lines only; no
-  package version moved. **No code file touched** (zero `.py` / `src/` /
-  `tests/` / UI files in `727fbbc..0ae0fd3`).
-- State: `plan.md` (Task 1 `TODO → DOING → REVIEW → DONE`, spine refreshed),
-  this file, and the verdict
-  `memory/verdicts/2026-07-26-F4.5-T1.json`.
-- Rationale lives where it belongs, not restated here: the dependency choice in
-  `memory/decisions.md` (2026-07-26 TECH-PICK), the task's reasoning in
-  `plan.md` Task 1's notes, the full verdict evidence in the verdict file.
+- **`tests/test_capture.py`** — the only file. `capture.py` and every other
+  source file are byte-identical to base, which is why all of this passes at
+  base. Added:
+  - `ReentrantTeardown(BaseException)` and `FakeStream`'s `deliver(mono)` /
+    `delivering` / `callback_stopped` / `_forbid_reentrant_teardown`.
+  - Three tests, appended after the existing ones:
+    `test_callback_path_carries_audio_without_pump`,
+    `test_teardown_from_inside_the_callback_trips_the_wire`,
+    `test_delivery_halts_once_the_callback_raises_callback_stop`.
+  - The five pre-existing pump-driven tests are **unmodified** (spec §3: "the
+    pump-driven tests stay").
+- **`plan.md`** — Task 2 `TODO → DOING` (committed first, `0106418`) → `REVIEW`;
+  phase line updated.
+- **`handoff.md`** — this file.
 
-## Failed + lesson
-Nothing failed. Gate 4/4 exit 0, Reviewer APPROVE on both axes, first pass,
-`rejects: 0`. `learn` compound scan ran: **no lesson met the bar** — recorded as
-`"lesson": "none"` in the verdict file. The only judgment the task contained
-(soundfile vs torchaudio vs dev-group vs stdlib `wave`) was made and recorded at
-TECH-PICK time, before the spec existed.
+## A judgment call the verifier should see (not scope creep)
+`plan.md` Task 2 names **two** tests to add; I added **three**. The extra one is
+`test_delivery_halts_once_the_callback_raises_callback_stop`, and it exists to
+satisfy the earned guardrail (`project.md` 2026-07-26: no branch that no caller
+and no test exercises). Task 2 is required to build branch (b) — "it **stops
+delivering** once the callback raises `sd.CallbackStop`" — but the plan's two
+named tests exercise only (a) and (c). Branch (b) would otherwise sit
+uncovered at this task's HEAD until Task 3 arrived. The test is six lines,
+drives `FakeStream` directly (no `CaptureEngine`, so no deadlock risk at base),
+and follows the plan's own reasoning for why branch (c) got a test:
+"testing the safety net on purpose, not gold-plating".
+
+I did **not** log this in `memory/deviations.md` — nothing in the plan forbids
+covering a branch it required, so no rule was reinterpreted. Flagged here so it
+is scored deliberately rather than discovered.
+
+## Two design points worth a look
+- **`ReentrantTeardown` subclasses `BaseException`, not `Exception`** — the trap
+  the plan session found (`capture.py:135-142` wraps `stream.stop()` and
+  `stream.close()` in `except Exception: pass`). The tripwire test proves the
+  escape directly rather than asserting the class hierarchy: it wraps
+  `deliver()` in `except Exception: pass` — mirroring `_close_stream` — and
+  still expects the raise to reach `pytest.raises`.
+- **`deliver()` catches `sd.CallbackStop` rather than re-raising it.** That
+  mirrors PortAudio, which absorbs `CallbackStop` and stops the stream. Task 3's
+  "the supported stop is used" test therefore asserts against
+  `stream.callback_stopped` / `stream.delivering`, or calls `_on_audio`
+  directly — the propagation is observable either way.
+
+## What I ran (disclosure)
+Only the quick local check the implement skill permits:
+- `uv run ruff check .` → `All checks passed!` (ruff parses the file, so this is
+  also the syntax check)
+
+I did **not** run `uv run pytest` or `uv run pytest tests/test_capture.py -q`.
+Those are Gate commands and stay reserved for fresh eyes. **Stated plainly
+because it is the material risk on this task:** these are newly authored tests
+that I have not executed. The plan asserts they pass at base; my confidence
+comes from reading, not from a run. If any of them is wrong, the Gate is where
+that surfaces.
 
 ## next_action
-1. **`/implement` Task 2** — `FakeStream` delivers frames through the REAL
-   callback + a re-entrant-teardown tripwire. Trigger satisfied: Task 1's
-   wrap-up completed (verdict file written, state committed), and `spec.md`'s
-   approved `Mode: Mode 3` is the standing go inside this feature.
-2. **Read before building Task 2** (carried forward, still live):
-   `capture.py:135-142` wraps `stream.stop()` / `stream.close()` in
-   `except Exception: pass`, so the tripwire must raise a **`BaseException`
-   subclass** — otherwise it is swallowed silently and Task 3's regression
-   passes while the defect is still there. Full detail in Task 2's notes.
-3. **Task 3 will reach the Gate as ESCALATE_HUMAN** on spec §5's required
+1. **Verify Task 2** with clean context — `formats/VERIFIER-PROMPT.md` verbatim:
+   `/verify-gate` then `/verify-review`. Task 2's done-criteria are its four
+   commands in `plan.md`. Task 2 of 3, so the FULL spec §5 list is **not** due
+   here — it lands on Task 3.
+2. **Do not score the missing cap-through-callback test as a coverage gap** —
+   `plan.md` Task 2 rules it out explicitly ("at base that path deadlocks…it
+   belongs to Task 3").
+3. On APPROVE → `wrap-up`, then Mode 3 chains **Task 3** (`_on_audio` raises
+   `sd.CallbackStop`; the fix plus its regression tests; FULL spec §5).
+4. Task 3 will reach the Gate as **ESCALATE_HUMAN** on spec §5's required
    31-second live Booth check. Do not mark it `DONE` or write its verdict until
    the human attests it (F3-T5 / F4-T5 precedent).
-4. After F4.5 is DONE: `/spec` for **F5 — Camera booth**, starting with its
-   TECH-PICK (offline face detect / landmark / embedding stack). Not started
-   here — named only.
-
-## Where the rest lives
-- Task ledger and per-task notes → `plan.md`.
-- What F4.5 is and why it runs before F5 → `spec.md` §1, `roadmap.md` F4.5.
-- The two findings this feature does NOT fix (3 and 4, filed for F9) →
-  `.out-of-scope/2026-07-26-calibration-findings.md`.
-
-## Pending guardrail
-None. (The F4 Task 5 proposal was approved and written to
-`constitution/project.md` during the plan session; Task 1's `learn` scan
-proposed nothing new.)
 
 ## Commits
-Base `727fbbc` → build commit `0ae0fd3` → bookkeeping `b48f546` → the wrap-up
-state commit that follows this file. `da7b8f9` is the committed `DOING` write.
-Curate check: 20 verdict `.json` files vs `project.md`'s "verdicts then: 19" →
-**1 task since the last curate; not due** (threshold 10).
-Remote: **none** — local history only, nothing pushed. The push gate is the
-feature-end checkpoint after Task 3.
+Base `8f86fc7` → build commit `f2a1013` (this file's bookkeeping commit follows,
+per the two-commit rule). `0106418` is the committed `DOING` write.
+Remote: **none** — local history only, nothing pushed.
