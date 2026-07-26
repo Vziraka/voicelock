@@ -2,7 +2,9 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: BUILDING — Tasks 1–4 `DONE`, Task 5 `REVIEW` (retry 1 applied; manual demo still needs the human)
+- Spec: `spec.md` · Feature: Feature 4 from `roadmap.md` · Mode: Mode 3 · Phase: **ESCALATED TO HUMAN** — Tasks 1–4 `DONE`, Task 5 `REVIEW`
+  (all automated work is complete and verified; F4 cannot be marked DONE until the
+  human runs and attests spec §5's required manual Booth demo)
   (F4 spec was approved 2026-07-23; **amended 2026-07-26** with five human-agreed
   accuracy levers in §3/§4, which re-opened approval **box 2**. The human
   **re-checked box 2 on 2026-07-26** — `spec.md` §0 now reads `- [x] Approved by
@@ -293,7 +295,24 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
          **Fix: delete the branch.**
 
 - [ ] **Task 5** — Booth UI: enroll voice step + unlock voice step + two distinct rejects (LAST task — FULL §5)
-  - state: REVIEW
+  - state: REVIEW — **ESCALATE_HUMAN, awaiting the manual demo attestation**
+  - verified 2026-07-26 (retry 1): **GATE ESCALATE_HUMAN · REVIEW APPROVE (both
+    axes), conditional on the human attesting the manual line.** Five of the six
+    §5 commands ran and exited 0 — ruff, full suite (83), `test_middlelock` (36),
+    `test_booth_api` (19), and the UI assertion. The sixth is the required
+    human-attested Booth demo; the Gate skill forbids skipping it and passing on
+    the rest, so the verdict is ESCALATE_HUMAN by rule, not by failure. The
+    reviewer confirmed the REJECT-1 correctness defect is fixed at the source
+    (bank 2 → Cancel now leaves the bridge empty, so the next bank returns
+    progress 1, not 3) and found no new dead code. **Do not mark this task DONE
+    and do not write its verdict file until the human attests the demo** — that
+    is the F3-T5 precedent (`memory/verdicts/2026-07-23-F3-T5.json`).
+  - reviewer observation for F9, NOT a Task 5 defect: pressing "Bank this
+    sentence" twice without re-recording banks the same buffer twice, because
+    `enroll_take` reads `capture.pcm_buffer()` without consuming it. It fails
+    SAFE (a weaker reliability mask means a higher false-REJECT rate, never a
+    false accept) and is the same shape as F3's already-approved
+    `set_reference`. Belongs in F9's enrollment-quality gate.
   - built 2026-07-26: `index.html` gains the enroll voice step (5 suggested
     sentences, per-take dots driven by `enroll_take()`, "need more audio" hint on
     a rejected take, **Enroll disabled until all 5 are banked**), an unlock
