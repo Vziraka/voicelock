@@ -3,8 +3,10 @@
 ## Active context
 - Updated: 2026-07-26
 - Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **building —
-  Task 1 `DONE` (`rejects: 1`), Task 2 `REVIEW`. Then Task 3 (LAST, full spec
-  Verification), then the Mode 4 tail.**
+  Tasks 1–2 `DONE`. Next: `/implement` Task 3 — the LAST task, so its
+  done-criterion is the FULL `spec.md` Verification list. Then the Mode 4
+  tail: F5.5's completion report, F6's spec drafted and parked, and the
+  feature-end checkpoint (commit + push approval).**
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 - Spec: `spec.md` holds F5.5's spec, `Status: CLEAR`, zero clarification
@@ -34,10 +36,11 @@ legitimately vary in resolution. Task 1 writes that justification beside the
 raises and a done-criterion asserts it stays there.
 
 ### Memory spine (≤5)
-1. **Where we are: Task 1 `DONE`; Tasks 2 and 3 are pure subtraction and
-   renaming.** `load_wav` now refuses bad audio, but **`_resample` still exists
-   and `embed` still calls it** — Task 2 removes that last caller and then the
-   function. Suite stands at **124 passed**, up from 122.
+1. **Where we are: Tasks 1–2 `DONE`; only Task 3 remains, and it is a rename
+   plus a docstring.** The dead surface is gone — `load_wav` refuses bad audio,
+   and `_resample`, both `sample_rate` parameters and the downmix branch are
+   deleted. Suite stands at **124 passed**, up from 122, and must stay there:
+   Task 3 changes no assertion and no fixture.
 2. **This feature's criteria match SOURCE TEXT literally — spell the code to
    satisfy them, never edit the criterion.** Task 1 lost a full verify cycle to
    exactly this: `spec.md` §5 cmd 2 counts the substring
@@ -140,9 +143,12 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       Command-vs-code mismatch, not a behaviour defect; the fix is in the test
       spelling, not in the criterion.
 
-- [ ] **Task 2** — Remove the `sample_rate` parameters and delete `_resample`
-  - state: REVIEW
+- [x] **Task 2** — Remove the `sample_rate` parameters and delete `_resample`
+  - state: DONE
   - rejects: 0
+  - verdict: `memory/verdicts/2026-07-26-F5.5-T2.json` — GATE PASS (4/4, `pytest`
+    124 passed / 0 failed, unchanged), REVIEW APPROVE (spec pass · standards
+    pass), mechanism `subagent`, 2026-07-26
   - files: `src/voicelock/voiceprint.py`
   - notes: Pure subtraction, no test changes expected. Remove: the
     `sample_rate` parameter on `embed` (`:65`) and its branch (`:71-72`); the

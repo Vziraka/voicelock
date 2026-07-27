@@ -1,0 +1,26 @@
+{
+  "task": "T2",
+  "feature": "Feature 5.5 — Voiceprint dead-surface hygiene",
+  "spec": "spec.md@5d39918",
+  "change": "0a7d8a9..d6af571",
+  "gate": {
+    "commands": [
+      "uv run python -c \"<spec.md §5 cmd 1 — _resample gone, no sample_rate in either signature, no '.ndim > 1'>\"",
+      "uv run python -c \"<spec.md §5 cmd 3 — ACCEPT_CUTOFF == 0.45 and REJECT_CUTOFF == 0.65>\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "All four exit 0 on the first attempt; pytest 124 passed / 0 failed / 41.30s, unchanged from Task 1 exactly as the task's done-criteria require — no caller was missed. Scope check PASS: three files, all sanctioned (voiceprint.py is the task's declared file; plan.md is state; the .out-of-scope/ note is mandated by spec.md §5's Modes 3-4 default). No protected-file writes."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "The verifier checked §4's deletion list item by item with file:line evidence and confirmed the §3 non-goals survived (load_reference's re-normalize at :114, both cutoffs at :35-36, Task 1's raises and the §6 capture.py comment at :158-169, zero test changes). It re-swept every call site independently rather than inheriting the handoff's claim — removing a MIDDLE positional parameter from compare is the real risk, and no caller passed a third positional. It ruled on the handoff's own scope-creep doubt (three added docstring lines in a deletion task) rather than deferring: kept, because the deleted sample_rate default was the only statement at the signature that audio must arrive at 16 kHz, and it verified the replacement claim is true rather than decorative."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 4",
+  "date": "2026-07-26"
+}
