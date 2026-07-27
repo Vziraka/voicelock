@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-26
 - Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **building —
-  Tasks 1–2 `DONE`, Task 3 `DOING` — the LAST task, so its
+  Tasks 1–2 `DONE`, Task 3 `REVIEW` — the LAST task, so its
   done-criterion is the FULL `spec.md` Verification list. Then the Mode 4
   tail: F5.5's completion report, F6's spec drafted and parked, and the
   feature-end checkpoint (commit + push approval).**
@@ -173,7 +173,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
   - feedback: (none)
 
 - [ ] **Task 3** — Stop the same-speaker test overclaiming *(LAST task — full spec Verification)*
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `tests/test_voiceprint.py`
   - notes: Rename `test_same_speaker_accepts` to say what it actually proves —

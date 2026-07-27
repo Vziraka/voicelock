@@ -44,8 +44,20 @@ def test_default_reference_path() -> None:
     assert default_reference_path() == Path.home() / ".voicelock" / "voiceprint.ref"
 
 
-# --- case (1): same-speaker fixtures land in the accept band ------------------
-def test_same_speaker_accepts(tmp_path: Path, speaker_a_takes: list[np.ndarray]) -> None:
+# --- case (1): the compare pipeline runs end to end and bands its result ------
+def test_compare_pipeline_runs_end_to_end(
+    tmp_path: Path, speaker_a_takes: list[np.ndarray]
+) -> None:
+    """Set a reference, compare against it, and get an accept-banded distance.
+
+    This proves the *pipeline* — embed, average, persist, load, distance, band —
+    not the speaker model. `speakerA_live.wav` is a **sub-window of the same
+    recording** the three reference takes are cut from (see
+    `fixtures/voiceprint/README.md`), so a measure with no speaker modelling at
+    all would land in the accept band too. The teeth are in
+    `test_different_speaker_rejects`, whose impostor comes from a different
+    recording of a different speaker.
+    """
     ref = tmp_path / "voiceprint.ref"
     set_reference(speaker_a_takes, path=ref)
     distance, band = compare(load_wav(FIXTURES / "speakerA_live.wav"), path=ref)
