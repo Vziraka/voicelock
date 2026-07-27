@@ -3,13 +3,13 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 6 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building.** Tasks 1–2 `DONE` (SFace vendored + licensed; fixtures
-  committed with provenance README — verdicts
-  `memory/verdicts/2026-07-27-F6-T{1,2}.json`). Task 3 (`faceprint.py`
-  itself) is next, unattended per Mode 3's standing "go". **A guardrail
-  proposal from Task 2's `learn` scan is parked in `handoff.md`, pending
-  human approval** (VIDEO-mode landmarker tracker-state hazard for
-  multi-still scripts) — does not block Task 3.
+  Phase: **BLOCKED — needs human input.** Tasks 1–2 `DONE` (verdicts
+  `memory/verdicts/2026-07-27-F6-T{1,2}.json`). Task 3 is built and passing
+  everything except spec.md §5 cmd 4, which is not satisfiable by an honest
+  implementation on the fixture/resize it names — full evidence in
+  `handoff.md`. **A guardrail proposal from Task 2's `learn` scan is also
+  parked in `handoff.md`, pending human approval** (VIDEO-mode landmarker
+  tracker-state hazard for multi-still scripts).
 - Spec: `spec.md` holds F6's spec, `Status: CLEAR`, both approval boxes
   checked, `Mode: Mode 3` set 2026-07-27 by the human.
 - One plan-time design gap the spec deliberately left open (`§5 cmd 3` note:
@@ -197,8 +197,14 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count unchanged)
 
 - [ ] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
-  - state: DOING
-  - rejects: 0
+  - state: BLOCKED
+  - rejects: 0 (blocked pre-Gate, not a Gate/Reviewer reject — the retry counter is untouched)
+  - **BLOCKED reason (2026-07-27):** everything is built and passing (cmds 2,
+    3, 5, 6, the cutoff pin, ruff, full suite: 138 passed) EXCEPT spec.md §5
+    cmd 4, which is not satisfiable by any honestly-behaving implementation.
+    Full evidence chain in `handoff.md`. This is a Mode 3 "rule you cannot
+    follow literally" per `constitution/universal.md`'s [Modes] section —
+    stopped for human input rather than reinterpreted unsupervised.
   - files: `src/voicelock/faceprint.py` (new), `tests/test_faceprint.py` (new)
   - notes: The largest single task — the module itself. Mirror
     `voiceprint.py`'s shape wherever Q3/Q4/Q8 say to, and deliberately
