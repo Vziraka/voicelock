@@ -286,9 +286,27 @@ count rises by F6's tests and must not fall.
   mitigation, made runnable: feed the embedder frames at resolutions the
    camera never produces and assert each returns an embedding instead of
    raising.
-   `uv run python -c "import numpy as np; from voicelock.faceprint import embed_frame; import cv2; img720 = cv2.imread('tests/fixtures/face/personA_1.jpg'); img720 = cv2.resize(img720, (1280, 720)); img320 = cv2.resize(img720, (320, 240)); assert embed_frame(img720) is not None; assert embed_frame(img320) is not None"`
+   `uv run python -c "import numpy as np; from voicelock.faceprint import embed_frame; import cv2; img = cv2.imread('tests/fixtures/face/personA_1.jpg'); h, w = img.shape[:2]; img720 = cv2.resize(img, (round(w * 720 / h), 720)); h2, w2 = img720.shape[:2]; img320 = cv2.resize(img720, (round(w2 * 240 / h2), 240)); assert embed_frame(img720) is not None; assert embed_frame(img320) is not None"`
    → exit 0. **This is the command that stops F6 inheriting the wrong half of
    F5.5.**
+   **Amended 2026-07-27 (human-approved).** The original command resized
+   `personA_1.jpg` (816×1024, portrait) to a hard-coded 1280×720 with no
+   aspect-ratio preservation — a non-uniform stretch, not a resolution
+   change. That stretch made the face undetectable by ANY implementation:
+   confirmed by running the identical distorted array through F5's own
+   already-shipped, unmodified `facedetect.load_landmarker()` (0 faces
+   found there too), and by sweeping `min_face_detection_confidence` from
+   0.5 to 0.01 with no change. An aspect-preserving resize to a comparable
+   scale (574×720) detects the same face fine on the same model — the
+   distortion, not the resolution, was the cause. The amended command
+   resizes by height while preserving the source's own aspect ratio,
+   mirroring `facedetect.py`'s own centre-crop-before-resize discipline and
+   matching how a real camera actually behaves (fixed sensor aspect; only
+   resolution changes, never a non-uniform stretch). Full evidence:
+   `handoff.md`'s Task 3 BLOCKED report, commit `c5d5d45`. This does not
+   reopen Q6 or any other resolved grilling question — it corrects one
+   Verification command's concrete resize parameters, discovered wrong only
+   once real detection was run against it.
 5. **The justification travels with the code**, the converse of F5.5 §6:
   `uv run python -c "import inspect; from voicelock import faceprint as f; s = inspect.getsource(f); assert 'voiceprint' in s, 'the module does not record WHY it converts where voiceprint.py refuses'"`
    → exit 0.

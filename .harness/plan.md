@@ -3,13 +3,12 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 6 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BLOCKED — needs human input.** Tasks 1–2 `DONE` (verdicts
-  `memory/verdicts/2026-07-27-F6-T{1,2}.json`). Task 3 is built and passing
-  everything except spec.md §5 cmd 4, which is not satisfiable by an honest
-  implementation on the fixture/resize it names — full evidence in
-  `handoff.md`. **A guardrail proposal from Task 2's `learn` scan is also
-  parked in `handoff.md`, pending human approval** (VIDEO-mode landmarker
-  tracker-state hazard for multi-still scripts).
+  Phase: **Building.** Tasks 1–2 `DONE`. Task 3 UNBLOCKED (human approved
+  the §5 cmd 4 spec amendment 2026-07-27) and now `REVIEW`, ready for the
+  clean-context verifier. **A guardrail proposal from Task 2's `learn` scan
+  is still parked in `handoff.md`, awaiting a separate human decision** —
+  not yet approved or declined (VIDEO-mode landmarker tracker-state hazard
+  for multi-still scripts); does not block Task 3 or Task 4.
 - Spec: `spec.md` holds F6's spec, `Status: CLEAR`, both approval boxes
   checked, `Mode: Mode 3` set 2026-07-27 by the human.
 - One plan-time design gap the spec deliberately left open (`§5 cmd 3` note:
@@ -197,14 +196,14 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count unchanged)
 
 - [ ] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
-  - state: BLOCKED
+  - state: REVIEW
   - rejects: 0 (blocked pre-Gate, not a Gate/Reviewer reject — the retry counter is untouched)
-  - **BLOCKED reason (2026-07-27):** everything is built and passing (cmds 2,
-    3, 5, 6, the cutoff pin, ruff, full suite: 138 passed) EXCEPT spec.md §5
-    cmd 4, which is not satisfiable by any honestly-behaving implementation.
-    Full evidence chain in `handoff.md`. This is a Mode 3 "rule you cannot
-    follow literally" per `constitution/universal.md`'s [Modes] section —
-    stopped for human input rather than reinterpreted unsupervised.
+  - **UNBLOCKED (2026-07-27, human-approved):** spec.md §5 cmd 4 amended to
+    resize aspect-preservingly instead of a hard non-uniform stretch (full
+    reasoning: `memory/decisions.md` 2026-07-27 entry, `spec.md` §5 cmd 4's
+    amendment note). Re-ran verbatim against the amended command: exit 0.
+    All of Task 3's done-criteria now pass: cmds 2/3/5/6, the cutoff pin,
+    ruff, full suite (138 passed, 0 failed).
   - files: `src/voicelock/faceprint.py` (new), `tests/test_faceprint.py` (new)
   - notes: The largest single task — the module itself. Mirror
     `voiceprint.py`'s shape wherever Q3/Q4/Q8 say to, and deliberately
@@ -260,9 +259,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       ```
       uv run python -c "from voicelock.faceprint import embed_file, compare, ACCEPT_CUTOFF, REJECT_CUTOFF; d_same = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personA_2.jpg')); d_diff = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personB.jpg')); assert d_same <= ACCEPT_CUTOFF, d_same; assert d_diff >= REJECT_CUTOFF, d_diff"
       ```
-    - §5 cmd 4 — verbatim, exit 0:
+    - §5 cmd 4 — verbatim (as amended 2026-07-27, human-approved — see
+      `spec.md` §5 cmd 4's amendment note and `handoff.md`), exit 0:
       ```
-      uv run python -c "import numpy as np; from voicelock.faceprint import embed_frame; import cv2; img720 = cv2.imread('tests/fixtures/face/personA_1.jpg'); img720 = cv2.resize(img720, (1280, 720)); img320 = cv2.resize(img720, (320, 240)); assert embed_frame(img720) is not None; assert embed_frame(img320) is not None"
+      uv run python -c "import numpy as np; from voicelock.faceprint import embed_frame; import cv2; img = cv2.imread('tests/fixtures/face/personA_1.jpg'); h, w = img.shape[:2]; img720 = cv2.resize(img, (round(w * 720 / h), 720)); h2, w2 = img720.shape[:2]; img320 = cv2.resize(img720, (round(w2 * 240 / h2), 240)); assert embed_frame(img720) is not None; assert embed_frame(img320) is not None"
       ```
     - §5 cmd 5 — verbatim, exit 0:
       ```
