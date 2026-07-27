@@ -670,6 +670,19 @@
             <div class="voice-hint mono" id="enroll-voice-hint">Record the sentence with Record / Stop, then bank it.</div>
             <button type="button" class="btn btn-secondary" id="btn-enroll-take">Bank this sentence</button>
           </div>
+          <div class="voice-step" id="enroll-face-step">
+            <div class="voice-step-head">
+              <span class="mono" style="font-size:10px;letter-spacing:0.08em;color:#8b93a1">FACE · 3 FRAMES</span>
+              <span class="mono" id="enroll-face-count" style="font-size:10px;color:#6f7681">0 / 3</span>
+            </div>
+            <div class="voice-take-dots" id="enroll-face-dots">
+              <span class="voice-take-dot"></span>
+              <span class="voice-take-dot"></span>
+              <span class="voice-take-dot"></span>
+            </div>
+            <div class="voice-hint mono" id="enroll-face-hint">Look at the camera, then bank this frame.</div>
+            <button type="button" class="btn btn-secondary" id="btn-enroll-face-take">Bank this frame</button>
+          </div>
           <div id="overwrite-confirm" class="confirm-banner" role="alertdialog" aria-hidden="true">
             A vault already exists. Overwrite it?
             <div class="confirm-actions">
@@ -736,6 +749,7 @@
           <span class="chip mono hidden" id="chip-success">Unlocked</span>
           <span class="chip mono hidden" id="chip-wrong-pass">Wrong passphrase</span>
           <span class="chip mono hidden" id="chip-wrong-voice">Voice didn't match</span>
+          <span class="chip mono hidden" id="chip-wrong-face">Face didn't match</span>
           <span class="chip mono hidden" id="chip-no-vault">No vault yet — enroll first</span>
           <span class="chip mono hidden" id="chip-legacy-vault">This vault predates voice — re-enroll to add the voice lock</span>
         </div>
@@ -823,6 +837,7 @@
     const chipSuccess = document.getElementById("chip-success");
     const chipWrongPass = document.getElementById("chip-wrong-pass");
     const chipWrongVoice = document.getElementById("chip-wrong-voice");
+    const chipWrongFace = document.getElementById("chip-wrong-face");
     const chipNoVault = document.getElementById("chip-no-vault");
     const chipLegacyVault = document.getElementById("chip-legacy-vault");
     const btnEnrollTake = document.getElementById("btn-enroll-take");
@@ -830,6 +845,14 @@
     const enrollSentence = document.getElementById("enroll-sentence");
     const enrollVoiceHint = document.getElementById("enroll-voice-hint");
     const enrollVoiceCount = document.getElementById("enroll-voice-count");
+    const btnEnrollFaceTake = document.getElementById("btn-enroll-face-take");
+    const enrollFaceTakeDots = document.getElementById("enroll-face-dots");
+    const enrollFaceHint = document.getElementById("enroll-face-hint");
+    const enrollFaceCount = document.getElementById("enroll-face-count");
+    // Mirrors facelock.ENROLLMENT_TAKES (F7) — the live-production face burst
+    // count, a separate constant from the voice side's 5 sentences.
+    const FACE_TAKES_NEEDED = 3;
+    let enrollFaceTakesBanked = 0;
 
     /* The five enrollment sentences (spec §3, amendment 2026-07-26): full
        sentences of roughly 3-5 s, phonetically varied and vowel/voiced-heavy —
@@ -1008,6 +1031,7 @@
         chipSuccess,
         chipWrongPass,
         chipWrongVoice,
+        chipWrongFace,
         chipNoVault,
         chipLegacyVault,
       ];
@@ -1019,6 +1043,15 @@
 
     /* --- F4 enrollment voice step. JS renders only; Python owns the embedding,
        the "need more audio" decision, and the take count. --- */
+    function refreshEnrollButton() {
+      /* Enroll needs BOTH the voice and the face steps done — either
+         progress function calls this after updating its own count, so
+         whichever finishes last is the one that actually enables the button. */
+      const voiceDone = enrollTakesBanked >= ENROLL_SENTENCES.length;
+      const faceDone = enrollFaceTakesBanked >= FACE_TAKES_NEEDED;
+      btnEnroll.disabled = !(voiceDone && faceDone);
+    }
+
     function setEnrollTakeProgress(banked) {
       enrollTakesBanked = Number(banked) || 0;
       const dots = enrollTakeDots.querySelectorAll(".voice-take-dot");
@@ -1029,8 +1062,8 @@
       const next = Math.min(enrollTakesBanked, ENROLL_SENTENCES.length - 1);
       enrollSentence.textContent = ENROLL_SENTENCES[next];
       const done = enrollTakesBanked >= ENROLL_SENTENCES.length;
-      btnEnroll.disabled = !done;
       btnEnrollTake.disabled = done;
+      refreshEnrollButton();
       if (done) {
         setEnrollVoiceHint("all five sentences banked — Enroll is ready", "done");
       }
@@ -1052,6 +1085,38 @@
         "Record the sentence with Record / Stop, then bank it. Use one natural speaking voice for all five.",
         ""
       );
+    }
+
+    /* --- F7 enrollment face step. Mirrors the voice step exactly, one burst
+       of camera frames instead of five spoken sentences. --- */
+    function setEnrollFaceTakeProgress(banked) {
+      enrollFaceTakesBanked = Number(banked) || 0;
+      const dots = enrollFaceTakeDots.querySelectorAll(".voice-take-dot");
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle("filled", i < enrollFaceTakesBanked);
+      });
+      enrollFaceCount.textContent = enrollFaceTakesBanked + " / " + FACE_TAKES_NEEDED;
+      const done = enrollFaceTakesBanked >= FACE_TAKES_NEEDED;
+      btnEnrollFaceTake.disabled = done;
+      refreshEnrollButton();
+      if (done) {
+        setEnrollFaceHint("all three frames banked — Enroll is ready", "done");
+      }
+    }
+
+    function setEnrollFaceHint(text, tone) {
+      enrollFaceHint.textContent = text;
+      enrollFaceHint.classList.toggle("warn", tone === "warn");
+      enrollFaceHint.classList.toggle("done", tone === "done");
+    }
+
+    async function resetEnrollFaceStep() {
+      /* Same reasoning as resetEnrollVoiceStep: clear the bridge's banked
+         faces FIRST, or an abandoned run's faces would leak into the next
+         enrollment's inner key. */
+      const result = await call("reset_enroll_face_takes");
+      setEnrollFaceTakeProgress(result && typeof result.progress === "number" ? result.progress : 0);
+      setEnrollFaceHint("Look at the camera, then bank this frame.", "");
     }
 
     function showEnrollPanel(open) {
@@ -1117,6 +1182,15 @@
       sub.textContent = "Voice didn't match — the passphrase was right";
     }
 
+    function showWrongFace() {
+      hideResultChips();
+      chipWrongFace.classList.remove("hidden");
+      chipWrongFace.classList.add("reject-visible");
+      status.textContent = "REJECT · FACE DIDN'T MATCH";
+      prompt.textContent = "Unlock rejected";
+      sub.textContent = "Face didn't match — the passphrase and voice were right";
+    }
+
     function showNoVault() {
       hideResultChips();
       chipNoVault.classList.remove("hidden");
@@ -1140,6 +1214,13 @@
       status.textContent = "UNLOCK · NEED MORE AUDIO";
       prompt.textContent = "Need more audio";
       sub.textContent = "need more audio — record a full sentence, then Unlock";
+    }
+
+    function showUnlockNoFace() {
+      hideResultChips();
+      status.textContent = "UNLOCK · NO FACE DETECTED";
+      prompt.textContent = "No face detected";
+      sub.textContent = "no face detected — centre your face in view, then Unlock";
     }
 
     function showValidation(message) {
@@ -1246,6 +1327,7 @@
       /* Awaited: the bridge must have dropped any abandoned takes before the
          user can bank a new one, or the two counts race. */
       await resetEnrollVoiceStep();
+      await resetEnrollFaceStep();
       enrollName.focus();
     });
 
@@ -1254,6 +1336,7 @@
       enrollName.value = "";
       enrollPass.value = "";
       await resetEnrollVoiceStep();
+      await resetEnrollFaceStep();
     });
 
     btnEnrollTake.addEventListener("click", async function () {
@@ -1273,6 +1356,26 @@
       setEnrollTakeProgress(result.progress);
       if (!result.done) {
         setEnrollVoiceHint("banked — record the next sentence", "");
+      }
+    });
+
+    btnEnrollFaceTake.addEventListener("click", async function () {
+      const result = await call("enroll_face_take");
+      if (!result || !result.ok) {
+        if (result && result.error === "no_face") {
+          setEnrollFaceTakeProgress(result.progress);
+          setEnrollFaceHint(
+            "no face detected — centre your face in view, then bank again",
+            "warn"
+          );
+          return;
+        }
+        setEnrollFaceHint((result && result.error) || "could not bank that frame", "warn");
+        return;
+      }
+      setEnrollFaceTakeProgress(result.progress);
+      if (!result.done) {
+        setEnrollFaceHint("banked — hold still for the next frame", "");
       }
     });
 
@@ -1318,6 +1421,14 @@
           );
           return;
         }
+        if (result && result.error === "need_face_takes") {
+          setEnrollFaceTakeProgress(result.progress);
+          setEnrollFaceHint(
+            "bank three face frames before enrolling",
+            "warn"
+          );
+          return;
+        }
         status.textContent = "ENROLL FAILED";
         sub.textContent = (result && result.error) || "Enroll failed";
         return;
@@ -1328,12 +1439,13 @@
       enrollName.value = "";
       enrollPass.value = "";
       await resetEnrollVoiceStep();
+      await resetEnrollFaceStep();
       setProfileName(result.name || name);
       profileMeta.textContent = "enrolled · sealed on disk";
       hideResultChips();
       status.textContent = "ENROLLED · VAULT SEALED";
       prompt.textContent = "Vault enrolled";
-      sub.textContent = "passphrase outer lock around voice middle lock";
+      sub.textContent = "passphrase outer lock around voice middle lock around face inner lock";
     });
 
     btnUnlock.addEventListener("click", async function () {
@@ -1354,12 +1466,20 @@
           showWrongVoice();
           return;
         }
+        if (result && result.error === "auth_face") {
+          showWrongFace();
+          return;
+        }
         if (result && result.error === "legacy_vault") {
           showLegacyVault();
           return;
         }
         if (result && result.error === "need_more_audio") {
           showUnlockNeedMoreAudio();
+          return;
+        }
+        if (result && result.error === "no_face") {
+          showUnlockNoFace();
           return;
         }
         if (!(window.pywebview && window.pywebview.api && window.pywebview.api.unlock)) {
@@ -1580,6 +1700,7 @@
     };
 
     resetEnrollVoiceStep();
+    resetEnrollFaceStep();
 
     function onBridgeReady() {
       call("ready").then(function (result) {

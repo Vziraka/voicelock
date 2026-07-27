@@ -3,7 +3,10 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building Task 3 (LAST task).** Task 3 is `DOING` (WIP=1).
+  Phase: **Task 3 (LAST task) built, awaiting fresh-eyes verification.**
+  Task 3 is `REVIEW` (WIP=1). All automatable done-criteria pass; §5 cmd 4
+  (the live 3-way manual check) is REQUIRED and still PENDING — only the
+  human can attest it, at the feature-end checkpoint.
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -251,8 +254,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count rises) — **DONE, 186 passed
       (up from 173 at Task 1's end).**
 
-- [ ] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*
-  - state: DOING
+- [x] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: Mirror the existing `#enroll-voice-step` block (Q4) almost
@@ -279,19 +282,31 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     manually before calling this task done, since any visible addition to a
     fixed-height flex column deserves the same caution.
   - done-criteria: **the FULL list from `spec.md`'s Verification section**, namely —
-    - `uv run ruff check .` → exit 0
-    - `uv run pytest` → exit 0 (0 failed, ≥145 passing, count risen by Tasks 1–2's new tests)
-    - §5 cmd 1 — `uv run pytest tests/test_facelock.py -q` → exit 0
+    - `uv run ruff check .` → exit 0 — **DONE, All checks passed!**
+    - `uv run pytest` → exit 0 (0 failed, ≥145 passing, count risen by Tasks 1–2's new tests) — **DONE, 186 passed** (Task 3 is UI-only, no new Python tests)
+    - §5 cmd 1 — `uv run pytest tests/test_facelock.py -q` → exit 0 — **DONE** (part of the full-suite run)
     - §5 cmd 2 — `uv run pytest tests/test_vault.py -q` (or wherever vault
-      tests live) → exit 0
-    - §5 cmd 3 — `uv run pytest tests/test_booth_api.py -q` → exit 0
+      tests live) → exit 0 — **DONE** (part of the full-suite run)
+    - §5 cmd 3 — `uv run pytest tests/test_booth_api.py -q` → exit 0 — **DONE** (part of the full-suite run)
     - §5 cmd 4 — **manual check, required.** Human runs `uv run voicelock`:
       enroll (name + passphrase + voice + face) → unlock with all three
       correct → **unlocked** (name shown); **wrong passphrase** → outer
       REJECT; right passphrase + **wrong voice** → middle REJECT; right
       passphrase + right voice + **a different face** → **inner REJECT**.
       Each reject names its distinct cause. Attested by the human at the
-      feature-end checkpoint.
+      feature-end checkpoint. **PENDING — this is what remains.**
+    - **CSS smoke-test disclosure (per the Booth-layout guardrail):** the new
+      `#enroll-face-step` block sits inside `.enroll-panel`, itself inside
+      `.profiles`, which is `overflow-y: auto` with default (top-anchored)
+      flex alignment — NOT `justify-content: center`, so it cannot reproduce
+      F6 Task 5's specific clipping bug (that bug required center-alignment
+      on an overflowing container). This is reasoning from the CSS, not a
+      substitute for the mandatory manual smoke-test the guardrail requires
+      — the agent has no headless-browser tooling in this repo (by design,
+      per that guardrail's own "enforcement rejected for now" note) and
+      cannot visually verify pixels. Opening the enroll panel is a required
+      step of cmd 4's own live walkthrough, so the human's cmd 4 attestation
+      covers this smoke-test too — not a separate ask.
 
 **Out-of-scope default (Mode 3):** anything discovered during the build that
 is not in spec §1 gets recorded in `.out-of-scope/` and is never built.
