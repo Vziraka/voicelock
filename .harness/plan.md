@@ -3,8 +3,7 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 1 DONE.** Task 2 (`vault.py` v3) is next — Mode 3's standing
-  "go" starts it unattended, same session.
+  Phase: **Building Task 2.** Task 2 is `DOING` (WIP=1).
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -142,7 +141,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises from F6's 145)
 
 - [ ] **Task 2** — `vault.py`: bump to v3, nest the face inner lock, refuse v1 **and** v2
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/vault.py`, `tests/test_vault.py`
   - notes: Apply decisions 4–6 verbatim. `enroll()` gains a `faceprints:
