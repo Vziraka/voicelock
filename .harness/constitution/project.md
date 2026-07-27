@@ -8,10 +8,20 @@ skill. Specific lessons live here, never in `universal.md`.
 - Tool(s): Cursor only · Model(s): Cursor Grok 4.5
 - Verifier path: subagent
 - Signposts: AGENTS.md only — risk: Claude Code sessions will not be auto-routed
-- Remote: none — local history
-- Sensitive data: none declared
+- Remote: **`origin` → https://github.com/Vziraka/voicelock (PRIVATE)** — wired
+  2026-07-26, full history pushed (191 commits, `.harness/` included by
+  deliberate choice). Verified private: `isPrivate: true` and an anonymous API
+  request returns 404. Existing checkpoint rules govern pushes from here on.
+- Sensitive data: none declared — re-verified 2026-07-26 against all 190
+  commits before the first push: no `.env`/`.pem`/`.key`/vault file in any
+  commit, no key or password patterns, and the licence-restricted
+  `tests/fixtures/face/portrait.jpg` confirmed absent from all history. The
+  vault itself lives outside the repo at `~/.voicelock/`. Note the commit
+  author email is in all history and would be public if this repo were ever
+  made public.
 - First-time user: yes — Mode 1 recommended first
-- Setup run: 2026-07-21
+- Setup run: 2026-07-21 · Q5 (git remote) revised 2026-07-26; the other six
+  answers were not re-interviewed and stand as recorded
 
 ## Conventions
 Extracted by `intake-recon` (existing repo) or declared by `intake-scaffold` (new
