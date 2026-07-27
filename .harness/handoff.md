@@ -1,77 +1,95 @@
-# F6 — Faceprint on screen · IMPLEMENT SESSION (Task 3, retry 1)
+# F6 — Faceprint on screen · Task 3 WRAP-UP
 
-**Session date: 2026-07-27.** Task 3 was REJECTed once (unexercised error
-branch), fixed same-session per Mode 3's budgeted-retry rule, and is back
-at `REVIEW`.
+**Session date: 2026-07-27.** Task 3 built, hit a real spec-vs-reality
+blocker, was unblocked by a human-approved spec amendment, REJECTed once on
+an unexercised branch, fixed, verified APPROVE, and wrapped up — all in
+this session.
 
 ## What happened this session
 
-- Verifier REJECTed Task 3 (first pass — spec.md amendment + full module):
-  GATE PASS, REVIEW REJECT on the Standards axis only (Spec axis passed).
-  Finding: `embed_file`'s `if frame is None: raise FaceprintError(...)`
-  branch (a bad/missing image path) was reachable but driven by zero tests
-  — `project.md`'s earned no-unexercised-branch guardrail, previously the
-  cause of three REJECTs in F4. Minor secondary note: two byte-identical
-  tests (`test_compare_without_reference` /
-  `test_load_reference_missing_raises`).
-- Feedback appended to `plan.md`, Task 3 → `TODO`, `rejects: 1` (commit
-  `756e655`).
-- Retry (same session, unattended, per Mode 3's rule that a REJECT below
-  the 3-cap IS the trigger): set Task 3 `DOING` (commit `352fba1`), base
-  for this retry's diff: `756e655`.
-- Fix: added `test_embed_file_missing_path_raises` and
-  `test_embed_file_corrupt_image_raises`, both asserting `FaceprintError`.
-  **Mutation-confirmed before committing** — temporarily neutered the
-  `if frame is None: raise` branch and re-ran both new tests: they FAIL
-  (with an unrelated `cv2.error`, not the expected `FaceprintError`),
-  proving the tests are load-bearing on the actual check rather than
-  trivially satisfiable. File restored byte-identical afterward
-  (diffed against a backup to confirm). Also deduped the byte-identical
-  test per feedback item 2.
-- Re-ran all of Task 3's done-criteria: §5 cmd 3 (verbatim) → exit 0; cmd 4
-  (verbatim, as amended) → exit 0; cmd 5 (verbatim) → exit 0; cmd 2
-  (`pytest -k offline`) → exit 0; cmd 6 (`pytest -k mutation`) → exit 0;
-  cutoff anti-drift pin → exit 0; `uv run ruff check .` → exit 0;
-  `uv run pytest` → **139 passed** (up from 138, 0 failed).
-- Build commit: `adbe26b` (test file fix + `plan.md` Task 3 → `REVIEW`,
-  `rejects: 1`).
-- `git status` before committing: only `tests/test_faceprint.py` changed —
-  minimal, scoped fix, no other files touched.
+- Spawned the clean-context verifier a second time (retry 1). Verdict:
+  **GATE PASS, REVIEW APPROVE**, no feedback. The verifier independently
+  reproduced the mutation check on the fix and independently re-verified
+  the earlier spec amendment was genuinely human-approved (not just
+  asserted). Full reasoning: `memory/verdicts/2026-07-27-F6-T3.json`.
+- Wrap-up checklist run in full:
+  - **ADR:** none — fails condition 1 (hard to reverse). Neither the test
+    fix nor the spec's resize-parameter amendment is an architecture
+    decision.
+  - **`learn` scan:** ran. One NEW lesson cleared the bar — see **Pending
+    guardrail #2** below. (The REJECT itself was the EXISTING
+    no-unexercised-branch guardrail correctly firing — not a new lesson,
+    confirmation the guardrail works.)
+  - No idea was declined by a human this task (the human approved the
+    spec-amendment recommendation as given) — no `.out-of-scope/` entry
+    owed.
+  - **Roadmap:** unchanged — 2 tasks remain in Feature 6 (Tasks 4–5).
+  - **`plan.md`:** Active context, memory spine, and Task 3's line
+    refreshed; Task 3 → `DONE`.
 
-## Failed attempts / lessons
+## Pending guardrails (TWO, both still awaiting separate human decisions)
 
-The REJECT itself is the "failed attempt" — addressed above. Whether it
-warrants a `learn` guardrail beyond the existing no-unexercised-branch rule
-(which already caught it) is a call for wrap-up's `learn` scan, not this
-handoff.
-
-## next_action
-
-**Mode 3 — spawn the clean-context verifier now.**
-
-- Task: **F6 Task 3** — now `REVIEW` (retry 1)
-- Base commit: `756e655` (parent of the retry's `DOING` commit `352fba1`)
-- Head commit: `adbe26b`
-- Verifier: `formats/VERIFIER-PROMPT.md`, used verbatim.
-- On REJECT: feedback appended, task back to `TODO`, `rejects` → 2 (one
-  attempt remains before the 3-cap sets it `BLOCKED`).
-- On APPROVE: `wrap-up` runs, verdict written, Task 3 → `DONE`, then Task 4
-  (Booth bridge) starts unattended per Mode 3.
-
-## Pending guardrail (unrelated, still awaiting a separate decision)
-
-Unchanged from the prior handoff — still open, still not part of the
-human's "yes" to the Task 3 spec amendment:
+**#1 — carried from Task 2, unchanged, still open:**
 
 > **[Forbidden]** A `VIDEO`-mode `FaceLandmarker` instance must not be
 > reused across unrelated still images — only across genuine sequential
-> video frames. (Full text: `memory/verdicts` and prior handoff commits;
-> evidence in `tests/fixtures/face/README.md`'s "Detection re-verified"
-> section, commit `4c8f880`.) `warn` · expires: 2027-01-31 · proposed
-> 2026-07-27, pending human approval.
+> video frames. It carries face-tracker state (an ROI prior) across
+> `detect_for_video` calls, so feeding it unrelated stills back-to-back
+> silently drops the face (0 detections, no error) on any frame after the
+> first whose face falls outside the prior frame's tracked region. Use a
+> fresh instance per unrelated image, or `IMAGE` mode outright, for any
+> script/test that compares or checks multiple independent photographs.
+> `warn` · expires: 2027-01-31
+> - _Evidence:_ F6 Task 2 (2026-07-27), commit `4c8f880`,
+>   `tests/fixtures/face/README.md`'s "Detection re-verified" section.
+> - _Added:_ 2026-07-27 (proposed — pending human approval)
+
+**#2 — NEW, from this task's `learn` scan:**
+
+> **[Done]** A Verification command that exercises a real vendored model
+> (image/audio/ML inference) on constructed test data — a resize, a
+> synthetic signal, a specific parameter combination — must be dry-run
+> against that real model BEFORE being pinned into `spec.md`. A
+> plausible-looking parameter set can silently produce input no honest
+> implementation can process, and that is indistinguishable from a real
+> code defect until someone actually runs it. `warn` · expires: 2027-01-31
+> - _Evidence:_ F6 Task 3 (2026-07-27). `spec.md`'s §5 cmd 4 pinned
+>   `cv2.resize(img, (1280, 720))` against `personA_1.jpg` (816×1024,
+>   portrait) at spec-drafting time, before `faceprint.py` existed to test
+>   it against. The resize was a non-uniform stretch that no honest
+>   implementation could pass: confirmed by elimination, not assumed — the
+>   identical distorted array run through F5's own already-shipped,
+>   unmodified `facedetect.load_landmarker()` also found 0 faces; a
+>   `min_face_detection_confidence` sweep (0.5→0.01) made no difference;
+>   an aspect-preserving resize at a comparable scale (574×720) detected
+>   the same face fine on the same model. Cost a full `BLOCKED` stop, a
+>   multi-step elimination investigation, and a human escalation before a
+>   fix could even be attempted — real rework, not a one-off. **Sibling to
+>   the existing guardrail on source-text verification criteria** ("must
+>   match the behaviour's meaning, not one exact spelling") — same root
+>   cause (a criterion authored before the code existed to validate it
+>   against), different failure side: that rule catches brittle TEXT
+>   matching; this one catches impossible DATA parameters. Whether this
+>   should also change the `spec`/`plan` skills' own process (dry-run
+>   before pinning) is a separate skill-authoring decision beyond what
+>   `learn` may apply unattended — flagging that possibility, not deciding
+>   it.
+> - _Added:_ 2026-07-27 (proposed — pending human approval)
+
+Verdict file records `"lesson": "proposed — pending approval"` for #2. A
+human needs to approve, decline, or amend both #1 and #2 before either
+lands in `project.md` — they are independent proposals; approving one is
+not approving the other.
+
+## next_action
+
+**Mode 3 — the approved spec's Mode line is the standing "go."** This same
+session continues to **Task 4** (Booth bridge: `~/.voicelock/faceprint.ref`,
+on-demand set/compare/reset) — Task 3's wrap-up is the precondition, and it
+just completed. **Both pending guardrails above need a human's attention at
+the next touchpoint** — neither blocks Task 4.
 
 ## Commits
 
-Session base → head: `756e655` → `adbe26b` (two commits: `352fba1` DOING,
-`adbe26b` build + REVIEW). This `handoff.md` write is a third,
-bookkeeping-only commit. Nothing pushed.
+Session base → head: `adbe26b` → (this wrap-up's commits: verdict file +
+`handoff.md` + `plan.md` DONE state). Nothing pushed.

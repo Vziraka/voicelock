@@ -3,12 +3,14 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 6 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building.** Tasks 1–2 `DONE`. Task 3 UNBLOCKED (human approved
-  the §5 cmd 4 spec amendment 2026-07-27) and now `REVIEW`, ready for the
-  clean-context verifier. **A guardrail proposal from Task 2's `learn` scan
-  is still parked in `handoff.md`, awaiting a separate human decision** —
-  not yet approved or declined (VIDEO-mode landmarker tracker-state hazard
-  for multi-still scripts); does not block Task 3 or Task 4.
+  Phase: **Building.** Tasks 1–3 `DONE` (Task 3 needed one retry — an
+  unexercised `embed_file` error branch, fixed and re-verified; verdicts
+  `memory/verdicts/2026-07-27-F6-T{1,2,3}.json`). Task 4 (Booth bridge) is
+  next, unattended per Mode 3's standing "go". **TWO guardrail proposals
+  are parked in `handoff.md`, each awaiting a separate human decision** —
+  neither approved nor declined yet (VIDEO-mode landmarker tracker-state
+  hazard; dry-run-before-pinning for data-parameterized Verification
+  commands). Neither blocks Task 4.
 - Spec: `spec.md` holds F6's spec, `Status: CLEAR`, both approval boxes
   checked, `Mode: Mode 3` set 2026-07-27 by the human.
 - One plan-time design gap the spec deliberately left open (`§5 cmd 3` note:
@@ -81,17 +83,14 @@ actual build sequence, not just a dependency note.
    daguerreotype (CC0). Licences re-confirmed live against Commons at build
    time, not just trusted from research. Task 3 reads these paths directly
    (§5 cmd 3's pinned command names them).
-3. **The MediaPipe→SFace alignment is verified, not experimental:**
-   5-point YuNet-shaped row from landmark indices 33/133 (eye), 263/362 (eye),
-   4 (nose), 61/291 (mouth corners), confirmed by real embeddings on the Q1
-   fixtures (same-person 0.7325 cosine/0.7314 L2; different-person 0.10–0.14
-   cosine/1.31–1.34 L2). `memory/research/2026-07-26-f6-mediapipe-to-sface-alignment.md`.
-   Task 3 implements this exact scheme — it is not a research task.
-4. **Convert, never refuse, is the whole point of this feature's inherited
-   blind spot.** `voiceprint.py`'s refuse-on-mismatch pattern is correct only
-   because `capture.py` pins the mic; camera frames vary legitimately, so
-   `faceprint.py` resizes/converts. §5 cmd 4 and cmd 5 make this runnable —
-   Task 3 must not reproduce F5.5's original mistake.
+3. **`faceprint.py` is built and `DONE` (Task 3) — Task 4's public API to
+   call:** `embed_frame(frame: np.ndarray) -> np.ndarray` (raises
+   `NoFaceError`), `compare(a, b) -> float` (raw L2), `band_for(distance) ->
+   str`, `set_reference(frames: list[np.ndarray], path=None)` (needs exactly
+   `REFERENCE_TAKES = 3` frames), `load_reference(path=None)` (raises
+   `NoReferenceError`), `default_reference_path()` → `~/.voicelock/faceprint.ref`.
+   Alignment/detection/convert-never-refuse are all implemented and verified
+   inside the module — Task 4 does not need to know how, only these calls.
 5. **No lock wiring, no liveness claim.** `faceprint.py` never touches
    `vault.py` (that's F7); the Booth panel must visibly disclose "match, not
    liveness" (§5 cmd 7, Task 5) — a photo held to the camera is *expected* to
@@ -195,8 +194,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed, count unchanged)
 
-- [ ] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
-  - state: REVIEW
+- [x] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
+  - state: DONE
   - rejects: 1
   - **RETRY 1 fix (2026-07-27):** added `test_embed_file_missing_path_raises`
     and `test_embed_file_corrupt_image_raises`, both asserting

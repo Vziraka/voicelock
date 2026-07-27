@@ -1,0 +1,30 @@
+{
+  "task": "F6-T3",
+  "spec": "spec.md@f6578e2",
+  "change": "dd4a975..adbe26b",
+  "gate": {
+    "commands": [
+      "uv run python -c \"...§5 cmd 3 (same-face-close/different-face-far)...\"",
+      "uv run python -c \"...§5 cmd 4 (convert-not-refuse at two resolutions, amended 2026-07-27)...\"",
+      "uv run python -c \"...§5 cmd 5 (justification mentions voiceprint)...\"",
+      "uv run pytest tests/test_faceprint.py -k offline",
+      "uv run pytest tests/test_faceprint.py -k mutation",
+      "uv run python -c \"...ACCEPT_CUTOFF == REJECT_CUTOFF == 1.128 anti-drift pin...\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "139 passed (up from 124 baseline), 0 failed. Scope check clean on the final diff. First pass REJECTed (see below); this verdict covers the retry-1 state."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Two verifier passes on this task. Pass 1 (dd4a975..f6578e2): GATE PASS, REVIEW REJECT (Standards) - embed_file's unreadable-image branch had zero test coverage (project.md no-unexercised-branch guardrail). Pass 2 / retry 1 (756e655..adbe26b): GATE PASS, REVIEW APPROVE - independently reproduced the mutation check on the fix (neutered the raise, confirmed both new tests fail with an unrelated cv2.error, confirming load-bearing coverage), confirmed the deduped test was cleanly removed, swept the rest of the module for other unexercised branches (none found). Also independently verified the spec.md §5 cmd 4 amendment was human-approved and reasoned (memory/decisions.md), not just asserted, by re-running the pre-amendment command and reproducing the failure it describes."
+  },
+  "mechanism": "subagent",
+  "lesson": "proposed — pending approval",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-27",
+  "rejects": 1
+}
