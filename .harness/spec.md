@@ -1,331 +1,277 @@
-# Spec: F6 — Faceprint on screen
+# Spec: F7 — Face as the inner lock (innermost)
 
-Feature: Feature 6 from `roadmap.md`
-
-> **GRILLED AND APPROVED (2026-07-26/27).** Drafted unattended as F5.5's Mode 4
-> tail (2026-07-26), then all ten markers — nine numbered questions plus §6's
-> mandatory Mode 2+ blind-spot question — were resolved interactively with the
-> human on 2026-07-26/27, two (Q1, Q7) backed by dedicated `research` runs
-> rather than assumption. See §2 for the resolutions and §0 for the approval
-> gate.
+Feature: Feature 7 from `roadmap.md`
 
 ## 0. Approval gate
 
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [x] Approved by human
+- [ ] Approved by human
 
 - **Mode: Mode 3 — Spec-to-done.** Set by the human 2026-07-27. Build↔verify
-cycles and the feature-end wrap-up run unattended within this feature; the
-human is checked in with at the feature-end checkpoint (final-verdict review
-  - commit/push approval). Mode 4 was available (mechanically unlocked) but not
-  chosen — the human picked Mode 3.
+  cycles and the feature-end wrap-up run unattended within this feature; the
+  human is checked in with at the feature-end checkpoint (final-verdict
+  review + commit/push approval). Mode 4 was mechanically unlocked (F6
+  completed cleanly at Mode 3) but not chosen.
 
 The agent may NOT plan or build until BOTH boxes are checked.
 The second box is checked by the HUMAN typing the `x` — the agent never checks it.
 
 ## 1. Outcome
 
-Compute the **Faceprint** — a face embedding — and show a live match distance
-against a stored face reference, in the Booth, coloured accept / borderline /
-reject. **Not wired into any lock.** This is the visual analog of F3, and it is
-deliberately the same shape: a diagnostic you can watch work before it becomes
-a key in F7.
+Make the **faceprint** a real cryptographic lock, not just an on-screen meter.
+**Fuzzy-reconcile** the enrolled faceprint into a **stable key** (with non-secret
+**helper data**) and use it to seal an **inner lock** — a third, innermost AEAD
+layer wrapping F4's voice middle lock, which already wraps F2's passphrase outer
+lock. After F7 the profile Vault is sealed by **three nested locks**: passphrase
+(outer) around voice (middle) around face (inner) around the payload. Unlock now
+requires the passphrase **and** the enrolled speaker's voice **and** the enrolled
+person's face: the outer lock peels with the typed passphrase, the middle lock
+peels only when a fresh voiceprint reconciles to the voice key, and the inner
+lock peels only when a fresh faceprint reconciles to the face key.
 
-Three things must be true when this is done:
+Demo (four impostor outcomes, each **visibly distinct**):
+- right passphrase **and** the enrolled voice **and** the enrolled face →
+  **unlocked** (display name shown);
+- **wrong passphrase** → REJECT at the **outer** lock ("wrong passphrase");
+- right passphrase but a **different person's voice** → REJECT at the **middle**
+  lock ("voice didn't match");
+- right passphrase **and** the enrolled voice but a **different person's face**
+  → REJECT at the **inner** lock ("face didn't match").
 
-1. **`faceprint.py` exists and computes a real embedding** from a detected face,
-  using OpenCV's SFace through the `opencv-contrib-python` F5 already declares,
-   with the ONNX weights vendored offline beside `models/ecapa/` and
-   `models/face_landmarker/`. No network at runtime.
-2. **A stored face reference can be set, compared against, and reset**, and the
-  Booth shows the resulting distance in a three-band meter — the same
-   accept/borderline/reject vocabulary F3 established, with cutoffs **adopted
-   from OpenCV's published SFace thresholds** (cosine ≥ 0.363, L2 ≤ 1.128) —
-   not measured on this repo's fixtures, per Q5: two comparisons is not enough
-   data to responsibly derive a custom threshold, unlike F3's many-take voice
-   measurement. The code states this reasoning, not just the numbers.
-3. **Same face reads close, a different face reads far**, proven by a test whose
-  assertion would break if the speaker— sorry, the *face* model were removed.
-   F5.5 just spent a task fixing exactly this failure in the voice path; F6 must
-   not reproduce it.
-
-Demo: point the camera at your face with a reference set → the meter reads
-accept; hold up a photo of someone else → it reads reject.
-
-> **Inherited blind spot — read before writing a line of `faceprint.py`.**
-> F5.5's `voiceprint.py` **refuses** audio that is not 16 kHz mono, and that is
-> correct there **only** because `capture.py` pins the microphone to exactly one
-> rate and one channel. **F6 must not copy that pattern.** Camera frames
-> legitimately vary in resolution, and a faceprint module that raises on an
-> unexpected frame size would reject valid input. Where the voice path refuses,
-> the face path **converts** — resize, crop, align. This is a §4 constraint, not
-> advice, and §5 pins a check for it.
+This is F4's construction, one lock layer deeper, for the face instead of the
+voice — the same keystone (code-offset fuzzy commitment), reparameterized for
+SFace's 128-dim embedding instead of ECAPA's 192-dim one. F6's diagnostic
+faceprint meter is untouched by this feature — it stays an independent,
+non-lock diagnostic exactly as F3's voiceprint meter survived F4 untouched.
 
 ## 2. Grilling record — ambiguity scan
 
-**Status: CLEAR.** All ten markers resolved interactively with the human
-(2026-07-26/27) — a search for the `NEEDS-CLARIFICATION` token returns zero
-hits in this file. Drafted unattended per the `spec` skill's
-unattended-drafting rule (each question carried a recommended answer); Q1 and
-Q7 were additionally backed by dedicated `research` runs before being put to
-the human, rather than resolved from the recommendation alone.
+**Status: CLEAR.** All four must-answer markers resolved interactively with
+the human (2026-07-27) — a search for the `NEEDS-CLARIFICATION` token returns
+zero hits in this file.
 
-
-| Category                           | Verdict      | State                                                                                                                                             |
-| ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Functional scope & behavior        | **Resolved** | Q4 — average 3 frames; Q8 — mirrors F3's panel                                                                                                    |
-| Domain & data model                | **Resolved** | Q3 — `~/.voicelock/faceprint.ref`, mirrors `voiceprint.ref`                                                                                       |
-| Interaction & UX flow              | **Resolved** | Q8 — mirrors F3's panel exactly                                                                                                                   |
-| Non-functional (perf, security)    | **Resolved** | Q6 — on-demand computation, not every frame                                                                                                       |
-| Integration & dependencies         | **Resolved** | Q2 — narrower per-asset licence task, no full TECH-PICK; Q7 — hand-built MediaPipe→SFace alignment, verified, no YuNet, `research` run 2026-07-26 |
-| Edge cases & failure modes         | **Resolved** | Q6 — `NoFaceError`, largest-face-wins; the §1 blind-spot rule (convert, never refuse)                                                             |
-| Completion signals                 | **Resolved** | Q1 — Douglass A1/A2 + MET B; Q5 — vendor thresholds adopted; Q9 — manual check required                                                           |
-| Terminology (matches `CONTEXT.md`) | **Clear**    | Uses **Faceprint** and **FaceView** exactly as the glossary defines them. No new terms.                                                           |
-
+| Category                           | Verdict      | State                                                                 |
+| ----------------------------------- | ------------ | ---------------------------------------------------------------------- |
+| Functional scope & behavior        | **Resolved** | Face = inner lock; unlock needs passphrase + voice + face; four visibly distinct outcomes (§1). |
+| Domain & data model                | **Resolved** | Q3 — vault v3, v1/v2 both refused, re-enroll required. Q2 — sizing knobs reused from F4, radius measured on thin fixture data. |
+| Interaction & UX flow              | **Resolved** | Q4 — new enroll/unlock face-capture steps, F6's diagnostic panel untouched. |
+| Non-functional (perf, security)    | **Resolved** | Offline + Argon2id/PyNaCl inherited from F4; no new dependency (construction already proven, `memory/research/2026-07-23-f4-fuzzy-reconcile.md`). |
+| Integration & dependencies         | **Resolved** | New `facelock.py` sibling module to `middlelock.py` (Q1/Q2's resolutions assume this); no new dependency. |
+| Edge cases & failure modes         | **Resolved** | Reuse F6's `NoFaceError`/no-reference path; wrong-face → inner REJECT; v1/v2 vault → re-enroll (Q3). |
+| Completion signals                 | **Resolved** | Q1 — reuse F6's 3-take pattern + A1/A2/B fixtures, thin-evidence radius disclosed. Q2 — F4's constants reused, radius measured. |
+| Terminology (matches `CONTEXT.md`) | **Clear**    | Uses **Inner lock**, **Faceprint**, **Helper data**, **Vault**, **Impostor** exactly as the glossary defines them. No new terms. |
 
 ### The questions
 
-**Q1 — fixtures: where does a second face come from, and is a same-face pair
-even honest?** This is the feature's hardest question and `roadmap.md` flags it
-explicitly: F5 commits **one** face (`portrait.jpg`, and even that is
-fetched-not-committed because it is a White House press photograph).
+**Q1 — How many live enrollment takes does face-lock enrollment need, and what
+proves the construction works, given this repo has far less independent face
+data than voice does?**
 
-F6 needs two assertions with teeth: *same person → close* and *different person
-→ far*. The different-person half is easy — the CC0 MET daguerreotype already
-researched and detection-verified in
-`memory/research/2026-07-26-f5-fixture-replacement-candidates.md` is a clean
-face B. **The same-person half is the trap.** A photo cannot be windowed the way
-F3 windowed its audio, so the tempting move is to derive a second "probe" from
-the same image by cropping, rescaling or re-encoding it — and that would be
-**exactly** the vacuous test F5.5 was created to remove. Note also that run 2's
-recorded fix direction for the voice case (assert on a byte-disjoint pair) was
-**drafted and then disproved by measurement** during F5.5's grilling; do not
-import that idea here by analogy.
+F4's reliability mask is built on **cross-take sign unanimity** across 5
+separately-spoken sentences — real, meaningfully-varied samples of the same
+speaker. F6's Q4 already flagged the face analog is weaker: "three frames
+captured seconds apart are far more correlated than three separate spoken
+sentences." Two compounding problems for F7:
 
-**RESOLVED (2026-07-26, human-approved).** A genuine, independent same-person
-pair was found and verified: `research` run
-`memory/research/2026-07-26-f6-same-person-fixture-pair.md` located two
-separate 19th-century photographs of Frederick Douglass — **A1**: 1870, George
-Francis Schreiber, Library of Congress (LCCN 2004671911); **A2**: c.1879,
-photographer unrecorded, National Archives (NARA 558770) — different
-photographers, different negatives, different custodial chains, both
-`Public domain` per Wikimedia Commons' per-file metadata, both deceased
-subjects. **Face B** carries over from F5's research: the CC0 MET daguerreotype
-`-Elderly Man; Full Face- MET 37.14.52.jpg`. All three confirmed
-faces=1/landmarks=478 against the vendored `face_landmarker.task` bundle. This
-is **not** a derived probe (F5.5's failure mode) — A1 and A2 are independent
-photographic acts, not a crop/rescale/re-encode of one file. Fixtures A1, A2,
-B are to be committed to `tests/fixtures/face/` with a README documenting
-provenance and licence, per F5's `LICENSE`/`NOTICE`-adjacent pattern.
-Resolved by: `research`.
+1. **Live enrollment.** If face-lock enrollment averages/masks across N frames
+   from one short live-camera burst, those frames are nearly identical pixels —
+   cross-take unanimity would come out ~100% unanimous almost regardless of N,
+   which defeats the mask's purpose (it is supposed to measure genuine
+   within-person variation, not rubber-stamp near-duplicate frames).
+2. **Automated Gate test data.** F6's Q1 research found exactly ONE genuine
+   independent same-person pair in this repo (Douglass A1/A2) and forbade
+   deriving a second "take" by cropping/rescaling/re-encoding one image — that
+   is the exact vacuous-test failure F5.5 was created to remove. F7's Gate test
+   needs to prove the REAL construction (fuzzy commitment, not just `compare()`)
+   separates same-face from different-face — but multi-take cross-take-unanimity
+   masking has no honest multi-take face data to run on beyond one pair.
 
-**Q2 — is a TECH-PICK owed?** `opencv-contrib-python` is already approved and
-declared (F5), so `cv2.FaceRecognizerSF` needs no new package. But the SFace
-**ONNX weights** are a new vendored third-party asset, and `project.md`'s first
-guardrail requires the licence to be established from a source naming *that
-asset* — the artifact's own metadata first.
+**RESOLVED (2026-07-27, human-approved).** Reuse existing data rather than
+commissioning new `research`:
+- **Live enrollment** reuses F6's already-established `REFERENCE_TAKES = 3`
+  burst pattern (same Booth code path, no new UX invented for this).
+- **Automated Gate test** enrolls with **A1 alone** (a single genuine take —
+  `middlelock.py`'s own `_reliability_mask` docstring already documents
+  graceful degradation to pure margin-ranking when there are too few unanimous
+  candidates, so this is an anticipated fallback, not a hack), then tests
+  reconcile with **A2** (genuinely independent, never seen at enroll) for the
+  accept case and **B** for the reject case. No derived probes, no new
+  fixtures.
+- **Disclosed honestly** (module docstring + this spec): the Gate test enrolls
+  with fewer genuine takes (1) than live production (3) — a thinner test than
+  production, in the opposite direction from F4's own disclosed fixture
+  caveat ("fixtures are a harder test than the live demo"). The required live
+  manual check (§5) is what actually exercises real 3-take enrollment.
+Resolved by: human decision (declined the research-first alternative).
 
-**RESOLVED (2026-07-26, human-approved).** Skip the full `formats/TECH-PICK.md`
-walkthrough — no alternative is being chosen, SFace was already named in F5's
-TECH-PICK. Run the per-asset licence establishment in full as its own task,
-same standard as `project.md`'s guardrail (embedded metadata first, then
-per-asset primary sources). Nothing is committed to `models/sface/` until that
-task produces a non-stub `LICENSE` and `NOTICE`.
+**Q2 — Sizing knobs for the face fuzzy commitment (candidate bits, reliable
+bits, key bits, repetition, correction radius) — measured, adopted from F4 by
+ratio, or something else?**
 
-**Q3 — where does the face reference live, and in what format?**
+F4's `CORRECTION_RADIUS = 110` (and its sibling constants) were measured
+empirically over 200 independent commits on many voice fixture comparisons.
+F6's Q5 already established that face has nowhere near that much comparison
+data (two comparisons total), which is why F6's diagnostic cutoffs were
+*adopted* from OpenCV's vendor numbers rather than measured. F7's fuzzy
+commitment has no equivalent vendor-published operating point to adopt — it is
+a bespoke construction, so "adopt a published number" is not available the way
+it was for F6's diagnostic.
 
-**RESOLVED (2026-07-26, human-approved).** `~/.voicelock/faceprint.ref`, a
-plaintext `np.save` sibling of `voiceprint.ref`, mirroring F3 exactly — same
-`default_reference_path()` shape, same `load_reference` / `_save_reference`
-pattern. Not a secret (an embedding is not a key until F7 makes it one).
+**RESOLVED (2026-07-27, human-approved).** `CANDIDATE_BITS`, `RELIABLE_BITS`,
+`KEY_BITS`, and `REPETITION` are kept **identical** to F4's values (4096, 512,
+32, 16) — these size the ECC bit-budget, not the input embedding width, so
+there is no real mathematical reason to scale them by 128/192. Only
+`CORRECTION_RADIUS` is set from actual measurement using Q1's fixture plan:
+the residual-bit count for the one genuine pair (enroll A1, reconcile against
+A2) versus the residual-bit floor for the impostor cases (reconcile against
+B) — midpoint of that gap, same method F4 used to pick 110 from its 63..156
+gap. **Disclosed explicitly** (module docstring + here): this radius rests on
+n=1 genuine and n=2 impostor measurements, categorically thinner evidence than
+F4's 200-commit measurement — a real measurement, not an invented number, but
+a weak one, and the code says so.
 
-**Q4 — how many frames make a face reference?** F3 averages
-`REFERENCE_TAKES = 3` separate utterances.
+**Q3 — Vault format bump and legacy handling — v2 → v3, and what happens to an
+existing v1 or v2 vault?**
 
-**RESOLVED (2026-07-26, human-approved).** Average 3 frames captured over a
-short window (mirroring F3's `REFERENCE_TAKES = 3`), re-normalized the same
-way, rather than a single frame — avoids baking in one blink/expression. The
-code must note the honest asymmetry: three frames seconds apart are far more
-correlated than three separate spoken sentences, so this buys less
-noise-reduction than it does for voice.
+F4 bumped v1 → v2 and refused v1 outright (`LegacyVaultError`, re-enroll
+required, no passphrase-only bypass). F7 needs the same shape one layer
+deeper: v2 → v3, nesting `{helper_data_face, inner_ciphertext}` inside the
+existing middle layer.
 
-**Q5 — cutoffs: measure or adopt?** OpenCV publishes canonical SFace thresholds
-(cosine ≈ 0.363, L2 ≈ 1.128). F3's precedent is to *measure* cutoffs on this
-repo's own fixtures and pin them as module constants.
+**RESOLVED (2026-07-27, human-approved).** Bump to `FORMAT_VERSION = 3`. Both
+a v1 **and** a v2 vault are refused via the same `LegacyVaultError` family
+(the message names the actual missing layer — "predates voice" vs. "predates
+face") — re-enroll required, no bypass, mirroring F4's precedent exactly.
+Layout: innermost profile JSON → sealed with the **face-derived inner key** →
+inner ciphertext; middle plaintext becomes `{helper_data_face,
+inner_ciphertext}` → sealed with the **voice-derived middle key** (unchanged
+from F4) → middle ciphertext; outer plaintext `{helper_data_voice,
+middle_ciphertext}` → sealed with the passphrase key (unchanged). Peel order
+stays outer → middle → **inner**, so each impostor class fails at its own
+named layer before the next is ever consulted.
 
-**RESOLVED (2026-07-26, human-approved).** Adopt OpenCV's published SFace
-thresholds as module constants — cosine ≥ 0.363 accept, L2 ≤ 1.128 accept —
-rather than measuring a repo-specific cutoff. Reason, per the spec's own
-fallback: Q1 yields exactly one same-person pair and one different-person
-subject (two comparisons), which is not enough data to responsibly derive a
-custom threshold the way F3 measured `ACCEPT_CUTOFF`/`REJECT_CUTOFF` across
-many voice takes. The Q7 research measured this exact pair against the vendor
-thresholds and found clean separation (same-person 0.7325 cosine / 0.7314 L2;
-different-person 0.0970–0.1358 cosine / 1.3147–1.3439 L2) — evidence the vendor
-threshold is reasonable here, not a substitute for a proper measurement. The
-code and fixture README must state plainly why the vendor default was adopted
-rather than a measured one.
+**Q4 — Booth enrollment flow — where does live face-lock enrollment fit
+relative to F6's existing diagnostic panel?**
 
-**Q6 — per-frame cost, no face, and several faces.** SFace inference on every
-frame at `TARGET_FPS = 30` may not fit the 33 ms budget F5 measured itself
-against (`facedetect.py` uses ~10 ms/frame today).
+F4 precedent: keep F3's voiceprint diagnostic panel completely untouched, and
+add a **separate** enroll-voice capture step to the enroll flow. F6's
+diagnostic faceprint panel (3-band meter, "Set face reference", "Reset")
+already exists and writes `~/.voicelock/faceprint.ref` — a plaintext,
+non-lock file, independent of anything F7 seals into the vault.
 
-**RESOLVED (2026-07-26, human-approved).** Compute the faceprint on demand, not
-on every frame — the Booth's meter updates on a button press or at a low fixed
-interval, so the preview stays at 30 fps regardless. For **no face detected**,
-raise a `NoFaceError` analogous to `NeedMoreAudioError`, surfaced as Booth copy,
-not a crash. For **several faces**, use the largest by bounding-box area and say
-so in a comment. Per §1's blind spot: an unexpected frame **size** is converted,
-never refused.
-
-**Q7 — how does SFace get its aligned crop?** `cv2.FaceRecognizerSF.alignCrop`
-expects a detection row in **YuNet's** format — a bounding box plus five
-specific landmarks (both eye centres, nose tip, both mouth corners). This repo
-detects with **MediaPipe**, which returns 478 landmarks in a different scheme.
-This is an architecture question, so it is a must-answer under the universal
-[Uncertainty] rule.
-
-**RESOLVED (2026-07-26, human-approved), verified not assumed.** `research` run
-`memory/research/2026-07-26-f6-mediapipe-to-sface-alignment.md` built the
-five YuNet-shaped points from MediaPipe's 478 landmarks (eye centers =
-midpoint of outer+inner corner, indices 33/133 and 263/362; nose tip = index
-4; mouth corners = 61 and 291), confirmed the point order empirically (the
-correct order produces a visibly well-aligned 112×112 crop; the reversed order
-visibly does not), and ran real SFace embeddings on the Q1 fixtures: A1–A2
-(same person) scored cosine 0.7325 / L2 0.7314 — solidly past OpenCV's own
-accept thresholds (cosine ≥ 0.363, L2 ≤ 1.128); A1–B and A2–B (different
-person) scored cosine 0.10–0.14 / L2 1.31–1.34 — solidly on the reject side.
-**No YuNet vendoring. No second Q2 licence task.** Resolved by: `research`.
-
-**Q8 — Booth surface.** F3 added a voiceprint panel: a 3-band meter, "Set
-reference", "Reset".
-
-**RESOLVED (2026-07-26, human-approved).** Mirror F3's panel exactly — a
-faceprint panel with the same three-band meter, "Set face reference" and
-"Reset", placed beside the existing FaceView disk. Same colours, same
-vocabulary. The page keeps no state the engine owns (`project.md` guardrail):
-Python computes the distance and the band, JS renders them.
-
-**Q9 — manual check.** F5.5 was the first feature with none, because it had no
-live surface. F6 has one.
-
-**RESOLVED (2026-07-26, human-approved).** The manual check is required — a
-human points the camera at their own face with a reference set and confirms
-accept, then holds up a different face and confirms reject. Even with Q1's
-resolved automated fixtures (two static photographs), the live webcam path for
-a same-face comparison is exercised by nothing else — this is the only
-live-camera evidence for that half of the feature.
+**RESOLVED (2026-07-27, human-approved).** Mirror F4 exactly — F6's
+faceprint diagnostic panel stays untouched (still writes its own plaintext
+reference file, still an independent diagnostic, still not consulted by the
+lock). F7 adds a **new**, separate enroll-face capture step to the enroll
+flow (after the existing enroll-voice step), whose captured frames (F6's
+`REFERENCE_TAKES = 3` pattern, per Q1) are consumed only by `facelock.commit`
+and never touch `faceprint.ref`. Unlock's face capture (reusing
+`FaceEngine.last_frame`) feeds `facelock.reconcile`, distinct from the
+diagnostic's separate `compare_face` polling loop. Two independent code paths
+reading the same camera, exactly as voice's diagnostic vs. lock paths are two
+independent code paths reading the same microphone.
 
 ## 3. Non-goals
 
-- **Any lock wiring.** The faceprint does not derive a key, does not touch
-`vault.py`, and does not seal anything. That is **F7**.
-- **Liveness, anti-spoof, deepfake detection.** Holding a photo up to the camera
-is expected to *pass* the face match at F6 — that is precisely why F8 exists.
-Nothing in this feature may claim otherwise, in code, copy or comment.
-- **Re-pinning any voice constant.** `ACCEPT_CUTOFF`, `REJECT_CUTOFF` and
-`CORRECTION_RADIUS` are F3/F4 measurements and stay untouched.
-- **Changing `facedetect.py`'s camera lifecycle or preview pipeline.** F6
-consumes `FrameResult.landmarks`; it does not re-cut the F5 composite.
-- **Replacing `portrait.jpg`.** Whatever Q1 resolves to, F5's
-fetched-not-committed arrangement for that file stands unless the human
-explicitly retires it.
-- **The `voicelock` → new-name rename.** Still parked (`roadmap.md`).
+- **No liveness, challenge phrase, or lip-sync** (F8). Face-at-unlock is
+  matched by **identity only** — F7 does not resist replay of a photo/video of
+  the enrolled person's face (that is exactly F8's job, and F6's §6 blind spot
+  already disclosed this in the Booth copy).
+- **No enrollment-quality gate and no tolerance-tuning UI** (F9). F7 pins one
+  fixed, provisional set of fuzzy-commitment constants (Q2), the same way F4
+  pinned a fixed `CORRECTION_RADIUS`.
+- **No re-pinning of any voice constant** — `middlelock.py`'s
+  `CORRECTION_RADIUS`, `CANDIDATE_BITS`, etc. and `voiceprint.py`'s
+  `ACCEPT_CUTOFF`/`REJECT_CUTOFF` stay untouched. F7 adds a face-specific
+  sibling module; it does not edit the voice one.
+- **No change to F6's diagnostic faceprint panel or `faceprint.ref`** — Q4
+  keeps it as an independent, non-lock diagnostic.
+- **No multi-profile** — a single Vault at `~/.voicelock/vault.vl`, as before.
+- **No account recovery** — lose the passphrase, the voice match, or the face
+  match → the Vault stays sealed.
+- No claim of cryptographic hardness: biometric key binding for a **learning
+  demo**, honestly framed, same as F4. Helper data is non-secret and leaks
+  bounded information about the faceprint; the inner key is only as strong as
+  the faceprint's entropy and the chosen reconcile tolerance (stretched by
+  Argon2id) — not product-grade. No FAR/FRR guarantees.
+- Out-of-scope discoveries during build: record in `.out-of-scope/`, never build.
 
 ## 4. Constraints
 
-- **Offline-only.** No network at runtime; the SFace weights load from a local
-path exactly as `models/ecapa/` and `models/face_landmarker/` do.
-- **No new package in `pyproject.toml`.** SFace comes through the
-already-approved `opencv-contrib-python`. Q7's alignment path (a hand-built
-YuNet-shaped row from MediaPipe's existing 478 landmarks) needs no second
-vendored model — verified in
-`memory/research/2026-07-26-f6-mediapipe-to-sface-alignment.md`.
-- **Per-asset licence.** Nothing enters `src/voicelock/models/sface/` until its
-licence is established from a source naming *that file* — embedded metadata
-first (`project.md` guardrail 1). A non-stub `LICENSE` and `NOTICE` recording
-the evidence chain ship with it.
-- **Convert, never refuse.** The faceprint path accepts whatever frame the
-camera gives it and resizes/crops/aligns as needed. Refusing an unexpected
-frame size is forbidden — see §1's blind spot and §5's check.
-- **Python owns the state; JS renders.** No face state in the page.
-- **No unexercised surface.** Every branch added ships with a test that drives
-it (`project.md` guardrail), and every test must fail if the behaviour it
-claims to cover is removed (`project.md` guardrail) — F6's own §5 makes the
-second one runnable rather than aspirational.
+- Honor `constitution/project.md` + conventions: Python 3.11 + uv; engine/crypto
+  in `src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; **Python
+  owns all crypto/DSP, JS renders only**; **offline-only — no network at
+  runtime**.
+- Entry point remains `uv run voicelock`. Keep F1–F6 engines
+  (`capture.py`, `playback.py`, `voiceprint.py`, `middlelock.py`,
+  `facedetect.py`, `faceprint.py`) unchanged as the identity/detection sources
+  — F7 consumes `faceprint.embed_frame`/`embed_file`, it does not modify them.
+- Reuse F2's outer lock and F4's middle lock unchanged: same PyNaCl Argon2id +
+  SecretBox primitives, same nested-AEAD pattern, one layer deeper (Q3).
+- **No new dependency.** The code-offset fuzzy commitment construction is
+  already proven in pure numpy (`memory/research/2026-07-23-f4-fuzzy-reconcile.md`);
+  F7 reparameterizes it for a 128-dim embedding, it does not pick new tech.
+- Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
+  `uv run pytest` → exit 0.
+- Booth UX: reuse existing mock chrome; add the enroll face-capture step and
+  the unlock face-capture step (Q4); keep F3/F6's diagnostic panels and F1
+  Record/Stop/Play unchanged; a third, visibly distinct reject message for the
+  inner lock, per §1.
+- Edge cases (visible, no crash): no vault → "enroll first"; wrong passphrase
+  → outer REJECT; right passphrase + wrong voice → middle REJECT; right
+  passphrase + right voice + wrong face → inner REJECT; no face detected during
+  enroll/unlock capture → F6's `NoFaceError` surfaced as Booth copy (not a
+  crash); v1 or v2 vault → re-enroll prompt (Q3).
 
 ## 5. Verification — definition of done (runnable)
 
-Fixtures (per Q1, committed to `tests/fixtures/face/` with a README
-documenting provenance/licence, mirroring `tests/fixtures/voiceprint/README.md`):
-`personA_1.jpg` (Douglass, 1870, LOC), `personA_2.jpg` (Douglass, c.1879,
-NARA), `personB.jpg` (MET elderly-man daguerreotype).
+Fixtures: reuses F6's already-committed `tests/fixtures/face/personA_1.jpg`
+(A1), `personA_2.jpg` (A2), `personB.jpg` (B) — no new fixtures (per Q1).
 
 **Standing** (the regression net — `project.md`'s Gate commands):
-
 - `uv run ruff check .` → exit 0.
-- `uv run pytest` → exit 0. Reference: **124 passing** at the end of F5.5; the
-count rises by F6's tests and must not fall.
+- `uv run pytest` → exit 0. Reference: **145 passing** at the end of F6; the
+  count rises by F7's tests and must not fall.
 
 **Feature-specific:**
 
-1. **The vendored SFace model is present and licence-documented.**
-  `uv run python -c "import pathlib; d = pathlib.Path('src/voicelock/models/sface'); assert d.is_dir(); assert (d / 'LICENSE').stat().st_size > 200; assert (d / 'NOTICE').stat().st_size > 200"`
-   → exit 0. Mirrors the standing check F5 pinned for `models/face_landmarker/`.
-2. **The faceprint is computed offline** — no DNS resolution during a load +
-  embed, the same socket-blocking pattern
-   `tests/test_voiceprint.py::test_model_loads_offline_from_vendored_path` uses.
-   → exit 0.
-3. **Same face close, different face far**, on the real fixtures:
-  `uv run python -c "from voicelock.faceprint import embed_file, compare, ACCEPT_CUTOFF, REJECT_CUTOFF; d_same = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personA_2.jpg')); d_diff = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personB.jpg')); assert d_same <= ACCEPT_CUTOFF, d_same; assert d_diff >= REJECT_CUTOFF, d_diff"`
-   → exit 0. (Exact call shape — `embed_file`/`compare` names — is set at
-   `/plan`; the assertion intent, not the API, is pinned here.)
-4. **The face path CONVERTS rather than refuses** — the F5.5 blind-spot
-  mitigation, made runnable: feed the embedder frames at resolutions the
-   camera never produces and assert each returns an embedding instead of
-   raising.
-   `uv run python -c "import numpy as np; from voicelock.faceprint import embed_frame; import cv2; img = cv2.imread('tests/fixtures/face/personA_1.jpg'); h, w = img.shape[:2]; img720 = cv2.resize(img, (round(w * 720 / h), 720)); h2, w2 = img720.shape[:2]; img320 = cv2.resize(img720, (round(w2 * 240 / h2), 240)); assert embed_frame(img720) is not None; assert embed_frame(img320) is not None"`
-   → exit 0. **This is the command that stops F6 inheriting the wrong half of
-   F5.5.**
-   **Amended 2026-07-27 (human-approved).** The original command resized
-   `personA_1.jpg` (816×1024, portrait) to a hard-coded 1280×720 with no
-   aspect-ratio preservation — a non-uniform stretch, not a resolution
-   change. That stretch made the face undetectable by ANY implementation:
-   confirmed by running the identical distorted array through F5's own
-   already-shipped, unmodified `facedetect.load_landmarker()` (0 faces
-   found there too), and by sweeping `min_face_detection_confidence` from
-   0.5 to 0.01 with no change. An aspect-preserving resize to a comparable
-   scale (574×720) detects the same face fine on the same model — the
-   distortion, not the resolution, was the cause. The amended command
-   resizes by height while preserving the source's own aspect ratio,
-   mirroring `facedetect.py`'s own centre-crop-before-resize discipline and
-   matching how a real camera actually behaves (fixed sensor aspect; only
-   resolution changes, never a non-uniform stretch). Full evidence:
-   `handoff.md`'s Task 3 BLOCKED report, commit `c5d5d45`. This does not
-   reopen Q6 or any other resolved grilling question — it corrects one
-   Verification command's concrete resize parameters, discovered wrong only
-   once real detection was run against it.
-5. **The justification travels with the code**, the converse of F5.5 §6:
-  `uv run python -c "import inspect; from voicelock import faceprint as f; s = inspect.getsource(f); assert 'voiceprint' in s, 'the module does not record WHY it converts where voiceprint.py refuses'"`
-   → exit 0.
-6. **The match test is mutation-sensitive** — F6's own version of F5.5 §5 cmd 4:
-  a dummy embedder (e.g. one that returns the image's mean pixel value tiled
-   into a vector, with no face modelling at all) substituted for the real
-   SFace call must **fail** to separate `personA_1`/`personA_2` from
-   `personB` at the pinned cutoffs — proving the real test's pass depends on
-   the model, not on the assertion being trivially satisfiable. Exact
-   mutation-injection shape is set at `/plan`, following F5.5 §5 cmd 4's
-   pattern.
-7. **The liveness-honesty copy is present** — §6's mitigation, made runnable:
-  `uv run python -c "import pathlib; t = pathlib.Path('src/voicelock/ui/index.html').read_text(encoding='utf-8'); assert 'liveness' in t.lower() and ('match' in t.lower()), 'the faceprint panel does not disclose match-not-liveness'"`
-   → exit 0. (Exact path/wording set at `/plan`; per `project.md`'s earned
-   guardrail this must be a meaning-check, not a brittle exact-string match.)
-8. **Manual check — required (Q9).** A human points the camera at their own
-  face with a reference set and confirms the meter reads **accept**, then
-   holds up a different face (a photo, or a second person) and confirms the
-   meter reads **reject**. Attested by the human at the feature-end checkpoint.
+1. `uv run pytest tests/test_facelock.py -q` → exit 0. Must cover, using the
+   real vendored SFace model + the A1/A2/B fixtures (no mocked embeddings):
+   - **commit** binds an inner key from an enrollment embedding set (per Q1,
+     A1 alone in the fixture test; `REFERENCE_TAKES = 3` live frames in
+     production) and emits helper data (LSH seed, reliability mask, XOR
+     offset, commitment tag) — same shape as `middlelock.commit`.
+   - **same-person reconcile**: enrolling on A1 and reconciling against A2
+     recovers the committed secret (inner lock opens).
+   - **different-person reconcile**: enrolling on A1 (or A2) and reconciling
+     against B fails to reconcile — `ReconcileError`-equivalent raised, no
+     secret/plaintext returned.
+   - `CANDIDATE_BITS == 4096`, `RELIABLE_BITS == 512`, `KEY_BITS == 32`,
+     `REPETITION == 16` (reused unchanged from `middlelock`, per Q2) and
+     `CORRECTION_RADIUS` sits strictly between the measured A1↔A2 residual
+     and the measured A1/A2↔B residual floor — the test asserts the actual
+     measured gap, not just that the constant exists.
+2. `uv run pytest tests/test_vault.py -q` (or wherever F2/F4's vault tests
+   live) → exit 0. Must cover: enroll seals a **v3** vault (`FORMAT_VERSION ==
+   3`, `VLCK` magic); unlock with the right passphrase + voice + face returns
+   the display name; a wrong passphrase raises before voice or face is
+   consulted (outer REJECT); right passphrase + wrong voice raises before
+   face is consulted (middle REJECT, unchanged from F4); right passphrase +
+   right voice + wrong face raises the new inner REJECT; a v1 **or** v2 vault
+   is refused via `LegacyVaultError` naming the missing layer (Q3); no reject
+   path returns the name or any plaintext.
+3. `uv run pytest tests/test_booth_api.py -q` → exit 0. Must cover the
+   bridge's enroll-face capture step (Q4) and unlock returning a **distinct**
+   reason per layer (`auth_outer` / `auth_voice` / `auth_face`), none leaking
+   the name.
+4. **Manual (required)** — run `uv run voicelock`: enroll (name + passphrase +
+   voice + face) → unlock with all three correct → **unlocked** (name shown);
+   **wrong passphrase** → outer REJECT; right passphrase + **wrong voice** →
+   middle REJECT; right passphrase + right voice + **a different face** →
+   **inner REJECT**. Each reject names its distinct cause. Attested by the
+   human at the feature-end checkpoint.
 
 **Out-of-scope default (Mode 3):** anything discovered during the build that
 is not in §1 gets recorded in `.out-of-scope/` and is never built.
@@ -334,27 +280,32 @@ is not in §1 gets recorded in `.out-of-scope/` and is never built.
 
 **"If every gate passed but the feature were still wrong, what would be wrong?"**
 
-**RESOLVED (2026-07-26, human-approved).** The meter would read "accept" for a
-photograph held up to the camera, and a watching human would read that as "the
-face lock works" — F6 computes a face *match* and nothing else; a printed
-photo of the enrolled person scores as accept, by design, until F8 adds
-liveness. The gates cannot catch this because the behaviour is correct — the
-risk is in what the Booth *appears* to claim. **Mitigation, made runnable
-rather than cultural**: the faceprint panel carries visible copy stating this
-is a match, not a liveness check, and a §5 Verification command asserts that
-copy exists in `index.html` so a later UI tidy-up cannot quietly drop it.
+**RESOLVED (2026-07-27, human-approved).** The automated test (§5 cmd 1) only
+proves the construction separates ONE genuine face pair (Douglass A1/A2, per
+Q1's thin-evidence disclosure) from one impostor (B) — it cannot prove the
+reliability mask generalizes to a real user's face across a genuine
+cross-session gap (enroll today, unlock next week, different lighting/angle/
+expression). This is the same generalization gap F4 already accepted for
+voice, and it is mitigated the same way: not by a gate, but by the **required
+live manual check** (§5 cmd 4) — enroll live, unlock live days or sessions
+apart in practice, wrong-face live. The gates cannot catch this because the
+gap is structural (thin fixture data), not a bug; the mitigation is disclosure
+plus the human's own live exercise of the real path, exactly as F4's spec
+recorded for the identical voice-side limitation.
 
-## 7. What F6 inherits (recorded so it survives the next handoff rewrite)
+## 7. What F7 inherits (recorded so it survives the next handoff rewrite)
 
-- **From F5:** the fetched-not-committed fixture arrangement for `portrait.jpg`;
-the vendored-model directory pattern with `LICENSE` + `NOTICE`; `FrameResult`
-carrying **all 478 unflipped landmarks** specifically so this feature can
-consume them; and the two-faces gap that Q1 must close.
-- **From F5.5:** the blind spot above — refuse-unexpected-input is correct for a
-pinned source and wrong for a camera — and the harder lesson underneath it,
-that a same-X test built on a derived probe proves the pipeline, not the
-model. F6's Q1 is that lesson arriving one feature early, on purpose.
-- **From `project.md`:** the per-asset licence rule (which fired twice in F5, and
-cleared one asset while rejecting another), the no-unexercised-surface rule,
-and the mutation-sensitivity rule that §5 cmd 6 makes runnable.
-
+- **From F4:** the entire fuzzy-commitment construction, the nested-vault
+  pattern, the distinct-reject-per-layer discipline, and the hard-won lesson
+  that reconcile tolerance must be justified by real measurement or explicit,
+  disclosed estimation — never tuned until the demo "looks like it works."
+- **From F6:** `faceprint.embed_frame`/`embed_file`, the 128-dim SFace
+  embedding, `NoFaceError`, and the face-data scarcity problem (Q1) that F6's
+  own Q1/Q5 already surfaced and partially solved (one genuine same-person
+  pair, one different-person subject) but did not need to solve at F7's
+  depth — F6 needed one comparison's worth of separation; F7's reliability
+  mask needs multiple genuine per-person samples, a strictly harder bar.
+- **From `project.md`:** the per-asset licence rule (if Q1 leads to a new
+  fixture), the no-unexercised-surface rule, the mutation-sensitivity rule,
+  and the dry-run-before-pinning rule (verify every concrete Verification
+  command against reality before it is written into this spec).
