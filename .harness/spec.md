@@ -14,12 +14,12 @@ Feature: Feature 6 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [ ] Approved by human
+- [x] Approved by human
 
 - **Mode: Mode 3 — Spec-to-done.** Set by the human 2026-07-27. Build↔verify
-  cycles and the feature-end wrap-up run unattended within this feature; the
-  human is checked in with at the feature-end checkpoint (final-verdict review
-  + commit/push approval). Mode 4 was available (mechanically unlocked) but not
+cycles and the feature-end wrap-up run unattended within this feature; the
+human is checked in with at the feature-end checkpoint (final-verdict review
+  - commit/push approval). Mode 4 was available (mechanically unlocked) but not
   chosen — the human picked Mode 3.
 
 The agent may NOT plan or build until BOTH boxes are checked.
@@ -36,18 +36,18 @@ a key in F7.
 Three things must be true when this is done:
 
 1. **`faceprint.py` exists and computes a real embedding** from a detected face,
-   using OpenCV's SFace through the `opencv-contrib-python` F5 already declares,
+  using OpenCV's SFace through the `opencv-contrib-python` F5 already declares,
    with the ONNX weights vendored offline beside `models/ecapa/` and
    `models/face_landmarker/`. No network at runtime.
 2. **A stored face reference can be set, compared against, and reset**, and the
-   Booth shows the resulting distance in a three-band meter — the same
+  Booth shows the resulting distance in a three-band meter — the same
    accept/borderline/reject vocabulary F3 established, with cutoffs **adopted
    from OpenCV's published SFace thresholds** (cosine ≥ 0.363, L2 ≤ 1.128) —
    not measured on this repo's fixtures, per Q5: two comparisons is not enough
    data to responsibly derive a custom threshold, unlike F3's many-take voice
    measurement. The code states this reasoning, not just the numbers.
 3. **Same face reads close, a different face reads far**, proven by a test whose
-   assertion would break if the speaker— sorry, the *face* model were removed.
+  assertion would break if the speaker— sorry, the *face* model were removed.
    F5.5 just spent a task fixing exactly this failure in the voice path; F6 must
    not reproduce it.
 
@@ -66,22 +66,24 @@ accept; hold up a photo of someone else → it reads reject.
 ## 2. Grilling record — ambiguity scan
 
 **Status: CLEAR.** All ten markers resolved interactively with the human
-(2026-07-26/27) — the clarification marker (§0's bracketed token, colon form)
-no longer appears anywhere in this file. Drafted unattended per the `spec` skill's
+(2026-07-26/27) — a search for the `NEEDS-CLARIFICATION` token returns zero
+hits in this file. Drafted unattended per the `spec` skill's
 unattended-drafting rule (each question carried a recommended answer); Q1 and
 Q7 were additionally backed by dedicated `research` runs before being put to
 the human, rather than resolved from the recommendation alone.
 
-| Category | Verdict | State |
-|---|---|---|
-| Functional scope & behavior | **Resolved** | Q4 — average 3 frames; Q8 — mirrors F3's panel |
-| Domain & data model | **Resolved** | Q3 — `~/.voicelock/faceprint.ref`, mirrors `voiceprint.ref` |
-| Interaction & UX flow | **Resolved** | Q8 — mirrors F3's panel exactly |
-| Non-functional (perf, security) | **Resolved** | Q6 — on-demand computation, not every frame |
-| Integration & dependencies | **Resolved** | Q2 — narrower per-asset licence task, no full TECH-PICK; Q7 — hand-built MediaPipe→SFace alignment, verified, no YuNet, `research` run 2026-07-26 |
-| Edge cases & failure modes | **Resolved** | Q6 — `NoFaceError`, largest-face-wins; the §1 blind-spot rule (convert, never refuse) |
-| Completion signals | **Resolved** | Q1 — Douglass A1/A2 + MET B; Q5 — vendor thresholds adopted; Q9 — manual check required |
-| Terminology (matches `CONTEXT.md`) | **Clear** | Uses **Faceprint** and **FaceView** exactly as the glossary defines them. No new terms. |
+
+| Category                           | Verdict      | State                                                                                                                                             |
+| ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Functional scope & behavior        | **Resolved** | Q4 — average 3 frames; Q8 — mirrors F3's panel                                                                                                    |
+| Domain & data model                | **Resolved** | Q3 — `~/.voicelock/faceprint.ref`, mirrors `voiceprint.ref`                                                                                       |
+| Interaction & UX flow              | **Resolved** | Q8 — mirrors F3's panel exactly                                                                                                                   |
+| Non-functional (perf, security)    | **Resolved** | Q6 — on-demand computation, not every frame                                                                                                       |
+| Integration & dependencies         | **Resolved** | Q2 — narrower per-asset licence task, no full TECH-PICK; Q7 — hand-built MediaPipe→SFace alignment, verified, no YuNet, `research` run 2026-07-26 |
+| Edge cases & failure modes         | **Resolved** | Q6 — `NoFaceError`, largest-face-wins; the §1 blind-spot rule (convert, never refuse)                                                             |
+| Completion signals                 | **Resolved** | Q1 — Douglass A1/A2 + MET B; Q5 — vendor thresholds adopted; Q9 — manual check required                                                           |
+| Terminology (matches `CONTEXT.md`) | **Clear**    | Uses **Faceprint** and **FaceView** exactly as the glossary defines them. No new terms.                                                           |
+
 
 ### The questions
 
@@ -219,40 +221,40 @@ live-camera evidence for that half of the feature.
 ## 3. Non-goals
 
 - **Any lock wiring.** The faceprint does not derive a key, does not touch
-  `vault.py`, and does not seal anything. That is **F7**.
+`vault.py`, and does not seal anything. That is **F7**.
 - **Liveness, anti-spoof, deepfake detection.** Holding a photo up to the camera
-  is expected to *pass* the face match at F6 — that is precisely why F8 exists.
-  Nothing in this feature may claim otherwise, in code, copy or comment.
+is expected to *pass* the face match at F6 — that is precisely why F8 exists.
+Nothing in this feature may claim otherwise, in code, copy or comment.
 - **Re-pinning any voice constant.** `ACCEPT_CUTOFF`, `REJECT_CUTOFF` and
-  `CORRECTION_RADIUS` are F3/F4 measurements and stay untouched.
+`CORRECTION_RADIUS` are F3/F4 measurements and stay untouched.
 - **Changing `facedetect.py`'s camera lifecycle or preview pipeline.** F6
-  consumes `FrameResult.landmarks`; it does not re-cut the F5 composite.
+consumes `FrameResult.landmarks`; it does not re-cut the F5 composite.
 - **Replacing `portrait.jpg`.** Whatever Q1 resolves to, F5's
-  fetched-not-committed arrangement for that file stands unless the human
-  explicitly retires it.
+fetched-not-committed arrangement for that file stands unless the human
+explicitly retires it.
 - **The `voicelock` → new-name rename.** Still parked (`roadmap.md`).
 
 ## 4. Constraints
 
 - **Offline-only.** No network at runtime; the SFace weights load from a local
-  path exactly as `models/ecapa/` and `models/face_landmarker/` do.
+path exactly as `models/ecapa/` and `models/face_landmarker/` do.
 - **No new package in `pyproject.toml`.** SFace comes through the
-  already-approved `opencv-contrib-python`. Q7's alignment path (a hand-built
-  YuNet-shaped row from MediaPipe's existing 478 landmarks) needs no second
-  vendored model — verified in
-  `memory/research/2026-07-26-f6-mediapipe-to-sface-alignment.md`.
+already-approved `opencv-contrib-python`. Q7's alignment path (a hand-built
+YuNet-shaped row from MediaPipe's existing 478 landmarks) needs no second
+vendored model — verified in
+`memory/research/2026-07-26-f6-mediapipe-to-sface-alignment.md`.
 - **Per-asset licence.** Nothing enters `src/voicelock/models/sface/` until its
-  licence is established from a source naming *that file* — embedded metadata
-  first (`project.md` guardrail 1). A non-stub `LICENSE` and `NOTICE` recording
-  the evidence chain ship with it.
+licence is established from a source naming *that file* — embedded metadata
+first (`project.md` guardrail 1). A non-stub `LICENSE` and `NOTICE` recording
+the evidence chain ship with it.
 - **Convert, never refuse.** The faceprint path accepts whatever frame the
-  camera gives it and resizes/crops/aligns as needed. Refusing an unexpected
-  frame size is forbidden — see §1's blind spot and §5's check.
+camera gives it and resizes/crops/aligns as needed. Refusing an unexpected
+frame size is forbidden — see §1's blind spot and §5's check.
 - **Python owns the state; JS renders.** No face state in the page.
 - **No unexercised surface.** Every branch added ships with a test that drives
-  it (`project.md` guardrail), and every test must fail if the behaviour it
-  claims to cover is removed (`project.md` guardrail) — F6's own §5 makes the
-  second one runnable rather than aspirational.
+it (`project.md` guardrail), and every test must fail if the behaviour it
+claims to cover is removed (`project.md` guardrail) — F6's own §5 makes the
+second one runnable rather than aspirational.
 
 ## 5. Verification — definition of done (runnable)
 
@@ -265,33 +267,33 @@ NARA), `personB.jpg` (MET elderly-man daguerreotype).
 
 - `uv run ruff check .` → exit 0.
 - `uv run pytest` → exit 0. Reference: **124 passing** at the end of F5.5; the
-  count rises by F6's tests and must not fall.
+count rises by F6's tests and must not fall.
 
 **Feature-specific:**
 
 1. **The vendored SFace model is present and licence-documented.**
-   `uv run python -c "import pathlib; d = pathlib.Path('src/voicelock/models/sface'); assert d.is_dir(); assert (d / 'LICENSE').stat().st_size > 200; assert (d / 'NOTICE').stat().st_size > 200"`
+  `uv run python -c "import pathlib; d = pathlib.Path('src/voicelock/models/sface'); assert d.is_dir(); assert (d / 'LICENSE').stat().st_size > 200; assert (d / 'NOTICE').stat().st_size > 200"`
    → exit 0. Mirrors the standing check F5 pinned for `models/face_landmarker/`.
 2. **The faceprint is computed offline** — no DNS resolution during a load +
-   embed, the same socket-blocking pattern
+  embed, the same socket-blocking pattern
    `tests/test_voiceprint.py::test_model_loads_offline_from_vendored_path` uses.
    → exit 0.
 3. **Same face close, different face far**, on the real fixtures:
-   `uv run python -c "from voicelock.faceprint import embed_file, compare, ACCEPT_CUTOFF, REJECT_CUTOFF; d_same = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personA_2.jpg')); d_diff = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personB.jpg')); assert d_same <= ACCEPT_CUTOFF, d_same; assert d_diff >= REJECT_CUTOFF, d_diff"`
+  `uv run python -c "from voicelock.faceprint import embed_file, compare, ACCEPT_CUTOFF, REJECT_CUTOFF; d_same = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personA_2.jpg')); d_diff = compare(embed_file('tests/fixtures/face/personA_1.jpg'), embed_file('tests/fixtures/face/personB.jpg')); assert d_same <= ACCEPT_CUTOFF, d_same; assert d_diff >= REJECT_CUTOFF, d_diff"`
    → exit 0. (Exact call shape — `embed_file`/`compare` names — is set at
    `/plan`; the assertion intent, not the API, is pinned here.)
 4. **The face path CONVERTS rather than refuses** — the F5.5 blind-spot
-   mitigation, made runnable: feed the embedder frames at resolutions the
+  mitigation, made runnable: feed the embedder frames at resolutions the
    camera never produces and assert each returns an embedding instead of
    raising.
    `uv run python -c "import numpy as np; from voicelock.faceprint import embed_frame; import cv2; img720 = cv2.imread('tests/fixtures/face/personA_1.jpg'); img720 = cv2.resize(img720, (1280, 720)); img320 = cv2.resize(img720, (320, 240)); assert embed_frame(img720) is not None; assert embed_frame(img320) is not None"`
    → exit 0. **This is the command that stops F6 inheriting the wrong half of
    F5.5.**
 5. **The justification travels with the code**, the converse of F5.5 §6:
-   `uv run python -c "import inspect; from voicelock import faceprint as f; s = inspect.getsource(f); assert 'voiceprint' in s, 'the module does not record WHY it converts where voiceprint.py refuses'"`
+  `uv run python -c "import inspect; from voicelock import faceprint as f; s = inspect.getsource(f); assert 'voiceprint' in s, 'the module does not record WHY it converts where voiceprint.py refuses'"`
    → exit 0.
 6. **The match test is mutation-sensitive** — F6's own version of F5.5 §5 cmd 4:
-   a dummy embedder (e.g. one that returns the image's mean pixel value tiled
+  a dummy embedder (e.g. one that returns the image's mean pixel value tiled
    into a vector, with no face modelling at all) substituted for the real
    SFace call must **fail** to separate `personA_1`/`personA_2` from
    `personB` at the pinned cutoffs — proving the real test's pass depends on
@@ -299,11 +301,11 @@ NARA), `personB.jpg` (MET elderly-man daguerreotype).
    mutation-injection shape is set at `/plan`, following F5.5 §5 cmd 4's
    pattern.
 7. **The liveness-honesty copy is present** — §6's mitigation, made runnable:
-   `uv run python -c "import pathlib; t = pathlib.Path('src/voicelock/ui/index.html').read_text(encoding='utf-8'); assert 'liveness' in t.lower() and ('match' in t.lower()), 'the faceprint panel does not disclose match-not-liveness'"`
+  `uv run python -c "import pathlib; t = pathlib.Path('src/voicelock/ui/index.html').read_text(encoding='utf-8'); assert 'liveness' in t.lower() and ('match' in t.lower()), 'the faceprint panel does not disclose match-not-liveness'"`
    → exit 0. (Exact path/wording set at `/plan`; per `project.md`'s earned
    guardrail this must be a meaning-check, not a brittle exact-string match.)
 8. **Manual check — required (Q9).** A human points the camera at their own
-   face with a reference set and confirms the meter reads **accept**, then
+  face with a reference set and confirms the meter reads **accept**, then
    holds up a different face (a photo, or a second person) and confirms the
    meter reads **reject**. Attested by the human at the feature-end checkpoint.
 
@@ -327,13 +329,14 @@ copy exists in `index.html` so a later UI tidy-up cannot quietly drop it.
 ## 7. What F6 inherits (recorded so it survives the next handoff rewrite)
 
 - **From F5:** the fetched-not-committed fixture arrangement for `portrait.jpg`;
-  the vendored-model directory pattern with `LICENSE` + `NOTICE`; `FrameResult`
-  carrying **all 478 unflipped landmarks** specifically so this feature can
-  consume them; and the two-faces gap that Q1 must close.
+the vendored-model directory pattern with `LICENSE` + `NOTICE`; `FrameResult`
+carrying **all 478 unflipped landmarks** specifically so this feature can
+consume them; and the two-faces gap that Q1 must close.
 - **From F5.5:** the blind spot above — refuse-unexpected-input is correct for a
-  pinned source and wrong for a camera — and the harder lesson underneath it,
-  that a same-X test built on a derived probe proves the pipeline, not the
-  model. F6's Q1 is that lesson arriving one feature early, on purpose.
+pinned source and wrong for a camera — and the harder lesson underneath it,
+that a same-X test built on a derived probe proves the pipeline, not the
+model. F6's Q1 is that lesson arriving one feature early, on purpose.
 - **From `project.md`:** the per-asset licence rule (which fired twice in F5, and
-  cleared one asset while rejecting another), the no-unexercised-surface rule,
-  and the mutation-sensitivity rule that §5 cmd 6 makes runnable.
+cleared one asset while rejecting another), the no-unexercised-surface rule,
+and the mutation-sensitivity rule that §5 cmd 6 makes runnable.
+
