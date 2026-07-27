@@ -146,15 +146,27 @@ def band_for(distance: float) -> str:
 
 
 def load_wav(path: Path) -> np.ndarray:
-    """Decode a mono 16 kHz float32 signal from a WAV/FLAC file (offline)."""
+    """Decode a mono 16 kHz float32 signal from a WAV/FLAC file (offline).
+
+    Raises ``ValueError``, naming the offending value, for audio that is not
+    already mono at ``SAMPLE_RATE`` — such a file is malformed, not a variant.
+    """
     import soundfile as sf
 
     data, sr = sf.read(str(path), dtype="float32", always_2d=False)
     data = np.asarray(data, dtype=np.float32)
-    if data.ndim > 1:
-        data = data.mean(axis=1)
-    if sr != SAMPLE_RATE:
-        data = _resample(data, sr, SAMPLE_RATE)
+    # Refusing instead of converting is correct HERE only because capture.py
+    # pins the one real audio source to CHANNELS = 1 at SAMPLE_RATE = 16 kHz,
+    # so anything else reaching this loader is a defect worth surfacing rather
+    # than a variant worth silently repairing. A source WITHOUT such a pin —
+    # camera frames, whose resolution legitimately varies — must convert rather
+    # than refuse; do not copy this pattern there.
+    if sr != SAMPLE_RATE:  # capture.py pins the rate, so a mismatch is a defect
+        raise ValueError(f"{path}: expected {SAMPLE_RATE} Hz audio, got {sr} Hz")
+    if data.ndim != 1:  # capture.py pins CHANNELS = 1, so extra channels likewise
+        raise ValueError(
+            f"{path}: expected mono audio, got {data.shape[1]} channels"
+        )
     return data
 
 

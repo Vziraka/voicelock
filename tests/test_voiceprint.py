@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import soundfile as sf
 
 import voicelock.voiceprint as vp
 from voicelock.voiceprint import (
@@ -117,6 +118,25 @@ def test_model_loads_offline_from_vendored_path(
     vector = embed(speaker_a_takes[0])  # triggers the offline load, no network
     assert vector.shape == (EMBEDDING_DIM,)
     assert np.isclose(np.linalg.norm(vector), 1.0)
+
+
+# --- F5.5: load_wav refuses bad audio instead of quietly converting it --------
+# Both drive a real file written and read back through soundfile, so the raises
+# are exercised end to end rather than through a monkeypatched decoder.
+def test_load_wav_refuses_multichannel(tmp_path: Path) -> None:
+    """Stereo audio raises and names the channel count — it is not downmixed."""
+    path = tmp_path / "stereo.wav"
+    sf.write(path, np.zeros((SAMPLE_RATE, 2), dtype=np.float32), SAMPLE_RATE)
+    with pytest.raises(ValueError, match="2 channels"):
+        load_wav(path)
+
+
+def test_load_wav_refuses_wrong_sample_rate(tmp_path: Path) -> None:
+    """44.1 kHz audio raises and names the real rate — it is not resampled."""
+    path = tmp_path / "rate44100.wav"
+    sf.write(path, np.zeros(44_100, dtype=np.float32), 44_100)
+    with pytest.raises(ValueError, match="44100 Hz"):
+        load_wav(path)
 
 
 def test_band_for_boundaries() -> None:
