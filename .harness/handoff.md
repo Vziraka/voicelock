@@ -1,80 +1,65 @@
-# F7 — Task 2 (merged) · BUILT, IN REVIEW
+# F7 — Task 2 (merged) · retry 1 of 3 · BUILT, IN REVIEW
 
-**Base:** `9d2b4b6` (Task 2 set `DOING`, before any code touched).
-**Intermediate:** `7272339` (vault half, BLOCKED — see the resolved
-contradiction below), `6147254` (UNBLOCKED, plan amended to merge with the
-former standalone bridge task).
-**Build commit (bridge half):** `656cd65` — `app.py` + `test_booth_api.py`
-+ `plan.md` (Task 2 → `REVIEW`).
+**Base (this retry):** `656cd65` (Task 2's prior REVIEW build commit).
+**Build commit (retry 1 fix):** `436660d` — `tests/test_booth_api.py` (5 new
+tests) + `plan.md` (feedback logged, `rejects: 1`, back to `REVIEW`).
 
-## What this session did
-Task 2 hit a plan contradiction identical in shape to F4 Task 3's precedent:
-its declared `files:` line excluded `app.py`, but its done-criteria demanded
-a green full suite, and adding a required `faceprints`/`faceprint` parameter
-to `vault.enroll`/`unlock` breaks `app.py`'s two existing callers. Stopped
-per the universal `[Modes]` rule (Mode 3 forbids unsupervised
-interpretation), built and verified everything inside the declared-plus-
-coupled scope first (`vault.py` v3 + `test_vault.py`/`test_outer_lock.py`/
-`test_middlelock.py`, 52 passed), then presented three resolution options.
-**Human chose to merge the vault task with the former standalone bridge
-task** (`AskUserQuestion`, recorded in `memory/deviations.md` task F7-T2).
-Unlike F4's precedent, there was no honest "minimal, no new bridge
-behaviour" framing available — the bridge collected zero face material
-before this task — so the merge named the real scope up front rather than
-discovering it mid-task.
+## What happened
+First verification pass: **GATE PASS** (181 passed, ruff 0), **REVIEW
+REJECT** (Standards + Spec axes, narrow and mechanical — no crypto or
+peel-order defect). Full findings quoted in `plan.md`'s Task 2 feedback log.
+Summary: three new face-bridge surfaces shipped with zero test coverage —
+`enroll_face_take()`'s `no_face` edge (both the no-frame and faceless-frame
+cases), `unlock()`'s equivalent new `no_face` edge, and
+`reset_enroll_face_takes()` had zero callers and zero tests anywhere in the
+diff (a direct hit on `project.md`'s earned no-unexercised-surface
+guardrail).
 
-This session then built the bridge half: `BoothApi` gained
-`_enroll_faceprints`, `enroll_face_take()`/`reset_enroll_face_takes()`
-(mirroring the voice pair `enroll_take()`/`reset_enroll_takes()` exactly),
-a `need_face_takes` guard in `enroll()` after `need_voice_takes`, and
-`unlock()` now embeds `self.face.last_frame` and passes it through —
-`FaceAuthError` maps to `auth_face` alongside the existing
-`auth_outer`/`auth_voice` branches. `plan.md`'s former Task 4 (UI) is
-renumbered **Task 3**.
+**Fix, same session (Mode 3 — unattended retry):** re-read the feedback
+first, then added 5 tests to `tests/test_booth_api.py`, each mirroring the
+already-covered voice-side equivalent exactly:
+`test_bridge_enroll_face_take_rejects_a_faceless_frame`,
+`test_bridge_enroll_face_take_no_camera_frame_yet`,
+`test_reset_enroll_face_takes_discards_an_abandoned_run`,
+`test_bridge_unlock_no_camera_frame_yet`,
+`test_bridge_unlock_no_face_in_current_frame`. Chose to add coverage rather
+than delete `reset_enroll_face_takes()` (the other valid fix per F4's
+precedent) because `plan.md` decision 3 explicitly commits to building this
+method in this task, mirroring the voice pair — deferring it to Task 3
+would just recreate the gap when the UI needs it.
 
-## Gate commands run this session
+No production code changed in this retry — only test coverage was added.
+`src/voicelock/vault.py` and `src/voicelock/app.py` are unchanged since the
+first verification pass.
+
+## Gate commands run this session (this retry)
 - `uv run ruff check .` → exit 0
-- `uv run pytest tests/test_vault.py tests/test_outer_lock.py tests/test_middlelock.py -q`
-  → exit 0, **52 passed** (vault half, run before the block)
-- `uv run pytest tests/test_booth_api.py -q` → exit 0, **36 passed** (bridge half)
-- `uv run pytest` → exit 0, **181 passed** (up from 173 at Task 1's end — the
-  vault half's ~8 new tests + the bridge half's 3 new tests + Task 1's 28,
-  all accounted for; 0 failed)
-
-All are also Task 2's pinned done-criteria (`plan.md` §Task 2, spec §5 cmds
-2 and 3) — the fresh-eyes verifier re-runs them; nothing here substitutes
-for that.
+- `uv run pytest tests/test_booth_api.py -q` → exit 0, **41 passed** (36 + 5 new)
+- `uv run pytest` → exit 0, **186 passed** (up from 181; 0 failed)
 
 ## What the verifier should know
-- **This task's scope is unusual — read `memory/deviations.md`'s F7-T2 entry
-  and `plan.md`'s 2026-07-27 amendment before judging scope.** Task 2 was
-  originally declared as `vault.py`/`test_vault.py` only; a human-approved
-  mid-task amendment merged in the former standalone bridge task
-  (`app.py`/`test_booth_api.py`) after a documented BLOCKED stop. The diff
-  legitimately spans both halves — that is not scope creep, it is the
-  approved scope.
-- `tests/test_outer_lock.py` and `tests/test_middlelock.py`'s nested-vault
-  section are also touched (synthetic-embedding signature updates) — flagged
-  explicitly per the same precedent, not left for the scope check to find.
+- This is **retry 1 of 3** (`plan.md`'s `rejects: 1`) — the prior REJECT's
+  reasoning is quoted in full in `plan.md`'s Task 2 feedback log; re-check
+  that each of the three findings is now actually covered, not just that the
+  suite is green.
+- No production code (`vault.py`, `app.py`) changed since the first pass —
+  only `tests/test_booth_api.py` gained 5 tests. If re-reviewing the Spec/
+  Standards axes on production code, the first verifier's notes on scope
+  (the vault+bridge merge, `memory/deviations.md` F7-T2) still apply
+  unchanged.
 - `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py`,
-  `facelock.py` are all untouched (spec §3 non-goals / already-DONE Task 1).
-- Peel order is outer → middle → inner: `vault.unlock` only reaches
-  `facelock.reconcile` after both the passphrase and the voice have already
-  verified — traced in `vault.py`'s `unlock()`.
+  `facelock.py` remain untouched.
 
 ## next_action
 Mode 3 is the standing "go". Spawn the clean-context verifier now
-(`formats/VERIFIER-PROMPT.md`, verbatim, task id `Task 2`, base `9d2b4b6`,
-head `656cd65`) — this session proceeds immediately. On APPROVE, `wrap-up`
-marks Task 2 `DONE` and Task 3 (Booth UI, the LAST task — full spec
-Verification including the required live manual check) starts unattended,
-same session. On REJECT, Task 2 returns to `TODO` with feedback appended to
-`plan.md`, `rejects:` increments (cap 3).
+(`formats/VERIFIER-PROMPT.md`, verbatim, task id `Task 2`, base `656cd65`,
+head `436660d`) — this session proceeds immediately. On APPROVE, `wrap-up`
+marks Task 2 `DONE` and Task 3 (Booth UI, the LAST task) starts unattended.
+On a second REJECT, `rejects` → 2/3 and the same unattended retry protocol
+applies; a third REJECT sets Task 2 `BLOCKED` per the universal cap.
 
 ## Pending guardrail
-None proposed yet this task — the recurrence itself (identical shape to F4
-Task 3, now twice) is worth raising at this task's `learn` scan, including
-the observation that F4's own proposed guardrail for this ("a task that
-changes a module's public signature owns every in-repo caller of it, or the
-plan must name the caller explicitly") does not appear in `project.md`'s
-current earned guardrails despite being proposed once already.
+Still open from the prior handoff: the recurring signature-coupling BLOCKED
+shape (F4 Task 3, now F7 Task 2) is worth raising at this task's `learn`
+scan once APPROVE lands, including that F4's own proposed guardrail for it
+was never adopted into `project.md`.
