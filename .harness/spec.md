@@ -7,13 +7,13 @@ Feature: Feature 7 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [ ] Approved by human
+- [x] Approved by human
 
 - **Mode: Mode 3 — Spec-to-done.** Set by the human 2026-07-27. Build↔verify
-  cycles and the feature-end wrap-up run unattended within this feature; the
-  human is checked in with at the feature-end checkpoint (final-verdict
-  review + commit/push approval). Mode 4 was mechanically unlocked (F6
-  completed cleanly at Mode 3) but not chosen.
+cycles and the feature-end wrap-up run unattended within this feature; the
+human is checked in with at the feature-end checkpoint (final-verdict
+review + commit/push approval). Mode 4 was mechanically unlocked (F6
+completed cleanly at Mode 3) but not chosen.
 
 The agent may NOT plan or build until BOTH boxes are checked.
 The second box is checked by the HUMAN typing the `x` — the agent never checks it.
@@ -32,13 +32,14 @@ peels only when a fresh voiceprint reconciles to the voice key, and the inner
 lock peels only when a fresh faceprint reconciles to the face key.
 
 Demo (four impostor outcomes, each **visibly distinct**):
+
 - right passphrase **and** the enrolled voice **and** the enrolled face →
-  **unlocked** (display name shown);
+**unlocked** (display name shown);
 - **wrong passphrase** → REJECT at the **outer** lock ("wrong passphrase");
 - right passphrase but a **different person's voice** → REJECT at the **middle**
-  lock ("voice didn't match");
+lock ("voice didn't match");
 - right passphrase **and** the enrolled voice but a **different person's face**
-  → REJECT at the **inner** lock ("face didn't match").
+→ REJECT at the **inner** lock ("face didn't match").
 
 This is F4's construction, one lock layer deeper, for the face instead of the
 voice — the same keystone (code-offset fuzzy commitment), reparameterized for
@@ -52,16 +53,20 @@ non-lock diagnostic exactly as F3's voiceprint meter survived F4 untouched.
 the human (2026-07-27) — a search for the `NEEDS-CLARIFICATION` token returns
 zero hits in this file.
 
-| Category                           | Verdict      | State                                                                 |
-| ----------------------------------- | ------------ | ---------------------------------------------------------------------- |
-| Functional scope & behavior        | **Resolved** | Face = inner lock; unlock needs passphrase + voice + face; four visibly distinct outcomes (§1). |
-| Domain & data model                | **Resolved** | Q3 — vault v3, v1/v2 both refused, re-enroll required. Q2 — sizing knobs reused from F4, radius measured on thin fixture data. |
-| Interaction & UX flow              | **Resolved** | Q4 — new enroll/unlock face-capture steps, F6's diagnostic panel untouched. |
+
+| Category                           | Verdict      | State                                                                                                                                             |
+| ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Functional scope & behavior        | **Resolved** | Face = inner lock; unlock needs passphrase + voice + face; four visibly distinct outcomes (§1).                                                   |
+| Domain & data model                | **Resolved** | Q3 — vault v3, v1/v2 both refused, re-enroll required. Q2 — sizing knobs reused from F4, radius measured on thin fixture data.                    |
+| Interaction & UX flow              | **Resolved** | Q4 — new enroll/unlock face-capture steps, F6's diagnostic panel untouched.                                                                       |
 | Non-functional (perf, security)    | **Resolved** | Offline + Argon2id/PyNaCl inherited from F4; no new dependency (construction already proven, `memory/research/2026-07-23-f4-fuzzy-reconcile.md`). |
-| Integration & dependencies         | **Resolved** | New `facelock.py` sibling module to `middlelock.py` (Q1/Q2's resolutions assume this); no new dependency. |
-| Edge cases & failure modes         | **Resolved** | Reuse F6's `NoFaceError`/no-reference path; wrong-face → inner REJECT; v1/v2 vault → re-enroll (Q3). |
-| Completion signals                 | **Resolved** | Q1 — reuse F6's 3-take pattern + A1/A2/B fixtures, thin-evidence radius disclosed. Q2 — F4's constants reused, radius measured. |
-| Terminology (matches `CONTEXT.md`) | **Clear**    | Uses **Inner lock**, **Faceprint**, **Helper data**, **Vault**, **Impostor** exactly as the glossary defines them. No new terms. |
+| Integration & dependencies         | **Resolved** | New `facelock.py` sibling module to `middlelock.py` (Q1/Q2's resolutions assume this); no new dependency.                                         |
+| Edge cases & failure modes         | **Resolved** | Reuse F6's `NoFaceError`/no-reference path; wrong-face → inner REJECT; v1/v2 vault → re-enroll (Q3).                                              |
+| Completion signals                 | **Resolved** | Q1 — reuse F6's 3-take pattern + A1/A2/B fixtures, thin-evidence radius disclosed. Q2 — F4's constants reused, radius measured.                   |
+| Terminology (matches `CONTEXT.md`) | **Clear**    | Uses **Inner lock**, **Faceprint**, **Helper data**, **Vault**, **Impostor** exactly as the glossary defines them. No new terms.                  |
+
+
+
 
 ### The questions
 
@@ -76,12 +81,12 @@ captured seconds apart are far more correlated than three separate spoken
 sentences." Two compounding problems for F7:
 
 1. **Live enrollment.** If face-lock enrollment averages/masks across N frames
-   from one short live-camera burst, those frames are nearly identical pixels —
+  from one short live-camera burst, those frames are nearly identical pixels —
    cross-take unanimity would come out ~100% unanimous almost regardless of N,
    which defeats the mask's purpose (it is supposed to measure genuine
    within-person variation, not rubber-stamp near-duplicate frames).
 2. **Automated Gate test data.** F6's Q1 research found exactly ONE genuine
-   independent same-person pair in this repo (Douglass A1/A2) and forbade
+  independent same-person pair in this repo (Douglass A1/A2) and forbade
    deriving a second "take" by cropping/rescaling/re-encoding one image — that
    is the exact vacuous-test failure F5.5 was created to remove. F7's Gate test
    needs to prove the REAL construction (fuzzy commitment, not just `compare()`)
@@ -90,20 +95,21 @@ sentences." Two compounding problems for F7:
 
 **RESOLVED (2026-07-27, human-approved).** Reuse existing data rather than
 commissioning new `research`:
+
 - **Live enrollment** reuses F6's already-established `REFERENCE_TAKES = 3`
-  burst pattern (same Booth code path, no new UX invented for this).
+burst pattern (same Booth code path, no new UX invented for this).
 - **Automated Gate test** enrolls with **A1 alone** (a single genuine take —
-  `middlelock.py`'s own `_reliability_mask` docstring already documents
-  graceful degradation to pure margin-ranking when there are too few unanimous
-  candidates, so this is an anticipated fallback, not a hack), then tests
-  reconcile with **A2** (genuinely independent, never seen at enroll) for the
-  accept case and **B** for the reject case. No derived probes, no new
-  fixtures.
+`middlelock.py`'s own `_reliability_mask` docstring already documents
+graceful degradation to pure margin-ranking when there are too few unanimous
+candidates, so this is an anticipated fallback, not a hack), then tests
+reconcile with **A2** (genuinely independent, never seen at enroll) for the
+accept case and **B** for the reject case. No derived probes, no new
+fixtures.
 - **Disclosed honestly** (module docstring + this spec): the Gate test enrolls
-  with fewer genuine takes (1) than live production (3) — a thinner test than
-  production, in the opposite direction from F4's own disclosed fixture
-  caveat ("fixtures are a harder test than the live demo"). The required live
-  manual check (§5) is what actually exercises real 3-take enrollment.
+with fewer genuine takes (1) than live production (3) — a thinner test than
+production, in the opposite direction from F4's own disclosed fixture
+caveat ("fixtures are a harder test than the live demo"). The required live
+manual check (§5) is what actually exercises real 3-take enrollment.
 Resolved by: human decision (declined the research-first alternative).
 
 **Q2 — Sizing knobs for the face fuzzy commitment (candidate bits, reliable
@@ -145,10 +151,8 @@ a v1 **and** a v2 vault are refused via the same `LegacyVaultError` family
 (the message names the actual missing layer — "predates voice" vs. "predates
 face") — re-enroll required, no bypass, mirroring F4's precedent exactly.
 Layout: innermost profile JSON → sealed with the **face-derived inner key** →
-inner ciphertext; middle plaintext becomes `{helper_data_face,
-inner_ciphertext}` → sealed with the **voice-derived middle key** (unchanged
-from F4) → middle ciphertext; outer plaintext `{helper_data_voice,
-middle_ciphertext}` → sealed with the passphrase key (unchanged). Peel order
+inner ciphertext; middle plaintext becomes `{helper_data_face, inner_ciphertext}` → sealed with the **voice-derived middle key** (unchanged
+from F4) → middle ciphertext; outer plaintext `{helper_data_voice, middle_ciphertext}` → sealed with the passphrase key (unchanged). Peel order
 stays outer → middle → **inner**, so each impostor class fails at its own
 named layer before the next is ever consulted.
 
@@ -176,54 +180,58 @@ independent code paths reading the same microphone.
 ## 3. Non-goals
 
 - **No liveness, challenge phrase, or lip-sync** (F8). Face-at-unlock is
-  matched by **identity only** — F7 does not resist replay of a photo/video of
-  the enrolled person's face (that is exactly F8's job, and F6's §6 blind spot
-  already disclosed this in the Booth copy).
+matched by **identity only** — F7 does not resist replay of a photo/video of
+the enrolled person's face (that is exactly F8's job, and F6's §6 blind spot
+already disclosed this in the Booth copy).
 - **No enrollment-quality gate and no tolerance-tuning UI** (F9). F7 pins one
-  fixed, provisional set of fuzzy-commitment constants (Q2), the same way F4
-  pinned a fixed `CORRECTION_RADIUS`.
+fixed, provisional set of fuzzy-commitment constants (Q2), the same way F4
+pinned a fixed `CORRECTION_RADIUS`.
 - **No re-pinning of any voice constant** — `middlelock.py`'s
-  `CORRECTION_RADIUS`, `CANDIDATE_BITS`, etc. and `voiceprint.py`'s
-  `ACCEPT_CUTOFF`/`REJECT_CUTOFF` stay untouched. F7 adds a face-specific
-  sibling module; it does not edit the voice one.
-- **No change to F6's diagnostic faceprint panel or `faceprint.ref`** — Q4
-  keeps it as an independent, non-lock diagnostic.
+`CORRECTION_RADIUS`, `CANDIDATE_BITS`, etc. and `voiceprint.py`'s
+`ACCEPT_CUTOFF`/`REJECT_CUTOFF` stay untouched. F7 adds a face-specific
+sibling module; it does not edit the voice one.
+- **No change to F6's diagnostic faceprint panel or** `faceprint.ref` — Q4
+keeps it as an independent, non-lock diagnostic.
 - **No multi-profile** — a single Vault at `~/.voicelock/vault.vl`, as before.
 - **No account recovery** — lose the passphrase, the voice match, or the face
-  match → the Vault stays sealed.
+match → the Vault stays sealed.
 - No claim of cryptographic hardness: biometric key binding for a **learning
-  demo**, honestly framed, same as F4. Helper data is non-secret and leaks
-  bounded information about the faceprint; the inner key is only as strong as
-  the faceprint's entropy and the chosen reconcile tolerance (stretched by
-  Argon2id) — not product-grade. No FAR/FRR guarantees.
+demo**, honestly framed, same as F4. Helper data is non-secret and leaks
+bounded information about the faceprint; the inner key is only as strong as
+the faceprint's entropy and the chosen reconcile tolerance (stretched by
+Argon2id) — not product-grade. No FAR/FRR guarantees.
 - Out-of-scope discoveries during build: record in `.out-of-scope/`, never build.
+
+
 
 ## 4. Constraints
 
 - Honor `constitution/project.md` + conventions: Python 3.11 + uv; engine/crypto
-  in `src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; **Python
-  owns all crypto/DSP, JS renders only**; **offline-only — no network at
-  runtime**.
+in `src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; **Python
+owns all crypto/DSP, JS renders only**; **offline-only — no network at
+runtime**.
 - Entry point remains `uv run voicelock`. Keep F1–F6 engines
-  (`capture.py`, `playback.py`, `voiceprint.py`, `middlelock.py`,
-  `facedetect.py`, `faceprint.py`) unchanged as the identity/detection sources
-  — F7 consumes `faceprint.embed_frame`/`embed_file`, it does not modify them.
+(`capture.py`, `playback.py`, `voiceprint.py`, `middlelock.py`,
+`facedetect.py`, `faceprint.py`) unchanged as the identity/detection sources
+— F7 consumes `faceprint.embed_frame`/`embed_file`, it does not modify them.
 - Reuse F2's outer lock and F4's middle lock unchanged: same PyNaCl Argon2id +
-  SecretBox primitives, same nested-AEAD pattern, one layer deeper (Q3).
+SecretBox primitives, same nested-AEAD pattern, one layer deeper (Q3).
 - **No new dependency.** The code-offset fuzzy commitment construction is
-  already proven in pure numpy (`memory/research/2026-07-23-f4-fuzzy-reconcile.md`);
-  F7 reparameterizes it for a 128-dim embedding, it does not pick new tech.
+already proven in pure numpy (`memory/research/2026-07-23-f4-fuzzy-reconcile.md`);
+F7 reparameterizes it for a 128-dim embedding, it does not pick new tech.
 - Gate standing commands (unchanged): `uv run ruff check .` → exit 0;
-  `uv run pytest` → exit 0.
+`uv run pytest` → exit 0.
 - Booth UX: reuse existing mock chrome; add the enroll face-capture step and
-  the unlock face-capture step (Q4); keep F3/F6's diagnostic panels and F1
-  Record/Stop/Play unchanged; a third, visibly distinct reject message for the
-  inner lock, per §1.
+the unlock face-capture step (Q4); keep F3/F6's diagnostic panels and F1
+Record/Stop/Play unchanged; a third, visibly distinct reject message for the
+inner lock, per §1.
 - Edge cases (visible, no crash): no vault → "enroll first"; wrong passphrase
-  → outer REJECT; right passphrase + wrong voice → middle REJECT; right
-  passphrase + right voice + wrong face → inner REJECT; no face detected during
-  enroll/unlock capture → F6's `NoFaceError` surfaced as Booth copy (not a
-  crash); v1 or v2 vault → re-enroll prompt (Q3).
+→ outer REJECT; right passphrase + wrong voice → middle REJECT; right
+passphrase + right voice + wrong face → inner REJECT; no face detected during
+enroll/unlock capture → F6's `NoFaceError` surfaced as Booth copy (not a
+crash); v1 or v2 vault → re-enroll prompt (Q3).
+
+
 
 ## 5. Verification — definition of done (runnable)
 
@@ -231,31 +239,31 @@ Fixtures: reuses F6's already-committed `tests/fixtures/face/personA_1.jpg`
 (A1), `personA_2.jpg` (A2), `personB.jpg` (B) — no new fixtures (per Q1).
 
 **Standing** (the regression net — `project.md`'s Gate commands):
+
 - `uv run ruff check .` → exit 0.
 - `uv run pytest` → exit 0. Reference: **145 passing** at the end of F6; the
-  count rises by F7's tests and must not fall.
+count rises by F7's tests and must not fall.
 
 **Feature-specific:**
 
 1. `uv run pytest tests/test_facelock.py -q` → exit 0. Must cover, using the
-   real vendored SFace model + the A1/A2/B fixtures (no mocked embeddings):
-   - **commit** binds an inner key from an enrollment embedding set (per Q1,
-     A1 alone in the fixture test; `REFERENCE_TAKES = 3` live frames in
-     production) and emits helper data (LSH seed, reliability mask, XOR
-     offset, commitment tag) — same shape as `middlelock.commit`.
-   - **same-person reconcile**: enrolling on A1 and reconciling against A2
-     recovers the committed secret (inner lock opens).
-   - **different-person reconcile**: enrolling on A1 (or A2) and reconciling
-     against B fails to reconcile — `ReconcileError`-equivalent raised, no
-     secret/plaintext returned.
-   - `CANDIDATE_BITS == 4096`, `RELIABLE_BITS == 512`, `KEY_BITS == 32`,
-     `REPETITION == 16` (reused unchanged from `middlelock`, per Q2) and
-     `CORRECTION_RADIUS` sits strictly between the measured A1↔A2 residual
-     and the measured A1/A2↔B residual floor — the test asserts the actual
-     measured gap, not just that the constant exists.
+  real vendored SFace model + the A1/A2/B fixtures (no mocked embeddings):
+  - **commit** binds an inner key from an enrollment embedding set (per Q1,
+  A1 alone in the fixture test; `REFERENCE_TAKES = 3` live frames in
+  production) and emits helper data (LSH seed, reliability mask, XOR
+  offset, commitment tag) — same shape as `middlelock.commit`.
+  - **same-person reconcile**: enrolling on A1 and reconciling against A2
+  recovers the committed secret (inner lock opens).
+  - **different-person reconcile**: enrolling on A1 (or A2) and reconciling
+  against B fails to reconcile — `ReconcileError`-equivalent raised, no
+  secret/plaintext returned.
+  - `CANDIDATE_BITS == 4096`, `RELIABLE_BITS == 512`, `KEY_BITS == 32`,
+  `REPETITION == 16` (reused unchanged from `middlelock`, per Q2) and
+  `CORRECTION_RADIUS` sits strictly between the measured A1↔A2 residual
+  and the measured A1/A2↔B residual floor — the test asserts the actual
+  measured gap, not just that the constant exists.
 2. `uv run pytest tests/test_vault.py -q` (or wherever F2/F4's vault tests
-   live) → exit 0. Must cover: enroll seals a **v3** vault (`FORMAT_VERSION ==
-   3`, `VLCK` magic); unlock with the right passphrase + voice + face returns
+  live) → exit 0. Must cover: enroll seals a **v3** vault (`FORMAT_VERSION ==  3`, `VLCK` magic); unlock with the right passphrase + voice + face returns
    the display name; a wrong passphrase raises before voice or face is
    consulted (outer REJECT); right passphrase + wrong voice raises before
    face is consulted (middle REJECT, unchanged from F4); right passphrase +
@@ -263,11 +271,11 @@ Fixtures: reuses F6's already-committed `tests/fixtures/face/personA_1.jpg`
    is refused via `LegacyVaultError` naming the missing layer (Q3); no reject
    path returns the name or any plaintext.
 3. `uv run pytest tests/test_booth_api.py -q` → exit 0. Must cover the
-   bridge's enroll-face capture step (Q4) and unlock returning a **distinct**
+  bridge's enroll-face capture step (Q4) and unlock returning a **distinct**
    reason per layer (`auth_outer` / `auth_voice` / `auth_face`), none leaking
    the name.
 4. **Manual (required)** — run `uv run voicelock`: enroll (name + passphrase +
-   voice + face) → unlock with all three correct → **unlocked** (name shown);
+  voice + face) → unlock with all three correct → **unlocked** (name shown);
    **wrong passphrase** → outer REJECT; right passphrase + **wrong voice** →
    middle REJECT; right passphrase + right voice + **a different face** →
    **inner REJECT**. Each reject names its distinct cause. Attested by the
@@ -296,16 +304,17 @@ recorded for the identical voice-side limitation.
 ## 7. What F7 inherits (recorded so it survives the next handoff rewrite)
 
 - **From F4:** the entire fuzzy-commitment construction, the nested-vault
-  pattern, the distinct-reject-per-layer discipline, and the hard-won lesson
-  that reconcile tolerance must be justified by real measurement or explicit,
-  disclosed estimation — never tuned until the demo "looks like it works."
+pattern, the distinct-reject-per-layer discipline, and the hard-won lesson
+that reconcile tolerance must be justified by real measurement or explicit,
+disclosed estimation — never tuned until the demo "looks like it works."
 - **From F6:** `faceprint.embed_frame`/`embed_file`, the 128-dim SFace
-  embedding, `NoFaceError`, and the face-data scarcity problem (Q1) that F6's
-  own Q1/Q5 already surfaced and partially solved (one genuine same-person
-  pair, one different-person subject) but did not need to solve at F7's
-  depth — F6 needed one comparison's worth of separation; F7's reliability
-  mask needs multiple genuine per-person samples, a strictly harder bar.
-- **From `project.md`:** the per-asset licence rule (if Q1 leads to a new
-  fixture), the no-unexercised-surface rule, the mutation-sensitivity rule,
-  and the dry-run-before-pinning rule (verify every concrete Verification
-  command against reality before it is written into this spec).
+embedding, `NoFaceError`, and the face-data scarcity problem (Q1) that F6's
+own Q1/Q5 already surfaced and partially solved (one genuine same-person
+pair, one different-person subject) but did not need to solve at F7's
+depth — F6 needed one comparison's worth of separation; F7's reliability
+mask needs multiple genuine per-person samples, a strictly harder bar.
+- **From** `project.md`**:** the per-asset licence rule (if Q1 leads to a new
+fixture), the no-unexercised-surface rule, the mutation-sensitivity rule,
+and the dry-run-before-pinning rule (verify every concrete Verification
+command against reality before it is written into this spec).
+
