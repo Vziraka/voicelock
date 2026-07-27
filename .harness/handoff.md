@@ -54,9 +54,10 @@ per the Mode 3 rule on rules that cannot be followed unsupervised.
 
 ## Commits
 
-Awaiting this session's commit checkpoint (state files only: `spec.md`'s box
-2 was checked by the human directly in the editor before this session — this
-session's own writes are `plan.md`, `handoff.md`, `memory/decisions.md`).
+Session base → head: `c7150f2` → `1acb613` (one commit, human-approved
+2026-07-27). State files only: `spec.md` (box 2 checked, one editor-reflow
+corruption on line 38 found and fixed), `plan.md` (new F6 task ledger),
+`handoff.md` (this file), `memory/decisions.md` (the REJECT_CUTOFF entry).
 
 **Nothing pushed.** `origin` exists (private) — push was not requested this
 session.
