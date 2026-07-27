@@ -3,8 +3,8 @@
 ## Active context
 - Updated: 2026-07-26
 - Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **building —
-  Task 1 `DONE` (`rejects: 1`). Next: `/implement` Task 2, then Task 3
-  (LAST, full spec Verification), then the Mode 4 tail.**
+  Task 1 `DONE` (`rejects: 1`), Task 2 `DOING`. Then Task 3 (LAST, full spec
+  Verification), then the Mode 4 tail.**
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 - Spec: `spec.md` holds F5.5's spec, `Status: CLEAR`, zero clarification
@@ -141,7 +141,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       spelling, not in the criterion.
 
 - [ ] **Task 2** — Remove the `sample_rate` parameters and delete `_resample`
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/voiceprint.py`
   - notes: Pure subtraction, no test changes expected. Remove: the
