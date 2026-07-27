@@ -8,6 +8,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import cv2
+
 from voicelock.app import MIN_LOCK_SECONDS, BoothApi, lock_voiceprint
 from voicelock.capture import CaptureStatus
 from voicelock.facedetect import FaceStatus, FrameResult
@@ -23,6 +25,11 @@ from voicelock.voiceprint import (
 )
 
 FIXTURES = Path(__file__).parent / "fixtures" / "voiceprint"
+FACE_FIXTURES = Path(__file__).parent / "fixtures" / "face"
+
+
+def _face_fx(name: str) -> np.ndarray:
+    return cv2.imread(str(FACE_FIXTURES / name))
 
 
 class _StubFace:
@@ -35,6 +42,7 @@ class _StubFace:
         self.starts = 0
         self.stops = 0
         self.on_frame = None
+        self.last_frame: np.ndarray | None = None
 
     def start(self, on_frame) -> None:
         self.starts += 1
@@ -531,3 +539,99 @@ def test_frames_are_pushed_to_the_page_as_a_data_uri(tmp_path: Path) -> None:
 
     api.stop_record()
     assert any("setFaceIdle" in s for s in scripts), "the smiley never came back"
+
+
+# ---------------------------------------------------------------------------
+# F6 — faceprint bridge
+# ---------------------------------------------------------------------------
+
+
+def test_bridge_set_face_reference_then_compare_separates_faces(tmp_path: Path) -> None:
+    ref = tmp_path / "faceprint.ref"
+    face = _StubFace()
+    api = BoothApi(face=face, face_ref_path=ref)
+
+    frame_a1 = _face_fx("personA_1.jpg")
+    face.last_frame = frame_a1
+    r1 = api.set_face_reference()
+    assert r1["ok"] is True and r1["done"] is False and r1["progress"] == 1
+    r2 = api.set_face_reference()
+    assert r2["progress"] == 2
+    r3 = api.set_face_reference()
+    assert r3["ok"] is True and r3["done"] is True
+    assert ref.is_file()
+
+    face.last_frame = _face_fx("personA_2.jpg")
+    same = api.compare_face()
+    assert same["ok"] is True and same["band"] == "accept"
+
+    face.last_frame = _face_fx("personB.jpg")
+    diff = api.compare_face()
+    assert diff["ok"] is True and diff["band"] == "reject"
+
+
+def test_bridge_set_face_reference_rejects_faceless_frame(tmp_path: Path) -> None:
+    ref = tmp_path / "faceprint.ref"
+    face = _StubFace()
+    api = BoothApi(face=face, face_ref_path=ref)
+
+    face.last_frame = np.zeros((480, 640, 3), dtype=np.uint8)  # blank -- no face
+    result = api.set_face_reference()
+    assert result["ok"] is False
+    assert result["error"] == "no_face"
+    assert result["progress"] == 0
+    assert not ref.exists()
+
+
+def test_bridge_set_face_reference_no_camera_frame_yet(tmp_path: Path) -> None:
+    ref = tmp_path / "faceprint.ref"
+    face = _StubFace()
+    api = BoothApi(face=face, face_ref_path=ref)
+
+    assert face.last_frame is None
+    result = api.set_face_reference()
+    assert result["ok"] is False
+    assert result["error"] == "no_face"
+
+
+def test_bridge_compare_face_without_reference(tmp_path: Path) -> None:
+    face = _StubFace()
+    api = BoothApi(face=face, face_ref_path=tmp_path / "none.ref")
+    face.last_frame = _face_fx("personA_1.jpg")
+    result = api.compare_face()
+    assert result["ok"] is False
+    assert result["error"] == "no_reference"
+
+
+def test_bridge_compare_face_no_face_in_current_frame(tmp_path: Path) -> None:
+    ref = tmp_path / "faceprint.ref"
+    face = _StubFace()
+    api = BoothApi(face=face, face_ref_path=ref)
+    frame = _face_fx("personA_1.jpg")
+    face.last_frame = frame
+    api.set_face_reference()
+    api.set_face_reference()
+    api.set_face_reference()
+    assert ref.is_file()
+
+    face.last_frame = np.zeros((480, 640, 3), dtype=np.uint8)  # blank -- no face
+    result = api.compare_face()
+    assert result["ok"] is False
+    assert result["error"] == "no_face"
+
+
+def test_bridge_reset_face_reference_clears_a_set_reference(tmp_path: Path) -> None:
+    ref = tmp_path / "faceprint.ref"
+    face = _StubFace()
+    api = BoothApi(face=face, face_ref_path=ref)
+    face.last_frame = _face_fx("personA_1.jpg")
+    for _ in range(3):
+        api.set_face_reference()
+    assert ref.is_file()
+
+    assert api.reset_face_reference()["ok"] is True
+    assert not ref.exists()
+
+    result = api.compare_face()
+    assert result["ok"] is False
+    assert result["error"] == "no_reference"

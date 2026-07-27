@@ -303,7 +303,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (count rises from F5.5's 124, 0 failed)
 
 - [ ] **Task 4** — Booth bridge: `~/.voicelock/faceprint.ref`, on-demand set/compare/reset
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/facedetect.py` (additive only — see decision 3),
     `src/voicelock/app.py`, `tests/test_booth_api.py`
@@ -345,7 +345,14 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       edges. Exact test names set by the implementor; the intent (bridge
       methods work, both edges surfaced without crashing) is what is pinned
       here.
-    - `uv run python -c "import inspect; from voicelock.app import BoothApi; for name in ('set_face_reference','compare_face','reset_face_reference'): assert hasattr(BoothApi, name), name"` → exit 0
+    - `uv run python -c "from voicelock.app import BoothApi; assert all(hasattr(BoothApi, name) for name in ('set_face_reference','compare_face','reset_face_reference'))"`
+      → exit 0. **Corrected 2026-07-27** (build-time syntax fix, not an
+      escalation): the original one-liner chained a `for` loop after `;`,
+      which is a Python `SyntaxError` — it never ran, let alone passed.
+      Meaning-preserving, zero-ambiguity fix (`for x: assert hasattr(...)`
+      ⇔ `all(hasattr(...) for x in ...)`); no design choice involved, unlike
+      Task 3's §5 cmd 4 amendment, so no BLOCKED/human-approval cycle was
+      needed — same class of fix as F5.5 Task 1's criterion-spelling retry.
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (count rises, 0 failed)
 

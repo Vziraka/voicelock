@@ -113,6 +113,11 @@ class FaceEngine:
     clock: Callable[[], float] = time.monotonic
     status: FaceStatus = FaceStatus.IDLE
     error_message: str | None = None
+    # The last raw (pre-overlay) frame `_loop` read, for F6's on-demand
+    # faceprint compute — `FrameResult.data_uri` is already mirrored and
+    # JPEG-encoded, unusable for embedding. Additive only: no cropping,
+    # mirroring, threading, or lifecycle change.
+    last_frame: np.ndarray | None = field(default=None, init=False)
     _timestamp_ms: int = field(default=0, init=False)
     _camera: Any = field(default=None, init=False)
     _thread: threading.Thread | None = field(default=None, init=False)
@@ -204,6 +209,7 @@ class FaceEngine:
                 # fresh camera.
                 self._fail("Camera stopped delivering frames")
                 return
+            self.last_frame = frame
             on_frame(self.process_frame(frame))
             # Wait on the stop event rather than sleeping, so Stop is felt
             # immediately instead of after the rest of the frame budget.

@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 import webview
 
-from voicelock import voiceprint
+from voicelock import faceprint, voiceprint
 from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, SAMPLE_RATE
 from voicelock.facedetect import FaceEngine, FaceStatus, FrameResult
 from voicelock.middlelock import ENROLLMENT_TAKES
@@ -80,11 +80,16 @@ class BoothApi:
         vault_path: Path | None = None,
         ref_path: Path | None = None,
         face: FaceEngine | None = None,
+        face_ref_path: Path | None = None,
     ) -> None:
         self.capture = capture or CaptureEngine()
         self.playback = playback or PlaybackEngine()
         self.vault_path = vault_path if vault_path is not None else default_vault_path()
         self.ref_path = ref_path if ref_path is not None else voiceprint.default_reference_path()
+        self.face_ref_path = (
+            face_ref_path if face_ref_path is not None else faceprint.default_reference_path()
+        )
+        self._face_reference_takes: list[np.ndarray] = []
         self._reference_takes: list[np.ndarray] = []
         # F4 enrollment voiceprints, banked one per sentence by enroll_take().
         # Kept separate from _reference_takes: that list belongs to the F3
@@ -253,6 +258,63 @@ class BoothApi:
         """Clear the stored reference voiceprint and any half-finished take run."""
         self._reference_takes = []
         self.ref_path.unlink(missing_ok=True)
+        return {"ok": True}
+
+    def set_face_reference(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Bank the last camera frame as one of the face reference takes.
+
+        Called once per press until ``faceprint.REFERENCE_TAKES`` valid frames
+        are banked; on the last one the averaged reference is persisted. A
+        frame with no face (or no camera frame yet) is rejected with
+        ``no_face`` and NOT added — mirrors ``set_reference``'s
+        ``need_more_audio`` shape for the voice path.
+        """
+        frame = self.face.last_frame
+        if frame is None:
+            return {"ok": False, "error": "no_face", "progress": len(self._face_reference_takes)}
+        try:
+            faceprint.embed_frame(frame)  # validate this frame before accepting it
+        except faceprint.NoFaceError:
+            return {"ok": False, "error": "no_face", "progress": len(self._face_reference_takes)}
+        self._face_reference_takes.append(frame)
+        progress = len(self._face_reference_takes)
+        if progress < faceprint.REFERENCE_TAKES:
+            return {"ok": True, "done": False, "progress": progress}
+
+        takes = self._face_reference_takes[: faceprint.REFERENCE_TAKES]
+        self._face_reference_takes = []
+        try:
+            faceprint.set_reference(takes, path=self.face_ref_path)
+        except faceprint.FaceprintError as exc:
+            return {"ok": False, "error": str(exc) or "Set reference failed", "progress": 0}
+        return {"ok": True, "done": True, "progress": faceprint.REFERENCE_TAKES}
+
+    def compare_face(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Match the last camera frame against the stored reference faceprint.
+
+        Called on a low fixed interval from JS, never from inside
+        ``FaceEngine``'s 30 fps loop. The reference is checked first (cheap),
+        mirroring ``voiceprint.compare``'s ordering, so a missing reference
+        never costs a face embed.
+        """
+        try:
+            reference = faceprint.load_reference(self.face_ref_path)
+        except faceprint.NoReferenceError:
+            return {"ok": False, "error": "no_reference"}
+        frame = self.face.last_frame
+        if frame is None:
+            return {"ok": False, "error": "no_face"}
+        try:
+            live = faceprint.embed_frame(frame)
+        except faceprint.NoFaceError:
+            return {"ok": False, "error": "no_face"}
+        distance = faceprint.compare(live, reference)
+        return {"ok": True, "distance": distance, "band": faceprint.band_for(distance)}
+
+    def reset_face_reference(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Clear the stored reference faceprint and any half-finished take run."""
+        self._face_reference_takes = []
+        self.face_ref_path.unlink(missing_ok=True)
         return {"ok": True}
 
     def start_record(self) -> dict[str, Any]:
