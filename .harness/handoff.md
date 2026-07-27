@@ -1,50 +1,68 @@
-# F7 — Face as the inner lock (innermost) · PLANNED, READY TO BUILD
+# F7 — Task 1 (`facelock.py`) · BUILT, IN REVIEW
 
-**Spec approved 2026-07-27** (both boxes checked, Mode 3). This session ran
-`/plan`: read `spec.md`, `constitution/universal.md` + `project.md`,
-`memory/codebase-map.md`, and the current `middlelock.py`/`vault.py`/
-`faceprint.py`/`app.py`/`index.html` to ground the ledger in the real code
-shape rather than guessing it.
+**Base:** `2753768` (Task 1 set `DOING`, committed before any code touched).
+**Build commit:** `18118f0` — `facelock.py` (new) + `tests/test_facelock.py`
+(new) + `plan.md` (Task 1 → `REVIEW`).
 
-## What F7 does
-Fuzzy-reconciles the F6 faceprint into a stable key and seals a third,
-innermost AEAD layer (vault v3) around F4's voice middle lock, around F2's
-passphrase outer lock. Unlock peels passphrase → voice → face, each impostor
-class failing at its own named layer.
+## What this session did
+Built Task 1 exactly as `plan.md` scoped it: `facelock.py`, the face fuzzy-
+commitment module (`commit`/`reconcile`/`derive_key`/`residual_bits`), ported
+from `middlelock.py`'s shape per the two named decisions:
 
-## Task ledger (plan.md)
-4 tasks, no new model/fixture vendoring needed (F7 reuses F6's SFace model and
-A1/A2/B fixtures):
-1. `facelock.py` — the face fuzzy-commitment module (commit/reconcile/
-   derive_key), `CORRECTION_RADIUS` measured from A1/A2/B residuals.
-2. `vault.py` — bump to v3, nest the face inner lock, refuse v1 **and** v2.
-3. `app.py` (Booth bridge) — enroll-face capture step, `unlock`'s third
-   layer, distinct `auth_face`.
-4. `ui/index.html` — enroll-face capture step + third reject chip *(LAST
-   task — full spec Verification, including the required live manual check)*.
+- `commit()` takes a variable-length, non-empty embedding list (decision 1) —
+  the Gate test enrolls on `personA_1.jpg` alone; production will enroll on
+  `ENROLLMENT_TAKES = 3` live frames (decision 2, wired up by Task 3, not
+  this task).
+- `CANDIDATE_BITS`/`RELIABLE_BITS`/`KEY_BITS`/`REPETITION` reused **unchanged**
+  from `middlelock` (4096/512/32/16) — no dependency on faceprint.py, since
+  it exports no `EMBEDDING_DIM`; pinned `EMBEDDING_DIM = 128` locally in
+  `facelock.py` (SFace's published output width), citing that in a comment,
+  per the plan's fallback instruction. `faceprint.py` itself is untouched
+  (spec §3 non-goal).
 
-## Named architecture decisions this session made (recorded in `plan.md`)
-The spec deliberately left "exact call shape" to `/plan` (same as F6's Q8).
-Six decisions recorded, the two most load-bearing:
-- `facelock.commit()` takes a **variable-length** embedding list (≥1), not a
-  fixed exact count like `middlelock.commit()`'s hard `== 5` assert — this is
-  what lets the Gate test enroll on A1 alone while production enrolls on 3
-  live frames, with zero extra code (the reliability mask's own cross-take-
-  unanimity filter is already vacuously true at n=1).
-- New bridge methods `enroll_face_take()`/`reset_enroll_face_takes()`,
-  distinctly named from F6's diagnostic `set_face_reference()`/
-  `compare_face()`/`reset_face_reference()` — two independent flows reading
-  the same camera, never sharing state.
+**`CORRECTION_RADIUS` was measured, not guessed** — dry-run-before-pinning
+guardrail (`project.md`): ran 100 fresh-LSH-seed `commit()`/`residual_bits()`
+trials against the real vendored SFace model and the real A1/A2/B fixtures
+(scratch script, not committed — outside the repo, in `/tmp`). Genuine
+residual (enroll A1, reconcile A2) never exceeded 20; impostor residual
+(enroll A1 or A2, reconcile B) never dropped below 170. Set
+`CORRECTION_RADIUS = 95`, the midpoint, matching the module docstring and
+disclosed there as n=1 genuine / n=2 impostor — thinner than `middlelock`'s
+200-commit measurement, per spec Q2/§7.
 
-Full detail (vault v3 layout, key renames, error classes, version bytes): see
-`plan.md`'s "Named architecture decisions" section.
+## Gate commands run this session (build-time check, not the fresh-eyes Gate)
+- `uv run ruff check .` → exit 0
+- `uv run pytest tests/test_facelock.py -q` → **28 passed**
+- `uv run pytest -q` → **173 passed** (up from 145 at F6's end — the 28 new
+  tests, exact match, 0 failed)
+
+All three are also Task 1's pinned done-criteria (`plan.md` §Task 1) — the
+fresh-eyes verifier re-runs them; nothing here substitutes for that.
+
+## What the verifier should know
+- Scope held: only `src/voicelock/facelock.py` (new) and
+  `tests/test_facelock.py` (new) plus `plan.md`/`handoff.md` bookkeeping
+  changed. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py`,
+  `vault.py`, `app.py`, `index.html` are all untouched, per spec §3 and
+  `plan.md`'s memory-spine item 3.
+- The measurement script that produced `CORRECTION_RADIUS = 95` was run in
+  `/tmp` and is not part of this diff — the number it produced is pinned as
+  a literal constant with a doc comment, same pattern `middlelock.py` uses
+  for its own `CORRECTION_RADIUS = 110`.
+- `test_genuine_and_impostor_straddle_the_correction_radius` re-measures the
+  gap live (two fresh commits, real fixtures) and asserts
+  `genuine < CORRECTION_RADIUS < impostor_floor` — satisfies spec §5 cmd 1's
+  explicit "assert the actual measured gap" requirement.
 
 ## next_action
-Mode 3 is the standing "go" — the next session runs `/implement` for Task 1
-(`facelock.py`) without waiting for a further human prompt. No blockers.
+Mode 3 is the standing "go". Spawn the clean-context verifier now
+(`formats/VERIFIER-PROMPT.md`, used verbatim, task id `Task 1`, base
+`2753768`, head `18118f0`) — this session proceeds to do so immediately, per
+Mode 3's build↔verify-cycle rule. On APPROVE, `wrap-up` marks Task 1 `DONE`
+and Task 2 (`vault.py` v3) starts unattended, same session. On REJECT, the
+task returns to `TODO` with feedback appended to `plan.md`, and Task 1's
+`rejects:` counter increments (budgeted retry, cap 3).
 
-## Commits this session
-Base: `96806ba` (F7 spec grilled, parked at approval gate). Head: `967cc66`
-— human checked spec.md's box 2 (approval); `/plan` wrote `plan.md` (F7 task
-ledger, superseding F6's completed one) and this `handoff.md`. Committed, not
-pushed (no push requested this session).
+## Pending guardrail
+None proposed this task — nothing surprising enough to clear the `learn` bar
+yet; that scan runs properly at wrap-up if Task 1 is approved.
