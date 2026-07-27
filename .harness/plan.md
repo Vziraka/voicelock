@@ -2,7 +2,11 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **BUILDING — Task 1
+- Feature: Feature 5 from `roadmap.md` · Mode: Mode 3 · Phase: **COMPLETE — 7/7
+  tasks `DONE`, the human attested the live camera demo 2026-07-26, and F5's
+  roadmap box is checked. `rejects: 1` on Tasks 5 and 7, 0 elsewhere. Awaiting
+  only the feature-end commit checkpoint.**
+  *(historical detail below)* **Task 1
   `DONE` (verdict `memory/verdicts/2026-07-26-F5-T1.json`, APPROVE first pass,
   `rejects: 0`) and **Task 2 `DONE`** (verdict `…-F5-T2.json`, APPROVE first
   pass, `rejects: 0`) — its licence STOP condition fired, was RESOLVED by the
@@ -499,8 +503,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (final summary reports 0 failed — the UI change regresses no Python test)
   - feedback: (none)
 
-- [ ] **Task 7** — Wire `BoothApi` to Record/Stop + release on window close (LAST task — FULL §5)
-  - state: REVIEW
+- [x] **Task 7** — Wire `BoothApi` to Record/Stop + release on window close (LAST task — FULL §5)
+  - state: DONE
   - rejects: 1
   - measured: FULL §5 automated list **11/11 exit 0** after the retry — suite
     **122 passed**, throughput **8.4 ms/frame** against the 33 ms budget. The
@@ -583,10 +587,11 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 ## Memory spine
 ≤5 bullets — the compressed truth of where we are. Prune resolved items every session.
 
-1. 2026-07-26 — **F5 is BUILDING: Tasks 1–6 `DONE`, only Task 7 remains.** Five
-   of six landed APPROVE on the first pass; **Task 5 took one REJECT**
-   (`rejects: 1`) for an untested branch and a tautological pacing test, both
-   since fixed and mutation-checked 4/4. Dependencies declared
+1. 2026-07-26 — **F5 IS COMPLETE: 7/7 `DONE`, human-attested.** Five tasks
+   landed APPROVE on the first pass; **Tasks 5 and 7 each took one REJECT**
+   (`rejects: 1`), both for the same underlying weakness — surface that looked
+   covered but was not. Both fixed and mutation-checked. Roadmap box checked,
+   codebase map refreshed, `adr/0004-python-owns-the-camera.md` written. Dependencies declared
    (`mediapipe==0.10.35`, `opencv-contrib-python==4.13.0.92`) with **nothing
    moved underneath F4** — `numpy` 2.2.6, `torch` 2.13.0 — so
    `CORRECTION_RADIUS = 110` and `ACCEPT_CUTOFF = 0.45` are undisturbed; the
@@ -599,8 +604,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
    ordering, drop-don't-queue pacing and a `BaseException` release tripwire, at
    **~8 ms/frame** against the 33 ms budget; and the **Booth `<img>`** renders
    what Python pushes, in the existing disk, holding no camera state of its own.
-   Suite: **114 passed**. Remaining: **Task 7 only** — `BoothApi` wiring,
-   window-close release, the FULL §5 list, and the human-attested live demo.
+   Suite: **122 passed**. `BoothApi` now starts the camera on Record, stops it
+   on Stop **and on F4.5's 30 s auto-stop**, and releases it on window close.
+   Engine throughput **10.3 ms/frame** against the 33 ms budget.
+   **Nothing remains but the feature-end commit checkpoint.**
    **Verification runs on the subagent path** for F5 — human-authorized
    2026-07-26, which closed the previous handoff's open item 1.
    **A guardrail UPDATE is parked in `handoff.md`**, unwritten pending human

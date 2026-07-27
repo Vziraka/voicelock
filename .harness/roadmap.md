@@ -175,10 +175,28 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   31-second live Booth check. **Task 2's fake-stream shape is the pattern F5's
   camera fake is meant to inherit.**
 
-- [ ] **F5 — Camera booth** · blocked-by: F1, F4.5 · **TECH-PICK: offline face detect/landmark/embedding stack**
+- [x] **F5 — Camera booth** · blocked-by: F1, F4.5 · **DONE 2026-07-26 (Mode 3)**
   Add a live webcam feed to the Booth with face detection + facial landmarks
   drawn on the preview. The visual analog of F1; prefactor for all face work.
   *Demo:* your face appears in the preview → a box/landmarks track it live.
+  Built: `mediapipe` + `opencv-contrib-python` (human-approved TECH-PICK, with
+  `numpy`/`torch` provably unmoved so F3/F4's cutoffs hold); the Face Landmarker
+  bundle vendored offline beside `models/ecapa/`; `facedetect.py` doing the
+  per-frame composite (detect on the full frame → ellipse + lip contour →
+  centre-crop → **flip last**, so no landmark coordinate is ever mirrored) and
+  the camera lifecycle (own daemon thread, halt→join→release, drop-don't-queue);
+  the Booth `<img>` in the existing 172 px disk. **All 478 landmarks are
+  returned** though only a subset is drawn — F6/F7/F8 consume them.
+  Engine throughput **10.3 ms/frame** against a 33 ms budget, so `TARGET_FPS`
+  stayed at 30 on evidence. 7 tasks, `rejects: 1` on Tasks 5 and 7, 0 elsewhere.
+  Human attested the live demo. Architecture recorded in
+  `adr/0004-python-owns-the-camera.md`.
+  **Two licence escalations fired as designed:** the model bundle cleared
+  (Apache-2.0, established from Google's three model cards); the fixture did
+  **not** — MediaPipe's `portrait.jpg` is a White House press photograph, so it
+  is **fetched, never committed** (`.gitignore`d), while its Apache-2.0 vendor
+  reference IS committed. **F6 inherits that arrangement** as well as the
+  two-faces gap below.
 
 - [ ] **F6 — Faceprint on screen** · blocked-by: F5
   Compute the faceprint (face embedding) and show live match distance vs a stored

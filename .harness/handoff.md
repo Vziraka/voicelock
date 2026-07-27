@@ -1,213 +1,209 @@
-# Handoff — F5 Task 7 rebuilt after REJECT #1, now `REVIEW` (the LAST task)
+# F5 — Camera booth · COMPLETION REPORT (Mode 3)
 
-Session of 2026-07-26. Tasks 1–6 `DONE`. **Task 7 was rejected once, is fixed,
-and is back at `REVIEW` with `rejects: 1`.**
+**Feature complete 2026-07-26.** 7/7 tasks `DONE`, live demo attested by the
+human. Roadmap box checked, codebase map refreshed, ADR written.
 
-## The REJECT, and the fix
+**Awaiting only the feature-end commit checkpoint** — the proposed message is at
+the bottom, and nothing is committed for it until you approve.
 
-**The camera was never released when a take ended by itself.** F4.5's 30 s soft
-cap ends a recording with nobody pressing Stop; `_pump_loop` noticed, pushed
-`onCaptureEnded` and exited — but never stopped the camera. Press Record, wait
-30 s, and the take ends while **the webcam light stays on and the preview keeps
-streaming**. The verifier reproduced it against the real `BoothApi`. Fixed by
-calling `_stop_camera()` in that branch.
+---
 
-**A second, related ordering bug surfaced while testing the fix:**
-`start_record` called `_start_pump()` *before* `_start_camera()`, so the pump
-loop — the thing that tears the camera down — could run before the camera had
-started. Unreachable with a real 30 s cap, but wrong on its own terms. The
-camera now starts before the pump; capture still starts first of all, so a
-camera failure never costs the take.
+## Outcome vs the spec's Outcome section
 
-**Mutation-checked 4/4**, source restored byte-identical:
+`spec.md` §1 required three things to be true. All three are:
 
-| Mutation | Result |
+1. **The camera reaches the Booth.** Record opens the webcam and the face disk
+   shows a live image instead of the smiley; Stop reverts it and releases the
+   device; a second Record works. *Attested live.*
+2. **The face is found and drawn.** Every frame goes through the vendored
+   MediaPipe Face Landmarker; an **oval** (not a rectangle — it would clip
+   against the circular mask) and a landmark overlay **including the lip
+   contour** are composited in Python before the frame reaches the page. No face
+   in view is a normal state, not an error. *Attested live + pinned by tests.*
+3. **It stays offline.** The `.task` bundle is vendored and loaded from a local
+   path. A source-level Gate assertion pins that `facedetect.py` contains
+   `model_asset_path` and no URL.
+
+The demo the spec asked for — *press Record → your face appears in the round
+disk → an oval and landmarks track it → press Stop → the smiley comes back and
+the camera light goes out* — was run and confirmed.
+
+## Final Gate evidence (command → exit code)
+
+| Command | Exit |
 |---|---|
-| drop `_stop_camera()` from the auto-stop branch (the rejected defect) | **CAUGHT** |
-| drop `_stop_camera()` from `stop_record` | **CAUGHT** |
-| drop `face.stop()` from `shutdown` | **CAUGHT** |
-| make `start_record` bail out when the camera fails | **CAUGHT** |
+| `uv run ruff check .` | **0** — "All checks passed!" |
+| `uv run pytest` | **0** — **122 passed**, 0 failed, 0 skipped |
+| `uv run pytest tests/test_facedetect.py -q` | **0** — 26 passed |
+| `uv run pytest tests/test_booth_api.py -q` | **0** — 27 passed |
+| real model detects a real face vs the vendor reference | **0** |
+| `facedetect.py`: `model_asset_path` present, no `http(s)` | **0** |
+| `face_landmarker.task` present, > 1 MB | **0** |
+| `mediapipe` + `opencv-contrib-python` declared, `opencv-python` absent | **0** |
+| `tests/test_facedetect.py` mentions `release` / `read` | **0** |
+| every `models/*/` carries a non-stub `LICENSE` + `NOTICE` | **0** |
+| face fixture present (fetched-not-committed) | **0** |
+| **throughput floor** | **0** — **10.3 ms/frame** vs a 33 ms budget |
+| **manual live camera demo** | **human-attested 2026-07-26** |
 
-**The other two findings, both non-blocking, handled rather than ignored:**
+Suite runtime ~36 s — well under the spec's 5-minute disclosure threshold, so no
+disclosure is owed.
 
-- *A camera error paints the mic-error banner and never clears* — logged to
-  **F9** in `roadmap.md`, which owns per-cause messaging, so it survives handoff
-  rewrites.
-- *`shutdown()` does not stop the microphone* — made **deliberate**: the
-  docstring now states that the spec scopes the close handler to the camera, an
-  in-flight PortAudio stream is closed by process exit, and that has been the
-  behaviour since F1. A decision, not an omission.
+**The measured number that matters: 10.3 ms/frame**, from the Gate run, ~3×
+headroom. **`TARGET_FPS` stayed at 30 on evidence**; §4's fallback ladder
+(30 → 20 → 15) was never needed and the assertion was never loosened.
 
-The **full `spec.md` Verification list** ran for this last task: **11/11
-automated lines exit 0**. The only line outstanding is the **human-attested
-manual camera demo**, so the Gate is expected to return **`ESCALATE_HUMAN`**.
-Task 7 must **not** be marked `DONE`, and its verdict file must **not** be
-written, until the human attests the live check.
+## Retry counts per task
 
-## Changed
-
-- **`src/voicelock/app.py`** — `BoothApi` takes an injectable `face` engine;
-  `start_record` starts the camera, `stop_record` stops it and restores the
-  smiley; `_push_face_frame` pushes each data URI through the existing `_eval`
-  path; **`shutdown()`** releases devices, wired to `window.events.closing` in
-  `main()`.
-- **`tests/test_booth_api.py`** — 7 new tests (**26** in the file).
-- **`.harness/plan.md`** — Task 7 `TODO → DOING → REVIEW` with the measurement.
-
-Suite: **121 passed**. Throughput: **8.0 ms/frame** against the 33 ms budget.
-
-## Full §5 automated results (this is the last task, so the whole list ran)
-
-| Line | Result |
+| Task | `rejects` |
 |---|---|
-| `ruff check .` | exit 0 |
-| `pytest` (whole suite) | exit 0 — **122 passed** |
-| `pytest tests/test_facedetect.py` | exit 0 — 26 passed, **0 skipped** |
-| `pytest tests/test_booth_api.py` | exit 0 — **27 passed** |
-| offline: `model_asset_path`, no URL | exit 0 |
-| vendored bundle present, > 1 MB | exit 0 |
-| declared deps + single `cv2` | exit 0 |
-| per-module tripwire (`release`/`read`) | exit 0 |
-| every `models/*/` dir carries `LICENSE` + `NOTICE` | exit 0 |
-| face fixture present (fetched-not-committed) | exit 0 |
-| **throughput floor < 33 ms/frame** | exit 0 — **8.0 / 8.4 / 10.3 ms/frame** across runs |
-| **manual camera demo** | **OUTSTANDING — human only** |
+| 1 declare deps · 2 vendor bundle · 3 fixture · 4 composite · 6 Booth `<img>` | **0** |
+| 5 camera lifecycle | **1** |
+| 7 `BoothApi` wiring | **1** |
 
-Suite runtime ~36 s, far under the spec's 5-minute disclosure threshold.
+Both rejects were earned, and both were the same underlying weakness — surface
+that *looked* covered:
 
-**On the throughput number:** three runs gave 8.0, 8.4 and 10.3 ms/frame — the
-last measured by the verifier. Same order of magnitude, ~3× headroom at worst.
-**The completion report must pin the verifier's Gate figure (10.3 ms/frame)**,
-not a handoff figure, because the Gate run is the one that counts.
+- **Task 5:** drop-don't-queue was pinned only as a pure function; the
+  loop-level assertion was true by construction. The verifier proved it by
+  replacing `wait(pacing_delay(...))` with a flat `wait(FRAME_INTERVAL)` —
+  deleting the behaviour — and watching all 23 tests still pass.
+- **Task 7:** F4.5's 30-second cap ends a take with nobody pressing Stop, and
+  `_pump_loop` never released the camera on that path. Record and walk away →
+  the webcam light stays on indefinitely. Writing the test then exposed a second
+  ordering bug (pump started before the camera).
 
-## VERDICT — Gate `ESCALATE_HUMAN`, Review `APPROVE`, no feedback
+Both fixes were **mutation-checked** — break the code, confirm the test fails —
+and both verifiers repeated it independently.
 
-The verifier re-ran the full list (11/11 exit 0) and **mutation-checked the fix
-itself**: deleting `app.py:358` reproduces
-`AssertionError: the camera was left running after the take self-ended`. It
-confirmed the test has substance rather than shape, and that the wait is on the
-observable end state (`setFaceIdle` reaching the page) rather than on a stub's
-internal counter.
+## Escalations, both designed and both fired
 
-Both non-blocking findings were confirmed correctly routed: the camera-error
-banner to F9 in `roadmap.md`, and the mic-not-stopped-on-close decision into
-`shutdown()`'s docstring.
+`spec.md` §4 made each vendored asset's licence a stop condition. Both fired:
 
-One extra observation, non-blocking: the pump thread can now call `face.stop()`
-while a user-pressed Stop is also inside `_stop_camera`. That is an extension of
-the 5-second join-timeout risk Task 5's verifier already recorded; it opens only
-if a frame read hangs, and a double `release()` is a no-op.
+- **The model bundle CLEARED.** Eight primary sources say nothing about the
+  weights' licence — the artifact embeds none, the bucket 404s, the docs cover
+  only page content and code samples, the Apache-2.0 wheel ships **zero** model
+  files, and the Apache-2.0 repo ships `.pbtxt` graphs and **zero** `.task`
+  bundles. It was settled by Google's three **model cards**, all citing
+  Apache-2.0, mapping 1:1 onto the bundle's three `.tflite` models.
+- **The fixture did NOT clear.** MediaPipe's canonical `portrait.jpg` is a
+  **White House press photograph** (EXIF `Artist: Pete Souza`) forbidding
+  reproduction without written permission. Its "personal use only" clause is
+  granted to *the subjects of the photograph*, not to personal projects — the
+  correction that changed the decision. Resolved as **fetched-not-committed**:
+  the image is `.gitignore`d and verifiably absent from all git history, while
+  its Apache-2.0 vendor reference **is** committed, preserving an assertion
+  against Google's own published coordinates that exists for this image and no
+  other.
 
-**Task 7 stays `REVIEW` with no verdict file until the human attests the live
-demo.** That is the plan's explicit instruction and the F3-T5 / F4-T5 / F4.5-T3
-precedent.
+Two **spec amendments** followed, each with a fresh box-2 approval from you: the
+enforcement check for the new licence guardrail, and the fixture arrangement.
 
-## What it does
+## Deviations
 
-- `start_record` starts the camera **after** the mic is confirmed running;
-  `stop_record` stops it and pushes `setFaceIdle()`.
-- **A camera failure does NOT prevent audio recording.** `start_record` still
-  starts capture, still starts the level pump, still returns `ok`; the camera's
-  ERROR surfaces the way a mic error does. Real branch, real test.
-- `shutdown()` releases devices on window close. **`main()` had no close handler
-  at all before this**, which is exactly what made `stop()` being safe to call
-  twice a real requirement rather than a theoretical one.
-- `ready()` untouched — **no startup camera probe**. `capture.py` untouched.
-  Nothing written to disk; `~/.voicelock/` gains no file.
+`memory/deviations.md` has **no new entries** for F5. No rule proved impossible
+to follow literally, and every judgment call went through a decision entry or an
+escalation instead.
 
-## Verified against the installed pywebview rather than assumed
+## Escalation-worthy things that resolved themselves
 
-The close handler is the one piece that only runs live, so I checked its
-contract in the installed source instead of trusting the shape:
+- **The verifier path** (`handoff.md`'s old open item 1) — `project.md` recorded
+  "Verifier path: subagent" while this session ran under a no-subagent default.
+  You authorized subagents at the top of the session; recorded before any build.
+- **`mediapipe` 0.10.35 ships only `tasks`** — no `mediapipe.solutions`, so the
+  familiar `FACEMESH_*` constants do not exist. The Tasks API's
+  `FaceLandmarksConnections` was used instead, so the drawn subset comes from
+  the vendor rather than hand-copied indices.
 
-- `window.events.closing` **exists**.
-- `Event.set` cancels the close only when a handler returns **literal `False`**
-  (`[v for v in return_values if v is False]`), so `shutdown()` returning `None`
-  is safe. **A test pins that** — a handler that returned `False` would trap the
-  user in a window whose camera it had just released.
-- `closing` is constructed with `should_lock=True`, so handlers run
-  **synchronously** — the camera is released *before* teardown rather than
-  racing it.
+## What F6 inherits
 
-## Doubts, flagged rather than buried
+- **The fetched-not-committed arrangement**, and the fact that it inverts F3's
+  committed-fixture precedent. A fresh clone skips the real-model test until the
+  image is fetched; the Gate's presence check makes that loud, not silent.
+- **The two-faces gap** — F6 needs a same-person-close and a different-person-far
+  probe, and F5 has one image. A researched CC0 shortlist is in
+  `memory/research/2026-07-26-f5-fixture-replacement-candidates.md`.
+- **`FrameResult.landmarks` carries all 478**, unflipped, so F6/F8 need not
+  reopen `facedetect.py`.
+- **SFace is F6's**, needing a second vendored model dir — and now a second
+  per-asset licence check.
+- **A camera error currently paints the *mic*-error banner** and never clears —
+  logged to **F9**, which owns per-cause messaging.
 
-1. **`test_frames_are_pushed_to_the_page_as_a_data_uri` monkey-patches
-   `api._eval`.** It is the only seam for observing what reaches the page
-   without a live window. Deliberate, but it is private-attribute assignment in
-   a test.
-2. **The data URI is interpolated into JS without escaping.** Safe because
-   base64 cannot contain a quote or backslash, and it is commented as such —
-   but it is string-built JS, and a future change that put anything else in that
-   slot would need escaping like `_push_mic_error` does.
-3. **`_StubRecordingCapture` is a new stub** rather than a reuse of
-   `tests/test_capture.py`'s `FakeStream`. Those exercise different surfaces —
-   this one stands in for the whole capture engine at the bridge level, not for
-   a PortAudio stream — but two fakes for adjacent things is worth a look.
-4. **The camera-failure branch surfaces through `_push_mic_error`.** The spec
-   says to surface it "the way `_push_mic_error` does"; I reused the function
-   itself, so a camera error appears in the mic-error slot in the UI. That is
-   the shortest honest reading, but a verifier may consider a camera error
-   deserving its own chip. F9 owns per-cause messaging.
-5. **`window.events.closing` is not covered by any automated test** — it cannot
-   be without a live window. `shutdown()` itself is tested; the *wiring* of it
-   to the event is what the manual demo covers.
+---
 
-## THE MANUAL CHECK — required for F5 to be done
+## THREE things need your decision
 
-Run `uv run voicelock`, then press **Record**:
+### 1 · Three parked guardrail proposals (none written to `project.md`)
 
-- the smiley is replaced by a live, **circular** camera image in the same 172 px
-  disk, with an **oval outline and landmarks tracking your face** as you move;
-- it looks like **smooth video**, not a slideshow, and fills the disk with **no
-  letterboxing**;
-- it is **mirrored** — raising your right hand moves the hand on the right of
-  the picture, leaning left moves you left;
-- it stays **in step with you** — no drifting behind, no growing lag the longer
-  it runs.
+**A — from Task 5.** *Recommend: adopt.* Distinct from the existing
+"no unexercised branch" rule: that catches surface with *no* test, this catches
+surface with a test that would still pass if the behaviour were deleted.
+> **[Forbidden]** A test must assert something that would **break if the
+> behaviour were removed**. Before claiming a test covers behaviour X, delete or
+> neuter X and confirm the test fails. `warn` · expires 2027-01-31
 
-Then press **Stop**: the smiley returns and **the webcam light goes out**. Press
-**Record a second time**: the preview comes back. **Then press Record and wait
-30 s without pressing Stop** — F4.5's soft cap ends the take by itself, and the
-webcam light must go out then too (this is the case REJECT #1 was about).
-Finally, **close the window while recording**: the webcam light goes out.
+**B — from Task 3.** *Recommend: adopt.* An **update** to the existing
+`[Approval]` licence rule, not a new guardrail.
+> Append: **check the asset's own embedded metadata first (EXIF/XMP for images,
+> bundle metadata for models)** — the most authoritative statement available and
+> the cheapest to read.
 
-The automated tests prove the pipeline's logic against fakes; they do **not**
-prove the composited frames reach the page fast enough to look like video, nor
-that a real Windows webcam device is genuinely freed. That is what this line
-covers, and it is why the engine-side 8.0 ms/frame is not the whole story — the
-`evaluate_js` bridge remains the one unmeasured half of F5.
+**C — from Task 7.** *Recommend: adopt — the evidence is the strongest of the
+three.* The same code path has now caused a defect in **two consecutive
+features**: F4.5 existed because the 30-second cap deadlocked the audio
+callback; F5 Task 7 was rejected because that same cap failed to release the
+camera.
+> **[Forbidden]** When an operation acquires a device or resource, **every path
+> that ends the operation must release it** — including paths that end it
+> without user action (timeouts, soft caps, error exits), not just the explicit
+> Stop the tests and the manual check naturally drive. `warn` · expires
+> 2027-01-31
 
-## Still parked — two guardrail proposals, neither written
+Declining any is a fine answer and I will record it as declined.
 
-- **A (from Task 5):** a test must assert something that would break if the
-  behaviour were removed — mutation-check before claiming coverage.
-- **B (from Task 3):** update the existing `[Approval]` licence rule — check the
-  asset's own embedded EXIF/XMP metadata first.
+### 2 · Curate is due: 10 tasks since the last curate
 
-Also open: `project.md`'s Environment section is stale (*"Tool(s): Cursor
-only"*).
+`project.md`'s stamp says *"verdicts then: 19"*; there are now **29**. That is
+the threshold. Adding three guardrails on top of four makes it more pressing,
+not less — you may prefer to run `/curate` first and decide the proposals inside
+it.
+
+### 3 · The feature-end commit checkpoint
+
+Proposed message:
+
+```
+F5 complete: camera booth — live preview with face landmarks
+
+7/7 tasks DONE, human-attested live demo. rejects: 1 on Tasks 5 and 7.
+
+The Booth has an eye: pressing Record replaces the decorative smiley
+with a live, mirrored, circular webcam preview in the same 172 px disk,
+with an oval outline and landmarks — including the lip contour F8 needs
+— tracking the face in real time. Stop, the 30s auto-stop, and window
+close all release the camera.
+
+Python owns the camera because file:// documents get no secure context
+(adr/0004-python-owns-the-camera.md). It composites in Python because
+this repo's Gate has zero JS tests, so that is the only arrangement the
+Gate can assert on.
+
+Engine throughput 10.3 ms/frame against a 33 ms budget, so TARGET_FPS
+stayed at 30 on evidence rather than aspiration.
+
+Both designed licence escalations fired. The model bundle cleared as
+Apache-2.0 via Google's model cards. The fixture did not: MediaPipe's
+portrait.jpg is a White House press photograph, so it is fetched and
+gitignored, never committed, while its Apache-2.0 vendor reference is.
+
+Suite: 122 passed.
+```
+
+**Remote: none** — this is a local commit only; there is nothing to push.
 
 ## next_action
 
-**THE HUMAN RUNS THE MANUAL CAMERA DEMO** (see above). Verification is otherwise
-complete: Gate 11/11 automated, Review APPROVE, no feedback.
-
-On the human's attestation, wrap-up then: writes the Task 7 verdict file, marks
-Task 7 `DONE`, checks **F5's roadmap box**, refreshes
-`memory/codebase-map.md` (F5 adds FaceView + FaceDetect, which the map still
-shows as dashed/planned), runs the `learn` scan, and produces the **Mode 3
-completion report** — after which the feature-end checkpoint asks the human to
-approve the commit.
-
-If the demo **fails**, Task 7 goes back to `TODO` with the failure recorded and
-`rejects: 1 → 2` (cap is 3).
-
-## Commits
-
-- Tasks 1–6: `878186c`…`edf2da3`
-- Task 7: `1259753` → `2edcb68` (first build) → `f1d6662` (REJECT recorded) →
-  `5bfdde7` (DOING, retry) → **`43c789a` (retry build)**
-- Base for the Gate diff: **`5bfdde7`** · head: **`43c789a`**
-- Plus this bookkeeping commit, putting actual HEAD one ahead — expected.
-
-Session base was `b718038`. Remote: **none** — local history only, nothing pushed.
+**Human: approve the commit message** (and answer the three proposals + the
+curate prompt). After that, F6 — Faceprint on screen — is the next roadmap
+feature, and it starts with `/spec`. **(curate due)**
