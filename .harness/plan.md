@@ -359,7 +359,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (count rises, 0 failed)
 
 - [ ] **Task 5** — Booth UI: faceprint panel + liveness-honesty copy *(LAST task — full spec Verification)*
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: Mirror the existing `.voiceprint`/`#voiceprint-panel` block (Q8)
