@@ -3,11 +3,10 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 2 (merged) built, awaiting fresh-eyes verification.** Task 1
-  `DONE`, Task 2 `REVIEW` (WIP=1) — covers vault.py v3 **and** the Booth
-  bridge, per the 2026-07-27 merge decision (`memory/deviations.md` F7-T2).
-  Former Task 4 is renumbered **Task 3** (UI, unchanged scope, still the LAST
-  task) and may not start until Task 2's wrap-up fully completes.
+  Phase: **Task 2 DONE.** Task 3 (Booth UI, renumbered from the former
+  Task 4) is next — the LAST task, full spec Verification including the
+  required live manual check. Mode 3's standing "go" starts it unattended,
+  same session.
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -89,15 +88,16 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    trials against the real A1/A2/B fixtures; see
    `memory/verdicts/2026-07-27-F7-T1.json`). Decisions 1–6 above still govern
    the rest; nothing else is open.
-2. **Task 2 merged with the former standalone bridge task** (2026-07-27,
-   human decision, `memory/deviations.md` F7-T2) — `vault.py` v3 (built,
-   green: 52 passed across `test_vault.py`/`test_outer_lock.py`/
-   `test_middlelock.py`) plus the Booth bridge (`app.py`/
-   `test_booth_api.py`) are now ONE task, verified once. The former Task 4
-   (UI) is renumbered **Task 3**, scope unchanged.
-3. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py` remain
-   read-only references — Task 2 extends `vault.py` and `app.py`, not those
-   four (spec §3 non-goals).
+2. **Task 2 DONE** (merged with the former standalone bridge task, human
+   decision 2026-07-27, `memory/deviations.md` F7-T2) — `vault.py` v3 +
+   Booth bridge, 186 passed, one REJECT/fix cycle (missing `no_face`-edge +
+   `reset_enroll_face_takes()` coverage, fixed same session). The recurrence
+   (identical shape to F4 Task 3) is now a `project.md` guardrail. The
+   former Task 4 (UI) is renumbered **Task 3**, scope unchanged, and is the
+   only task left.
+3. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py`,
+   `facelock.py`, `vault.py` are all done for this feature — Task 3 touches
+   only `ui/index.html` (spec §3 non-goals).
 4. F7 is the last task's full-Verification feature — cmd 4 (the live 3-way
    manual check) is REQUIRED and only the human can attest it, at the
    feature-end checkpoint.
@@ -158,7 +158,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises from F6's 145)
 
 - [x] **Task 2** — `vault.py` v3 **+** Booth bridge: nest the face inner lock, enroll-face capture step, distinct `auth_face` *(merged with the former standalone bridge task, human decision 2026-07-27 — see `memory/deviations.md` F7-T2)*
-  - state: REVIEW
+  - state: DONE
   - rejects: 1
   - feedback (newest first):
     - **2026-07-27 · REJECT 1 of 3** (verifier subagent; GATE PASSed first —
