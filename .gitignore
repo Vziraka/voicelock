@@ -17,6 +17,13 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Claude Code adapter output — .claude/skills/<name> are per-skill junctions
+# pointing at .harness/skills/<name>, so there is exactly ONE copy to maintain
+# and stale-copy drift is impossible. They are machine-local (absolute targets)
+# and git would follow them and commit duplicates, so they stay out.
+# A fresh clone re-creates them: see .harness/adapters/claude-code/README.md.
+.claude/
+
 # Secrets / local config (none declared yet — keep habit)
 .env
 .env.*

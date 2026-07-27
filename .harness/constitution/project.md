@@ -5,9 +5,25 @@ guardrails accrue over time (from failures). Keep it curated — see the `curate
 skill. Specific lessons live here, never in `universal.md`.
 
 ## Environment (written by the setup skill — revise via setup, not hand-drift)
-- Tool(s): Cursor only · Model(s): Cursor Grok 4.5
-- Verifier path: subagent
-- Signposts: AGENTS.md only — risk: Claude Code sessions will not be auto-routed
+- Tool(s): **Claude Code and Cursor** — either may run this repo · Model(s):
+  Claude Opus 5 (1M context) in Claude Code; Cursor Grok 4.5 in Cursor.
+  Cursor built F1–F5; Claude Code ran F5's build session and the 2026-07-26
+  curate. Recorded as both because a handover in either direction is expected.
+- Verifier path: subagent — **proven, not assumed**: six clean-context subagent
+  verifiers ran during calibration run 2 (2026-07-26). Applies to Claude Code.
+  A Cursor session without subagents falls back to the fresh-session path per
+  the universal BUILD gate; it must not self-verify.
+- Signposts: **AGENTS.md + CLAUDE.md**, both at the repo root, identical and
+  verbatim from `adapters/AGENTS-template.md`. The previous "AGENTS.md only"
+  risk line predicted its own failure and it came true — the 2026-07-26 Claude
+  Code session had to be pointed at `AGENTS.md` by hand. Closed 2026-07-26.
+- Claude Code adapter: **installed** 2026-07-26 — `.claude/skills/<name>` is a
+  directory **junction** per skill pointing at `.harness/skills/<name>`, so
+  `/spec`, `/implement`, `/verify-gate` etc. are real commands and there is
+  exactly ONE copy to maintain (no stale-copy drift, the failure mode
+  `adapters/claude-code/README.md` warns about). The junctions are machine-local
+  and `.gitignore`d, so **a fresh clone must re-run the install** — that README
+  has the steps.
 - Remote: **`origin` → https://github.com/Vziraka/voicelock (PRIVATE)** — wired
   2026-07-26, full history pushed (191 commits, `.harness/` included by
   deliberate choice). Verified private: `isPrivate: true` and an anonymous API
@@ -19,9 +35,12 @@ skill. Specific lessons live here, never in `universal.md`.
   vault itself lives outside the repo at `~/.voicelock/`. Note the commit
   author email is in all history and would be public if this repo were ever
   made public.
-- First-time user: yes — Mode 1 recommended first
-- Setup run: 2026-07-21 · Q5 (git remote) revised 2026-07-26; the other six
-  answers were not re-interviewed and stand as recorded
+- First-time user: **no** (revised 2026-07-26) — five features completed, the
+  last three at Mode 3 with clean verdicts, and Mode 4 is mechanically
+  unlocked. Skills need not point at `GUIDE.md` or nudge Mode 1 by default.
+- Setup run: 2026-07-21 · **re-run 2026-07-26** (full seven questions). Q1, Q4
+  and Q7 revised by the human; Q2 re-recorded; Q3, Q5 and Q6 re-confirmed
+  against evidence rather than memory.
 
 ## Conventions
 Extracted by `intake-recon` (existing repo) or declared by `intake-scaffold` (new
