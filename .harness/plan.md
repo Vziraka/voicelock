@@ -197,7 +197,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count unchanged)
 
 - [ ] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/faceprint.py` (new), `tests/test_faceprint.py` (new)
   - notes: The largest single task — the module itself. Mirror
