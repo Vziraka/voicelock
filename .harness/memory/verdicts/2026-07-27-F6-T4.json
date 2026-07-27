@@ -1,0 +1,25 @@
+{
+  "task": "F6-T4",
+  "spec": "spec.md@f6578e2",
+  "change": "1adec92..c19c0c5",
+  "gate": {
+    "commands": [
+      "uv run python -c \"from voicelock.app import BoothApi; assert all(hasattr(BoothApi, name) for name in ('set_face_reference','compare_face','reset_face_reference'))\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "145 passed (up from 139), 0 failed. Scope check clean: diff matches Task 4's declared files exactly."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Verified facedetect.py's last_frame addition is genuinely additive-only (byte-for-byte unchanged crop/mirror/overlay order, halt-join-release sequence, pacing_delay). Verified the new bridge tests exercise the real faceprint module end-to-end (unmocked), only FaceEngine is stubbed. Independently reproduced the pre-fix done-criteria one-liner's SyntaxError, confirming the build-time fix was mechanical/meaning-preserving, not a design amendment -- correctly not escalated. Scrutinized one untested except-branch (faceprint.FaceprintError in set_face_reference) and judged it non-blocking: faithful mirror of the pre-existing, already-shipped, never-flagged voiceprint.set_reference's identical shape -- inherited-pattern-consistency, not a fresh guardrail violation."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-27",
+  "rejects": 0
+}

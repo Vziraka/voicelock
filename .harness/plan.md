@@ -3,14 +3,16 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 6 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building.** Tasks 1–3 `DONE` (Task 3 needed one retry — an
-  unexercised `embed_file` error branch, fixed and re-verified; verdicts
-  `memory/verdicts/2026-07-27-F6-T{1,2,3}.json`). Task 4 (Booth bridge) is
-  next, unattended per Mode 3's standing "go". **TWO guardrail proposals
-  are parked in `handoff.md`, each awaiting a separate human decision** —
+  Phase: **Building — last task.** Tasks 1–4 `DONE` (verdicts
+  `memory/verdicts/2026-07-27-F6-T{1,2,3,4}.json`). Task 5 (Booth UI, the
+  LAST task) is next, unattended per Mode 3's standing "go" — but its
+  §5 cmd 8 manual check is REQUIRED and needs a human at a real camera; it
+  cannot run unattended regardless of Mode. **TWO guardrail proposals are
+  still parked in `handoff.md`, each awaiting a separate human decision** —
   neither approved nor declined yet (VIDEO-mode landmarker tracker-state
-  hazard; dry-run-before-pinning for data-parameterized Verification
-  commands). Neither blocks Task 4.
+  hazard; dry-run-before-pinning for concrete-parameter Verification
+  commands — now with a second occurrence from Task 4). Neither blocks
+  Task 5's build.
 - Spec: `spec.md` holds F6's spec, `Status: CLEAR`, both approval boxes
   checked, `Mode: Mode 3` set 2026-07-27 by the human.
 - One plan-time design gap the spec deliberately left open (`§5 cmd 3` note:
@@ -83,14 +85,14 @@ actual build sequence, not just a dependency note.
    daguerreotype (CC0). Licences re-confirmed live against Commons at build
    time, not just trusted from research. Task 3 reads these paths directly
    (§5 cmd 3's pinned command names them).
-3. **`faceprint.py` is built and `DONE` (Task 3) — Task 4's public API to
-   call:** `embed_frame(frame: np.ndarray) -> np.ndarray` (raises
-   `NoFaceError`), `compare(a, b) -> float` (raw L2), `band_for(distance) ->
-   str`, `set_reference(frames: list[np.ndarray], path=None)` (needs exactly
-   `REFERENCE_TAKES = 3` frames), `load_reference(path=None)` (raises
-   `NoReferenceError`), `default_reference_path()` → `~/.voicelock/faceprint.ref`.
-   Alignment/detection/convert-never-refuse are all implemented and verified
-   inside the module — Task 4 does not need to know how, only these calls.
+3. **`faceprint.py` (Task 3) and the Booth bridge (Task 4) are both `DONE`
+   — Task 5's calls, exactly:** `call('set_face_reference')`,
+   `call('compare_face')` (returns `{"ok", "distance", "band"}` or
+   `{"ok": false, "error": "no_reference"|"no_face"}`),
+   `call('reset_face_reference')`. `compare_face` must be polled on a low
+   fixed interval from JS (decision 4), never every frame — mirrors how F3's
+   voice meter updates. Python already computes distance + band; Task 5's
+   JS renders only, per the engine-owns-state guardrail.
 5. **No lock wiring, no liveness claim.** `faceprint.py` never touches
    `vault.py` (that's F7); the Booth panel must visibly disclose "match, not
    liveness" (§5 cmd 7, Task 5) — a photo held to the camera is *expected* to
@@ -302,8 +304,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (count rises from F5.5's 124, 0 failed)
 
-- [ ] **Task 4** — Booth bridge: `~/.voicelock/faceprint.ref`, on-demand set/compare/reset
-  - state: REVIEW
+- [x] **Task 4** — Booth bridge: `~/.voicelock/faceprint.ref`, on-demand set/compare/reset
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/facedetect.py` (additive only — see decision 3),
     `src/voicelock/app.py`, `tests/test_booth_api.py`
