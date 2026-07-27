@@ -1,95 +1,91 @@
-# F6 — Faceprint on screen · Task 3 WRAP-UP
+# F6 — Faceprint on screen · IMPLEMENT SESSION (Task 4)
 
-**Session date: 2026-07-27.** Task 3 built, hit a real spec-vs-reality
-blocker, was unblocked by a human-approved spec amendment, REJECTed once on
-an unexercised branch, fixed, verified APPROVE, and wrapped up — all in
-this session.
+**Session date: 2026-07-27.** Continuing the same session after Task 3's
+wrap-up completed (Mode 3's standing "go").
 
 ## What happened this session
 
-- Spawned the clean-context verifier a second time (retry 1). Verdict:
-  **GATE PASS, REVIEW APPROVE**, no feedback. The verifier independently
-  reproduced the mutation check on the fix and independently re-verified
-  the earlier spec amendment was genuinely human-approved (not just
-  asserted). Full reasoning: `memory/verdicts/2026-07-27-F6-T3.json`.
-- Wrap-up checklist run in full:
-  - **ADR:** none — fails condition 1 (hard to reverse). Neither the test
-    fix nor the spec's resize-parameter amendment is an architecture
-    decision.
-  - **`learn` scan:** ran. One NEW lesson cleared the bar — see **Pending
-    guardrail #2** below. (The REJECT itself was the EXISTING
-    no-unexercised-branch guardrail correctly firing — not a new lesson,
-    confirmation the guardrail works.)
-  - No idea was declined by a human this task (the human approved the
-    spec-amendment recommendation as given) — no `.out-of-scope/` entry
-    owed.
-  - **Roadmap:** unchanged — 2 tasks remain in Feature 6 (Tasks 4–5).
-  - **`plan.md`:** Active context, memory spine, and Task 3's line
-    refreshed; Task 3 → `DONE`.
+- Set Task 4 `DOING`, committed alone (`8618094`) before any build work.
+  Base commit for the Gate diff: `1adec92` (parent of the DOING commit).
+- Built the additive `facedetect.py` change (decision 3, `plan.md`): a
+  `last_frame` field on `FaceEngine`, set to the raw pre-overlay frame each
+  `_loop` tick. Verified additive-only: `pytest tests/test_facedetect.py` (25
+  tests) and the existing `test_booth_api.py` camera-lifecycle tests all
+  passed unchanged before adding anything new.
+- Built `app.py`'s three bridge methods (`set_face_reference`,
+  `compare_face`, `reset_face_reference`) exactly to the plan's shape,
+  including `compare_face`'s reference-checked-first ordering (mirrors
+  `voiceprint.compare`, so a missing reference never costs a face embed).
+- Added 6 tests to `tests/test_booth_api.py` (stub `FaceEngine` exposing
+  `last_frame`, real fixtures through the real `faceprint` module via the
+  bridge — no real camera): the same-face-accepts/different-face-rejects
+  path end to end, and both `no_reference`/`no_face` edges (including "no
+  camera frame yet" — `last_frame is None`).
+- **Caught and fixed a self-inflicted mid-edit bug before committing:** an
+  `Edit` call matched `old_string` inside the middle of an existing test
+  (`test_frames_are_pushed_to_the_page_as_a_data_uri`) rather than at true
+  end-of-file (a truncated `Read` had hidden the test's real tail), which
+  split that test in two and left 2 orphaned lines referencing an undefined
+  `scripts` variable at the new end of file. `ruff` caught it immediately
+  (`F821 Undefined name`). Fixed by moving the tail lines back to their
+  original test and removing the orphan copy; re-ran `ruff` clean and the
+  full `test_booth_api.py` suite (33 passed) to confirm no other damage.
+- **Found and fixed Task 4's own pinned done-criteria one-liner**
+  (`plan.md`): the original command chained a `for` loop after `;`
+  statements on one line — a Python `SyntaxError`, so it had never actually
+  been run before being pinned (the same class of gap as Task 3's cmd 4,
+  and the direct evidence for the pending guardrail #2 proposal). Unlike
+  cmd 4, this had **zero design ambiguity** — `for x: assert hasattr(...)`
+  and `all(hasattr(...) for x in ...)` are the same check — so fixed
+  directly without a BLOCKED/human-approval cycle, same category as F5.5
+  Task 1's criterion-spelling retry (a mechanical correction, not a design
+  fork). Re-ran corrected: exit 0.
+- Ran the full standing gate: `uv run ruff check .` → exit 0;
+  `uv run pytest` → **145 passed** (up from 139, 0 failed).
+- Build commit: `c19c0c5` (`facedetect.py`, `app.py`, `test_booth_api.py`,
+  `plan.md` Task 4 → `REVIEW`). `git status` confirmed the diff matches
+  Task 4's declared files exactly.
 
-## Pending guardrails (TWO, both still awaiting separate human decisions)
+## Failed attempts / lessons
 
-**#1 — carried from Task 2, unchanged, still open:**
-
-> **[Forbidden]** A `VIDEO`-mode `FaceLandmarker` instance must not be
-> reused across unrelated still images — only across genuine sequential
-> video frames. It carries face-tracker state (an ROI prior) across
-> `detect_for_video` calls, so feeding it unrelated stills back-to-back
-> silently drops the face (0 detections, no error) on any frame after the
-> first whose face falls outside the prior frame's tracked region. Use a
-> fresh instance per unrelated image, or `IMAGE` mode outright, for any
-> script/test that compares or checks multiple independent photographs.
-> `warn` · expires: 2027-01-31
-> - _Evidence:_ F6 Task 2 (2026-07-27), commit `4c8f880`,
->   `tests/fixtures/face/README.md`'s "Detection re-verified" section.
-> - _Added:_ 2026-07-27 (proposed — pending human approval)
-
-**#2 — NEW, from this task's `learn` scan:**
-
-> **[Done]** A Verification command that exercises a real vendored model
-> (image/audio/ML inference) on constructed test data — a resize, a
-> synthetic signal, a specific parameter combination — must be dry-run
-> against that real model BEFORE being pinned into `spec.md`. A
-> plausible-looking parameter set can silently produce input no honest
-> implementation can process, and that is indistinguishable from a real
-> code defect until someone actually runs it. `warn` · expires: 2027-01-31
-> - _Evidence:_ F6 Task 3 (2026-07-27). `spec.md`'s §5 cmd 4 pinned
->   `cv2.resize(img, (1280, 720))` against `personA_1.jpg` (816×1024,
->   portrait) at spec-drafting time, before `faceprint.py` existed to test
->   it against. The resize was a non-uniform stretch that no honest
->   implementation could pass: confirmed by elimination, not assumed — the
->   identical distorted array run through F5's own already-shipped,
->   unmodified `facedetect.load_landmarker()` also found 0 faces; a
->   `min_face_detection_confidence` sweep (0.5→0.01) made no difference;
->   an aspect-preserving resize at a comparable scale (574×720) detected
->   the same face fine on the same model. Cost a full `BLOCKED` stop, a
->   multi-step elimination investigation, and a human escalation before a
->   fix could even be attempted — real rework, not a one-off. **Sibling to
->   the existing guardrail on source-text verification criteria** ("must
->   match the behaviour's meaning, not one exact spelling") — same root
->   cause (a criterion authored before the code existed to validate it
->   against), different failure side: that rule catches brittle TEXT
->   matching; this one catches impossible DATA parameters. Whether this
->   should also change the `spec`/`plan` skills' own process (dry-run
->   before pinning) is a separate skill-authoring decision beyond what
->   `learn` may apply unattended — flagging that possibility, not deciding
->   it.
-> - _Added:_ 2026-07-27 (proposed — pending human approval)
-
-Verdict file records `"lesson": "proposed — pending approval"` for #2. A
-human needs to approve, decline, or amend both #1 and #2 before either
-lands in `project.md` — they are independent proposals; approving one is
-not approving the other.
+The split-test bug above was self-caused and self-caught (by `ruff`) before
+ever reaching a commit — not a rejected attempt, but worth naming: a
+truncated `Read` before an `Edit` can silently hide content past the
+`limit`, and an `old_string` that matches mid-function rather than at the
+intended boundary splices new content into the wrong place. Whether this
+pattern (verify insertion points with a wider read, or `grep` for the true
+EOF, before editing near the end of a long file) clears the `learn` bar is
+a call for wrap-up, not decided here — it cost real time this task but was
+a one-off caught immediately by tooling, not by a human or a failed Gate.
 
 ## next_action
 
-**Mode 3 — the approved spec's Mode line is the standing "go."** This same
-session continues to **Task 4** (Booth bridge: `~/.voicelock/faceprint.ref`,
-on-demand set/compare/reset) — Task 3's wrap-up is the precondition, and it
-just completed. **Both pending guardrails above need a human's attention at
-the next touchpoint** — neither blocks Task 4.
+**Mode 3 — spawn the clean-context verifier now.**
+
+- Task: **F6 Task 4** — now `REVIEW`
+- Base commit: `1adec92` (parent of the `DOING` commit `8618094`)
+- Head commit: `c19c0c5`
+- Verifier: `formats/VERIFIER-PROMPT.md`, used verbatim. Note for the
+  verifier: the diff includes a `plan.md` fix to Task 4's own pinned
+  done-criteria one-liner (a `SyntaxError` correction, zero design
+  ambiguity) — expected and disclosed here, not a scope violation.
+- On REJECT: feedback appended to Task 4's log in `plan.md`, task back to
+  `TODO`, `rejects` incremented (cap 3).
+- On APPROVE: `wrap-up` runs, verdict written, Task 4 → `DONE`, then Task 5
+  (Booth UI, the LAST task — full spec Verification) starts unattended per
+  Mode 3.
+
+## Pending guardrails (TWO, unchanged, still awaiting separate decisions)
+
+Both carried forward unchanged from the prior handoff — see
+`memory/verdicts/2026-07-27-F6-T{2,3}.json` for the proposal text and
+evidence (VIDEO-mode landmarker tracker-state hazard; dry-run
+verification-command parameters before pinning — this task's own
+Syntax-Error criterion is a THIRD piece of evidence for #2, noted above,
+though not separately re-proposed).
 
 ## Commits
 
-Session base → head: `adbe26b` → (this wrap-up's commits: verdict file +
-`handoff.md` + `plan.md` DONE state). Nothing pushed.
+Session base → head: `1adec92` → `c19c0c5` (two commits: `8618094` DOING,
+`c19c0c5` build + REVIEW). This `handoff.md` write is a third,
+bookkeeping-only commit. Nothing pushed.
