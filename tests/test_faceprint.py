@@ -106,9 +106,17 @@ def test_compare_without_reference(tmp_path: Path) -> None:
         fp.load_reference(tmp_path / "missing.ref")
 
 
-def test_load_reference_missing_raises(tmp_path: Path) -> None:
-    with pytest.raises(NoReferenceError):
-        fp.load_reference(tmp_path / "missing.ref")
+# --- embed_file on a path that isn't a readable image -------------------------
+def test_embed_file_missing_path_raises(tmp_path: Path) -> None:
+    with pytest.raises(fp.FaceprintError):
+        embed_file(tmp_path / "does_not_exist.jpg")
+
+
+def test_embed_file_corrupt_image_raises(tmp_path: Path) -> None:
+    bad = tmp_path / "not_an_image.jpg"
+    bad.write_bytes(b"this is not image data")
+    with pytest.raises(fp.FaceprintError):
+        embed_file(bad)
 
 
 def test_band_for_boundaries() -> None:

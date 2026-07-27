@@ -196,8 +196,18 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count unchanged)
 
 - [ ] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
-  - state: DOING
+  - state: REVIEW
   - rejects: 1
+  - **RETRY 1 fix (2026-07-27):** added `test_embed_file_missing_path_raises`
+    and `test_embed_file_corrupt_image_raises`, both asserting
+    `FaceprintError` — mutation-confirmed load-bearing (neutering the
+    `if frame is None: raise` branch makes both fail with an unrelated
+    `cv2.error` instead, proving the test genuinely depends on the check,
+    not on the assertion being trivially satisfiable). Also deduped
+    `test_load_reference_missing_raises` (byte-identical to
+    `test_compare_without_reference`, feedback item 2). Re-ran all of Task
+    3's done-criteria: cmds 3/4/5/2/6, cutoff pin, ruff — all exit 0. Full
+    suite: 139 passed (up from 138), 0 failed.
   - **UNBLOCKED (2026-07-27, human-approved):** spec.md §5 cmd 4 amended to
     resize aspect-preservingly instead of a hard non-uniform stretch (full
     reasoning: `memory/decisions.md` 2026-07-27 entry, `spec.md` §5 cmd 4's
