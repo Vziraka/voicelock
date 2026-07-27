@@ -54,11 +54,14 @@ building happens before that box is checked.
 
 ## Commits
 
-*(this session's changes are staged for the commit checkpoint below; hashes
-recorded here once the human approves the commit)*
+Session base → head: `68170b9` → `c7150f2` (one commit, human-approved
+2026-07-27).
 
 Files touched: `spec.md`, `memory/research/2026-07-26-f6-same-person-fixture-pair.md`,
 `memory/research/2026-07-26-f6-mediapipe-to-sface-alignment.md`, this file.
 No source code changed — this was a spec-grilling session only, per WIP=1 and
 the universal rule against planning/building before the Grilling record is
 `CLEAR` and box 2 is checked.
+
+**Nothing pushed.** `origin` exists (private) — push was not requested this
+session.
