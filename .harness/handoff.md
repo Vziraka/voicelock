@@ -74,6 +74,21 @@ itself via `margin: auto 0`, which degrades to top-anchored + scrollable
 when content doesn't fit, instead of clipping. Re-ran ruff, the full
 suite (145 passed), and cmd 7 — all still exit 0. Commit `e4c17bd`.
 
+## Manual check — ATTESTED by the human (2026-07-27)
+
+The human ran `uv run voicelock` after the layout fix (commit `e4c17bd`)
+and confirmed all three parts, in chat, this session:
+1. Layout fix confirmed — the top is no longer cut off.
+2. Set a face reference on themself; the meter read **accept** on their
+   own face.
+3. Held up a different face; the meter read **reject**.
+
+Verbatim: "yup did all three" (in response to the three-part confirmation
+question above). This is the required §5 cmd 8 manual attestation (Q9) —
+the same shape and same authority as `memory/verdicts/2026-07-23-F3-T5.json`
+and `memory/verdicts/2026-07-26-F5-T7.json`'s human attestations that
+closed those tasks' Gates.
+
 ## next_action
 
 **Waiting on the human — the ONLY blocker.** Once they run `uv run
