@@ -1,85 +1,85 @@
-# F6 — Faceprint on screen · Task 4 WRAP-UP
+# F6 — Faceprint on screen · IMPLEMENT SESSION (Task 5, LAST task)
 
-**Session date: 2026-07-27.** Task 4 built, verified (clean-context
-subagent, APPROVE), and wrapped up in this session.
+**Session date: 2026-07-27.** Task 5 built and passing every automatable
+check. One item — the required live manual check — needs the human.
 
 ## What happened this session
 
-- Spawned the clean-context verifier (subagent path) with
-  `formats/VERIFIER-PROMPT.md` verbatim. Verdict: **GATE PASS, REVIEW
-  APPROVE**, no feedback. The verifier independently reproduced the
-  pre-fix `SyntaxError` in Task 4's original done-criteria one-liner,
-  confirming the build-time fix was mechanical (not a design amendment),
-  and specifically scrutinized whether `facedetect.py`'s change stayed
-  additive-only (confirmed byte-for-byte) and whether the new bridge tests
-  exercise the real `faceprint` module (confirmed, unmocked). Full
-  reasoning: `memory/verdicts/2026-07-27-F6-T4.json`.
-- Wrap-up checklist run in full:
-  - **ADR:** none — fails condition 1 (hard to reverse). Additive plumbing,
-    not architecture.
-  - **`learn` scan:** ran, outcome `"lesson": "none"` — no NEW guardrail
-    from this task. The two things that could look lesson-shaped both
-    reduce to existing signal: the self-caught split-test slip (fixed
-    within seconds by `ruff`, no rework, no human, no multi-step
-    investigation — below the bar) and the `SyntaxError` in Task 4's own
-    pinned criterion (the SAME pattern as the already-pending guardrail
-    #2, not a new one — its evidence line below is updated with this
-    occurrence rather than duplicated as a fresh proposal).
-  - No idea was declined by a human this task — no `.out-of-scope/` entry
-    owed.
-  - **Roadmap:** unchanged — 1 task remains in Feature 6 (Task 5, the
-    LAST task, full spec Verification).
-  - **`plan.md`:** Active context, memory spine, and Task 4's line
-    refreshed; Task 4 → `DONE`.
+- Set Task 5 `DOING`, committed alone (`f57a1d9`) before any build work.
+  Base commit for the Gate diff: `1b93e90` (parent of the DOING commit).
+- Built the `.faceprint`/`#faceprint-panel` block in `index.html`, mirroring
+  `.voiceprint`/`#voiceprint-panel` almost verbatim (Q8): 3-band meter,
+  "Set face reference"/"Reset" buttons, take-progress dots, hint line —
+  placed directly after the voiceprint panel.
+- Wired `set_face_reference`/`reset_face_reference` to buttons (same shape
+  as the voice equivalents). `compare_face` is polled on a `setInterval`
+  (1000 ms, decision 4) gated on `recording && hasFaceReference`, started/
+  stopped from `setRecording()` and whenever either flag changes — never
+  inside `FaceEngine`'s 30 fps loop, unlike voice's once-per-take update
+  (the face path has no discrete "take" boundary to hook instead).
+- Added the liveness-honesty line (§6, §5 cmd 7) as dedicated visible copy
+  on the panel, not buried in a comment.
+- **Caught a JS syntax risk before committing:** this repo's Gate has no JS
+  linter, so extracted the inline `<script>` and ran `node --check` on it
+  (node used only as a syntax-check tool, not a project dependency) —
+  clean. Given Task 4's retry already surfaced two unrun-before-pinning
+  mistakes this feature, verified this manually rather than assuming.
+- Ran the FULL `spec.md` Verification list (Task 5 is the LAST task, per
+  the universal [Done] rule): §5 cmds 1–7 all exit 0 (model+licence
+  present, offline load, same/different face separation, convert-not-
+  refuse at the amended two resolutions, justification present, mutation-
+  sensitivity, liveness-honesty copy present). `uv run ruff check .` →
+  exit 0. `uv run pytest` → **145 passed** (unchanged — Task 5 adds no
+  pytest tests, UI only), 0 failed.
+- Build commit: `dc0e7b5` (`index.html` + `plan.md` Task 5 → `REVIEW`).
+  `git status` confirmed the diff is exactly `index.html`, matching Task
+  5's declared file.
 
-## Pending guardrails (TWO, both still awaiting separate human decisions)
+## The one remaining item: §5 cmd 8 (manual, required)
 
-**#1 — carried from Task 2, unchanged:**
+`spec.md` Q9: a human points the camera at their own face with a
+reference set, confirms the meter reads **accept**; then holds up a
+different face (a photo, or a second person) and confirms **reject**.
+This cannot be performed by an agent — no camera, no eyes on the screen.
 
-> **[Forbidden]** A `VIDEO`-mode `FaceLandmarker` instance must not be
-> reused across unrelated still images — only across genuine sequential
-> video frames. (Full text and evidence: `memory/verdicts/2026-07-27-F6-T2.json`,
-> `tests/fixtures/face/README.md`'s "Detection re-verified" section, commit
-> `4c8f880`.) `warn` · expires: 2027-01-31 · proposed 2026-07-27.
+**This is not a new problem for this repo** — checked the precedent
+directly: `memory/verdicts/2026-07-23-F3-T5.json` and
+`memory/verdicts/2026-07-26-F5-T7.json` both record the identical shape:
+every automated command passed, the verifier returned `ESCALATE_HUMAN` on
+the manual line specifically, the human then ran the live demo and
+attested in chat ("looks good" / "manual test passed looks good"), and
+that attestation is what "closed the Gate" for the verdict to be written.
 
-**#2 — carried from Task 3, evidence extended this session:**
-
-> **[Done]** A Verification command that exercises a real vendored model,
-> OR any command with concrete literal parameters, must be dry-run BEFORE
-> being pinned into `spec.md`/`plan.md` — a plausible-looking one-liner can
-> be silently wrong (impossible data, or outright invalid syntax) and that
-> is indistinguishable from a real defect until someone actually runs it.
-> `warn` · expires: 2027-01-31
-> - _Evidence:_ (1) F6 Task 3 (2026-07-27) — `spec.md` §5 cmd 4's
->   non-aspect-preserving resize produced input no honest implementation
->   could process; cost a full `BLOCKED` stop and human escalation. (2) F6
->   Task 4 (2026-07-27) — `plan.md`'s own pinned done-criteria one-liner
->   (`for name in (...): assert hasattr(...)` chained after `;`) was a
->   Python `SyntaxError` — it had never been run before being pinned
->   either. Lower cost this time (a mechanical, zero-ambiguity fix, no
->   escalation needed), but the SAME root gap: a criterion authored and
->   pinned without being executed once against reality. Two independent
->   occurrences in one feature is why this is proposed as a guardrail, not
->   dismissed as a one-off.
-> - _Added:_ 2026-07-27 (proposed — pending human approval)
-
-Both proposals still need your yes/no/amend before either lands in
-`project.md`. Neither blocks Task 5.
+Given this session already knows the automated half is fully green (just
+verified above) and the outcome of spawning a verifier now would be a
+foregone `ESCALATE_HUMAN` on the exact same line every precedent hits,
+the human is being asked directly in this session — a clean-context
+verifier will still run afterward (it must; this session may not judge
+its own diff), but only once the manual attestation is in hand, so that
+verifier can complete the FULL Gate (including that line, marked exit 0
+on the strength of the attestation) and proceed straight to Review.
 
 ## next_action
 
-**Mode 3 — the approved spec's Mode line is the standing "go."** This same
-session continues to **Task 5** (Booth UI panel + liveness-honesty copy) —
-Task 4's wrap-up is the precondition, and it just completed. **Task 5 is
-the LAST task**, so its verify pass runs the FULL list from `spec.md`'s
-Verification section, not just plan-authored done-criteria — and per Q9,
-**§5 cmd 8 is a required manual check**: a human must point a real camera
-at their own face with a reference set and confirm the meter reads accept,
-then hold up a different face and confirm reject. That check cannot run
-unattended even in Mode 3 — it will need you at the feature-end checkpoint
-regardless of how the rest of Task 5 goes.
+**Waiting on the human — the ONLY blocker.** Once they run `uv run
+voicelock`, set a face reference, confirm accept on their own face and
+reject on a different face (or report a problem instead), this session
+(or a resumed one) spawns the clean-context verifier with the attestation
+quoted into the prompt, per the F3-T5/F5-T7 pattern. From there: Gate PASS
+→ Review → (on APPROVE) `wrap-up` → Task 5 `DONE` → **Feature 6 complete**
+→ the Mode 3 feature-end checkpoint (completion report, commit/push
+approval) — the human's involvement continues past just this manual check.
+
+Also still outstanding, unrelated, from earlier tasks: **TWO pending
+guardrail proposals** in this file's prior revisions (now folded into
+`memory/verdicts/2026-07-27-F6-T{2,3}.json`) — VIDEO-mode landmarker
+tracker-state hazard, and dry-run-before-pinning for concrete-parameter
+Verification commands (two occurrences: Task 3's spec.md cmd 4, Task 4's
+plan.md SyntaxError). Worth resolving at the same feature-end checkpoint
+rather than a separate touchpoint.
 
 ## Commits
 
-Session base → head: `c19c0c5` → (this wrap-up's commits: verdict file +
-`handoff.md` + `plan.md` DONE state). Nothing pushed.
+Session base → head: `1b93e90` → `dc0e7b5` (two commits: `f57a1d9` DOING,
+`dc0e7b5` build + REVIEW). This `handoff.md` write is a third,
+bookkeeping-only commit. Nothing pushed.
