@@ -101,8 +101,8 @@ Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — Vendor the SFace ONNX weights and establish their per-asset licence
-  - state: DOING
+- [x] **Task 1** — Vendor the SFace ONNX weights and establish their per-asset licence
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/models/sface/*.onnx`, `src/voicelock/models/sface/LICENSE`,
     `src/voicelock/models/sface/NOTICE`

@@ -1,0 +1,96 @@
+Vendored model: SFace face recognition (ONNX)
+==============================================
+
+This directory contains a redistributed copy of the SFace face-recognition
+ONNX model, vendored so VoiceLock can compute face embeddings fully offline
+(no runtime network; loaded via cv2.FaceRecognizerSF.create(model_asset_path=...)).
+
+Source
+------
+- Repo:       https://github.com/opencv/opencv_zoo
+- Path:       models/face_recognition_sface/face_recognition_sface_2021dec.onnx
+- Fetched via: https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
+              (the file is Git-LFS-tracked upstream; raw.githubusercontent.com
+              serves only the LFS pointer, so the media.githubusercontent.com
+              LFS-resolving endpoint was used to fetch the real 38,696,353-byte
+              binary)
+- Retrieved:  2026-07-27
+- Size:       38,696,353 bytes
+- SHA-256:    0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79
+- Verified:   (a) matches the SHA-256 GitHub's own LFS pointer file records for
+              this exact blob (oid sha256:0ba9fbfa...), independent of our own
+              hashing; (b) two separate fetches from the URL above, minutes
+              apart, compared byte-for-byte identical (same verification
+              pattern as models/face_landmarker/NOTICE).
+- Last upstream change: commit ba91a3b9 (2022-01-06, "update sface:
+              quantization ready (#35)"), per the GitHub commits API for this
+              path -- the file predates and is unrelated to this vendoring.
+
+License
+-------
+Apache License 2.0. The full license text is in the sibling LICENSE file,
+fetched verbatim from the SAME directory as the model weights:
+https://raw.githubusercontent.com/opencv/opencv_zoo/main/models/face_recognition_sface/LICENSE
+
+Per-asset evidence (project.md guardrail 1: the licence must be established
+from a source naming *this asset*, not inferred from the framework or the
+wheel):
+
+1. Embedded metadata checked FIRST, per the guardrail's metadata-first
+   clause. The .onnx file was scanned as raw bytes for "apache", "licen",
+   "copyright" (all case variants) and also "SFace", "MobileFaceNet",
+   "zhongyy", "doc_string", "metadata_props" -- ZERO hits for all of them.
+   The scan method itself was sanity-checked against known-present strings
+   (ONNX node/weight names like "conv_1_conv2d_weight" DO appear), so the
+   absence is a real absence, not a broken scan -- the same result as
+   models/face_landmarker/face_landmarker.task (no embedded licence there
+   either). The model carries no producer/doc_string metadata at all; it
+   appears to be a direct MXNet->ONNX conversion with layer names only.
+2. Primary source naming this specific asset: opencv_zoo's own
+   models/face_recognition_sface/README.md states plainly, in its own
+   "License" section: "All files in this directory are licensed under
+   [Apache 2.0 License](./LICENSE)." -- "this directory" is the exact
+   directory containing face_recognition_sface_2021dec.onnx, in the same
+   commit, so this is a first-party statement about the weight file itself,
+   not a repo-level inference from an unrelated Apache-2.0 wheel or a
+   different subdirectory. This is a *stronger* evidence chain than
+   face_landmarker's (which required corroborating three separate model-card
+   PDFs because no per-model LICENSE/README existed) -- here the model's own
+   directory carries its own LICENSE file and an explicit prose statement
+   naming it.
+3. Root-repo cross-check (supporting, not load-bearing on its own):
+   opencv_zoo's top-level LICENSE is the same Apache License 2.0 text,
+   consistent with the per-directory statement.
+
+Attribution (from models/face_recognition_sface/README.md, carried forward
+per Apache 2.0 section 4(d)):
+- SFace: "Sigmoid-Constrained Hypersphere Loss for Robust Face Recognition"
+  (https://arxiv.org/abs/2205.12010), contributed by Yaoyao Zhong
+  (https://github.com/zhongyy).
+- Model files encode MobileFaceNet instances trained on the SFace loss
+  function.
+- ONNX conversion from the original codebase
+  (https://github.com/zhongyy/SFace) by Chengrui Wang
+  (https://github.com/crywang).
+- Reference: https://ieeexplore.ieee.org/document/9318547
+
+Vendored files
+--------------
+- face_recognition_sface_2021dec.onnx   the fp32 model (38,696,353 bytes).
+                                          The int8 and int8bq (block-quantized)
+                                          variants in the same upstream
+                                          directory are NOT vendored -- F6
+                                          uses the fp32 model only, matching
+                                          the Q7 research run
+                                          (memory/research/2026-07-26-f6-mediapipe-to-sface-alignment.md).
+- LICENSE                                Apache License 2.0 (unmodified
+                                          upstream text, fetched from the same
+                                          directory as the model).
+
+Threshold note
+--------------
+OpenCV's published SFace operating point (cosine >= 0.363, L2 <= 1.128) is
+adopted as-is by src/voicelock/faceprint.py rather than measured on this
+repo's own fixtures -- see that module and spec.md Q5 for the reasoning.
+This NOTICE records only the model's provenance and licence, not the
+threshold decision.
