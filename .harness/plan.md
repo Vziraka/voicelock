@@ -2,8 +2,8 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **planned —
-  3 tasks, all `TODO`. Next: `/implement` Task 1.**
+- Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **building —
+  Task 1 `DOING`, Tasks 2–3 `TODO`.**
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 - Spec: `spec.md` holds F5.5's spec, `Status: CLEAR`, zero clarification
@@ -59,7 +59,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — `load_wav`: refuse bad audio instead of silently converting it
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/voiceprint.py`, `tests/test_voiceprint.py`
   - notes: Edit `load_wav` (`:148-158`) only. Remove the downmix branch
