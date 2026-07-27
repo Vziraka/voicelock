@@ -1,0 +1,31 @@
+{
+  "task": "T3",
+  "feature": "Feature 5.5 — Voiceprint dead-surface hygiene (LAST task)",
+  "spec": "spec.md@5d39918",
+  "change": "20fb953..f4c8074",
+  "gate": {
+    "commands": [
+      "uv run ruff check .",
+      "uv run pytest",
+      "<spec.md §5 cmd 1 — dead surface gone>",
+      "<spec.md §5 cmd 2 behaviour half — load_wav raises on stereo and on 44.1 kHz>",
+      "<spec.md §5 cmd 2 second half — the tests for it exist>",
+      "<spec.md §5 cmd 3 — ACCEPT_CUTOFF == 0.45, REJECT_CUTOFF == 0.65>",
+      "<spec.md §5 cmd 4 — dummy-embedder mutation proof>",
+      "<spec.md §5 cmd 5 — the overclaiming name is gone, the limitation documented>",
+      "<spec.md §6 cmd — the capture.py justification is still at the raises>"
+    ],
+    "exit": 0,
+    "note": "LAST task, so the FULL spec Verification list ran, not just the plan's done-criteria: 9 commands, all exit 0, first attempt. pytest 124 passed / 0 failed / 41.98s — above the >=122 floor and unchanged from Task 2. Longest command well inside the 10-minute budget. Scope check PASS: two files, tests/test_voiceprint.py (declared) and plan.md (state). No manual check, per spec.md §5's recorded departure — the verifier did NOT treat its absence as a gap."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "The verifier did not take the docstring's central claim on trust. It checked provenance against tests/fixtures/voiceprint/README.md:8-10 AND independently measured the spec's dummy embedder against this exact fixture pair: 0.0163, far inside ACCEPT_CUTOFF 0.45 (same dummy scores the impostor 0.1255) — so 'a measure with no speaker modelling would land in the accept band too' is demonstrated, not asserted. It also confirmed the assertions are byte-identical to the pre-image and no fixture is in the diff. Both handoff doubts resolved: the extra section-comment edit is cleaning an orphan the change itself created (the old comment restated the exact overclaim being removed), and the suite count held at 124."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 4",
+  "date": "2026-07-26"
+}

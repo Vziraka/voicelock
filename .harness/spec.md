@@ -1,181 +1,286 @@
-# Spec: F5.5 — Voiceprint dead-surface hygiene
+# Spec: F6 — Faceprint on screen
 
-Feature: Feature 5.5 from `roadmap.md`
+Feature: Feature 6 from `roadmap.md`
+
+> **DRAFT — parked at the approval gate.** Written unattended as F5.5's Mode 4
+> tail (2026-07-26). It has **not** been approved and must not be planned or
+> built. Every open question is embedded below as a clarification marker with my
+> recommended answer attached; the universal [Startup] rule makes an unresolved
+> marker physically block approval. **Ten markers** — nine numbered questions
+> plus §6's mandatory Mode 2+ blind-spot question — and Q1 and Q7 are the ones
+> that change what gets built.
 
 ## 0. Approval gate
 
-- [x] Grilling record below is `CLEAR` (a search for the clarification marker —
+- [ ] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [x] Approved by human
+- [ ] Approved by human
 
-- **Mode:** Mode 4 (Continuous roadmap). Set by the human 2026-07-26. The
-unlock was checked mechanically, not assumed: all 29 files in
-`memory/verdicts/` record `"dev_mode": "Mode 3"`, and the completion reports
-for F3, F4 and F5 are in git history (`627963e`, `22e6a4a`, `319b48b`) — both
-conditions the universal Modes section requires. Mode 4 means this feature runs
-to DONE unattended and **F6's spec is then drafted with its questions embedded
-and parked at the approval gate** — never approved, never built.
-Mode 4's autonomy is bounded here by an unusually settled design: the scope was
-cut on measurement during grilling, no dependency changes, no live surface, and
-§5 pins that no measured constant may move.
+- **Mode:** *(left blank deliberately — the human sets this at approval. Mode 4
+  is mechanically unlocked: 33 verdict files record Mode 3 or Mode 4, and the
+  F3/F4/F5/F5.5 completion reports are in git history. Unlocked is not the same
+  as appropriate — see the note under §6.)*
 
 The agent may NOT plan or build until BOTH boxes are checked.
 The second box is checked by the HUMAN typing the `x` — the agent never checks it.
 
-> **This spec explicitly UNFREEZES** `src/voicelock/voiceprint.py`**.** F4's spec §4
-> froze it as "the identity source, unchanged", and F5 inherited that. That
-> freeze was correct while F4's measured constants were being pinned against it.
-> It is lifted **for the named deletions in §4 only** — no behaviour on any live
-> path changes, and §5 pins that the measured constants do not move.
-
-
-
 ## 1. Outcome
 
-Remove surface from the voiceprint engine that no caller and no test can reach,
-and stop one test from claiming to prove something it cannot. Sourced from
-calibration run 2 (`.out-of-scope/2026-07-26-calibration-findings-run2.md`),
-the same channel that produced F4.5.
-
-This is a hygiene feature, deliberately inserted before F6 for the same reason
-F4.5 was inserted before F5: **F6 reopens this exact module.** F6 adds a second
-vendored model (OpenCV SFace) and a faceprint that mirrors the voiceprint's
-shape, so it will read `voiceprint.py` as the pattern to copy. Copying dead
-branches is how the F4.5 fake-stream pattern nearly propagated into F5.
+Compute the **Faceprint** — a face embedding — and show a live match distance
+against a stored face reference, in the Booth, coloured accept / borderline /
+reject. **Not wired into any lock.** This is the visual analog of F3, and it is
+deliberately the same shape: a diagnostic you can watch work before it becomes
+a key in F7.
 
 Three things must be true when this is done:
 
-1. **No unreachable surface in** `voiceprint.py`**.** `_resample`, both of its call
-  sites, the stereo-downmix branch, and the `sample_rate` parameters on
-   `embed` and `compare` are gone. This was the one blocking finding **both**
-   independent F3-T2 verifiers agreed on, and it is a direct hit on the earned
-   "no unexercised branch" guardrail.
-2. **Bad audio is refused loudly, not misread quietly.** `load_wav` raises a
-  clear `ValueError` naming the problem when handed multichannel or
-   non-16 kHz audio, instead of silently converting it. A test drives both
-   raises, so this replacement is genuinely exercised rather than being new
-   dead surface of its own.
-3. **The same-speaker test stops overclaiming.** It is renamed and documented
-  to say what it actually proves — that the compare pipeline runs end to end —
-   with a pointer to the impostor test, which carries the real teeth.
+1. **`faceprint.py` exists and computes a real embedding** from a detected face,
+   using OpenCV's SFace through the `opencv-contrib-python` F5 already declares,
+   with the ONNX weights vendored offline beside `models/ecapa/` and
+   `models/face_landmarker/`. No network at runtime.
+2. **A stored face reference can be set, compared against, and reset**, and the
+   Booth shows the resulting distance in a three-band meter — the same
+   accept/borderline/reject vocabulary F3 established, with cutoffs **measured
+   on this repo's fixtures and pinned**, not copied from a vendor default.
+3. **Same face reads close, a different face reads far**, proven by a test whose
+   assertion would break if the speaker— sorry, the *face* model were removed.
+   F5.5 just spent a task fixing exactly this failure in the voice path; F6 must
+   not reproduce it.
 
-Demo: `uv run pytest` stays green with the same measured constants, and
-`voiceprint.py` no longer contains a line that cannot execute.
+Demo: point the camera at your face with a reference set → the meter reads
+accept; hold up a photo of someone else → it reads reject.
+
+> **Inherited blind spot — read before writing a line of `faceprint.py`.**
+> F5.5's `voiceprint.py` **refuses** audio that is not 16 kHz mono, and that is
+> correct there **only** because `capture.py` pins the microphone to exactly one
+> rate and one channel. **F6 must not copy that pattern.** Camera frames
+> legitimately vary in resolution, and a faceprint module that raises on an
+> unexpected frame size would reject valid input. Where the voice path refuses,
+> the face path **converts** — resize, crop, align. This is a §4 constraint, not
+> advice, and §5 pins a check for it.
 
 ## 2. Grilling record — ambiguity scan
 
-**Status: CLEAR** — every category resolved; the `Mode:` line is set and the
-Mode 2+ blind-spot question is answered, so zero clarification markers remain
-(2026-07-26).
+**Status: DRAFT — NOT CLEAR.** Ten markers remain — the nine numbered questions
+listed by category below, plus §6's mandatory Mode 2+ blind-spot question. Batch-grilled per the `spec` skill's unattended-drafting rule:
+there was no human in the session to interview one question at a time, so each
+question carries my recommended answer and the human resolves them at approval.
 
+| Category | Verdict | State |
+|---|---|---|
+| Functional scope & behavior | **Partial** | Q4 (how many frames make a reference), Q8 (UI surface) |
+| Domain & data model | **Partial** | Q3 (where the face reference is stored, and in what format) |
+| Interaction & UX flow | **Partial** | Q8 (does the Booth mirror F3's panel exactly) |
+| Non-functional (perf, security) | **Partial** | Q6 (per-frame budget — SFace on every frame, or on demand) |
+| Integration & dependencies | **Partial** | Q2 (is a TECH-PICK owed for a vendored model file when no new package enters `pyproject.toml`), Q7 (how SFace gets its aligned crop) |
+| Edge cases & failure modes | **Partial** | Q6 (no face / several faces), and the §1 blind-spot rule (convert, never refuse) |
+| Completion signals | **Partial** | Q1 (what fixtures make the assertions real), Q5 (measured cutoffs vs vendor default), Q9 (manual check) |
+| Terminology (matches `CONTEXT.md`) | **Clear** | Uses **Faceprint** and **FaceView** exactly as the glossary defines them. No new terms. |
 
-| Category                           | Verdict | Resolved by                                                                                                                                                              |
-| ---------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Functional scope & behavior        | Clear   | Three items in §1, bounded by §3. Scope was cut down mid-grilling on evidence — see "What changed during grilling" below.                                                |
-| Domain & data model                | Clear   | No format, vault, or crypto surface touched. No persisted artifact changes. The `.ref` reference-vector file format is untouched.                                        |
-| Interaction & UX flow              | Clear   | No UI change of any kind. `app.py` calls `embed`/`compare` positionally and passes no `sample_rate` (verified by grep, 2026-07-26), so no bridge or Booth surface moves. |
-| Non-functional (perf, security)    | Clear   | Strictly a deletion plus two raises; no performance or security surface. Offline-only untouched.                                                                         |
-| Integration & dependencies         | Clear   | **No new dependencies.** Nothing added to `pyproject.toml`; no TECH-PICK trigger.                                                                                        |
-| Edge cases & failure modes         | Clear   | The two cases the deleted code pretended to handle become explicit raises with tests (§1.2). The frozen-module conflict is resolved by the §0 unfreeze note.             |
-| Completion signals                 | Clear   | §5 pins six runnable commands, including a permanent mutation-resistance proof and an assertion that the measured constants did not move.                                |
-| Terminology (matches `CONTEXT.md`) | Clear   | Uses **Voiceprint** as the glossary defines it. No new terms.                                                                                                            |
+### The questions
 
+**Q1 — fixtures: where does a second face come from, and is a same-face pair
+even honest?** This is the feature's hardest question and `roadmap.md` flags it
+explicitly: F5 commits **one** face (`portrait.jpg`, and even that is
+fetched-not-committed because it is a White House press photograph).
 
-**What changed during grilling (recorded because the scope shrank on evidence):**
-the feature was drafted with a fourth item — replacing the vacuous same-speaker
-assertion with an *ordering* assertion on the byte-disjoint `enroll1`/`enroll5`
-pair. It was **dropped after measurement disproved it**. A dummy embedder with
-no speaker modelling at all (a 192-bin log-magnitude spectrum) orders that pair
-correctly too — 0.077 < 0.113 — so the proposed test would have passed just as
-vacuously as the one it replaced. The root confound is not the byte overlap: both
-speaker-A clips come from **one recording session**, so any content-derived
-measure puts them nearer each other than a differently-recorded speaker. With one
-clip per speaker in the Apache-2.0 source and offline-only forbidding a fetch, no
-fixture-based same-speaker assertion can be made mutation-resistant. That is
-already the standing position of `tests/fixtures/voiceprint/README.md:89-93`, and
-it stands. Item 3 is what survives: stop the test overclaiming.
+F6 needs two assertions with teeth: *same person → close* and *different person
+→ far*. The different-person half is easy — the CC0 MET daguerreotype already
+researched and detection-verified in
+`memory/research/2026-07-26-f5-fixture-replacement-candidates.md` is a clean
+face B. **The same-person half is the trap.** A photo cannot be windowed the way
+F3 windowed its audio, so the tempting move is to derive a second "probe" from
+the same image by cropping, rescaling or re-encoding it — and that would be
+**exactly** the vacuous test F5.5 was created to remove. Note also that run 2's
+recorded fix direction for the voice case (assert on a byte-disjoint pair) was
+**drafted and then disproved by measurement** during F5.5's grilling; do not
+import that idea here by analogy.
+
+[NEEDS-CLARIFICATION: Which fixture arrangement? **My recommendation: (a) find a
+genuine second photograph of the same person under a CC0/public-domain licence —
+Wikimedia has many subjects with multiple independent PD portraits — and commit
+face A1, A2 and B, all CC0, all licence-established per-asset. If a real A1/A2
+pair cannot be found, take option (b): commit only the different-person
+assertion, and state in the fixture README and at the test that no automated
+same-face proof exists, with the same-face case proven only by the human's live
+manual check.** Option (c) — deriving A2 from A1 by crop/rescale/re-encode — is
+possible but must then be named for what it is: a proof of encoding invariance,
+not of identity, and I recommend against it on F5.5's evidence. This needs a
+`research` run before the spec is approved; it is a licence question as much as
+a technical one.]
+
+**Q2 — is a TECH-PICK owed?** `opencv-contrib-python` is already approved and
+declared (F5), so `cv2.FaceRecognizerSF` needs no new package. But the SFace
+**ONNX weights** are a new vendored third-party asset, and `project.md`'s first
+guardrail requires the licence to be established from a source naming *that
+asset* — the artifact's own metadata first.
+
+[NEEDS-CLARIFICATION: Does vendoring a model file with no new package entry
+require the full `formats/TECH-PICK.md` walkthrough, or only the per-asset
+licence establishment? **My recommendation: skip the full TECH-PICK (no
+alternative is being chosen — SFace was already named in F5's TECH-PICK and is
+reachable through an approved package) but run the per-asset licence check in
+full, as its own task, with the same escalation rule that fired twice in F5.
+Nothing gets committed to `models/sface/` until that task produces a non-stub
+`LICENSE` and `NOTICE` recording the evidence chain.**]
+
+**Q3 — where does the face reference live, and in what format?**
+
+[NEEDS-CLARIFICATION: **My recommendation: `~/.voicelock/faceprint.ref`, a
+plaintext `np.save` sibling of `voiceprint.ref`, mirroring F3 exactly** — same
+`default_reference_path()` shape, same `load_reference` / `_save_reference`
+pattern. It is not a secret (an embedding is not a key until F7 makes it one),
+and putting it beside the voice reference keeps one obvious place for
+"diagnostic state that is not the vault".]
+
+**Q4 — how many frames make a face reference?** F3 averages
+`REFERENCE_TAKES = 3` separate utterances.
+
+[NEEDS-CLARIFICATION: **My recommendation: average N frames captured over a
+short window (N = 3, mirroring F3) rather than a single frame**, re-normalized
+the same way, because a single frame bakes in one blink/expression. Note the
+honest asymmetry: three *frames* seconds apart are far more correlated than
+three separate spoken sentences, so this buys less than it does for voice —
+which is an argument for saying so in the code, not for skipping it.]
+
+**Q5 — cutoffs: measure or adopt?** OpenCV publishes canonical SFace thresholds
+(cosine ≈ 0.363, L2 ≈ 1.128). F3's precedent is to *measure* cutoffs on this
+repo's own fixtures and pin them as module constants.
+
+[NEEDS-CLARIFICATION: **My recommendation: measure on this repo's fixtures and
+pin, following F3, and record the measurement in the fixture README the way
+`tests/fixtures/voiceprint/README.md` does** — but state the vendor's published
+threshold alongside it, so a large divergence is visible rather than silently
+overridden. This depends on Q1: with only one face pair there is not enough
+data to pin honestly, and the spec should then adopt the vendor threshold and
+say so.]
+
+**Q6 — per-frame cost, no face, and several faces.** SFace inference on every
+frame at `TARGET_FPS = 30` may not fit the 33 ms budget F5 measured itself
+against (`facedetect.py` uses ~10 ms/frame today).
+
+[NEEDS-CLARIFICATION: **My recommendation: compute the faceprint on demand, not
+on every frame** — the Booth's meter updates on a button press or at a low fixed
+interval, so the preview stays at 30 fps regardless. For **no face detected**,
+raise a `NoFaceError` analogous to `NeedMoreAudioError`, surfaced as Booth copy,
+not a crash. For **several faces**, use the largest by bounding-box area and say
+so in a comment. And per §1's blind spot: an unexpected frame **size** is
+converted, never refused.]
+
+**Q7 — how does SFace get its aligned crop?** `cv2.FaceRecognizerSF.alignCrop`
+expects a detection row in **YuNet's** format — a bounding box plus five
+specific landmarks (both eye centres, nose tip, both mouth corners). This repo
+detects with **MediaPipe**, which returns 478 landmarks in a different scheme.
+This is an architecture question, so it is a must-answer under the universal
+[Uncertainty] rule.
+
+[NEEDS-CLARIFICATION: **My recommendation: derive the five YuNet-shaped points
+from the 478 MediaPipe landmarks `FrameResult.landmarks` already carries
+(unflipped, full-frame normalized — F5 deliberately returned all 478 for exactly
+this) and build the detection row ourselves, rather than vendoring YuNet as a
+third model.** It reuses what exists and adds no asset. **But it must be
+verified before approval, not assumed:** confirm that `alignCrop` accepts a
+hand-built row and that the resulting embedding actually separates the fixtures.
+If it does not, the fallback is to vendor YuNet too — which reopens Q2's licence
+work for a second asset.]
+
+**Q8 — Booth surface.** F3 added a voiceprint panel: a 3-band meter, "Set
+reference", "Reset".
+
+[NEEDS-CLARIFICATION: **My recommendation: mirror F3's panel exactly** — a
+faceprint panel with the same three-band meter, "Set face reference" and
+"Reset", placed beside the existing FaceView disk. Same colours, same
+vocabulary, and **the page keeps no state the engine owns** (`project.md`
+guardrail): Python computes the distance and the band, JS renders them.]
+
+**Q9 — manual check.** F5.5 was the first feature with none, because it had no
+live surface. F6 has one.
+
+[NEEDS-CLARIFICATION: **My recommendation: the manual check returns and is
+required** — a human points the camera at their own face with a reference set
+and confirms accept, then holds up a different face and confirms reject. F6's
+whole point is a thing you watch work, and Q1 may leave the same-face case with
+**no** automated proof at all, which would make the live check the only evidence
+for half the feature.]
 
 ## 3. Non-goals
 
-- **Re-pinning** `ACCEPT_CUTOFF`**,** `REJECT_CUTOFF`**, or F4's** `CORRECTION_RADIUS`**.**
-Explicitly forbidden here. §5 asserts they do not move. Re-measuring them is a
-measurement task needing its own spec and honest fixtures.
-- **New or replacement fixtures.** No new audio enters the repo. The two-clips
-problem is real and stays F9's / a future fixture feature's.
-- **Touching** `middlelock.py`**,** `vault.py`**, or the F4 construction.**
-- `load_reference`**'s re-normalize** (`voiceprint.py:112`). A verifier flagged
-it as survivable under mutation, but it is an unconditional defensive
-statement on data read from disk, not an unreachable branch — a different
-category from the guardrail's target. Deliberately left alone on a frozen
-identity module.
-- **Any UI, camera, or face surface.** F6 owns those.
-
-
+- **Any lock wiring.** The faceprint does not derive a key, does not touch
+  `vault.py`, and does not seal anything. That is **F7**.
+- **Liveness, anti-spoof, deepfake detection.** Holding a photo up to the camera
+  is expected to *pass* the face match at F6 — that is precisely why F8 exists.
+  Nothing in this feature may claim otherwise, in code, copy or comment.
+- **Re-pinning any voice constant.** `ACCEPT_CUTOFF`, `REJECT_CUTOFF` and
+  `CORRECTION_RADIUS` are F3/F4 measurements and stay untouched.
+- **Changing `facedetect.py`'s camera lifecycle or preview pipeline.** F6
+  consumes `FrameResult.landmarks`; it does not re-cut the F5 composite.
+- **Replacing `portrait.jpg`.** Whatever Q1 resolves to, F5's
+  fetched-not-committed arrangement for that file stands unless the human
+  explicitly retires it.
+- **The `voicelock` → new-name rename.** Still parked (`roadmap.md`).
 
 ## 4. Constraints
 
-- **No new dependencies.** Nothing enters `pyproject.toml`.
-- `voiceprint.py` **is unfrozen for these deletions only** (see §0). Every other
-line of it stays as F4 left it.
-- **No live-path behaviour may change.** Verified precondition: `app.py:66`,
-`app.py:221` and `app.py:245` are the only production callers, and none passes
-`sample_rate`; `capture.py` pins the only real audio source to 16 kHz mono.
-So removing the parameters is caller-safe.
-- **The deletions, precisely:** `_resample` (`voiceprint.py:206-211`); its call
-sites at `:71-72` and `:156-157`; the `data.ndim > 1` downmix at `:154-155`;
-the `sample_rate` parameter on `embed` (`:65`) and on `compare` (`:116`); and
-`compare`'s internal pass-through at `:124`.
-- **The replacements, precisely:** `load_wav` raises `ValueError` naming the
-actual sample rate when it is not `SAMPLE_RATE`, and raises `ValueError`
-naming the channel count when the data is not mono.
-- **Test renaming:** `test_same_speaker_accepts` is renamed to say what it
-proves, and carries a docstring stating that the probe is a sub-window of the
-reference audio and that the impostor test is the one with teeth.
-
-
+- **Offline-only.** No network at runtime; the SFace weights load from a local
+  path exactly as `models/ecapa/` and `models/face_landmarker/` do.
+- **No new package in `pyproject.toml`** on the recommended path — SFace comes
+  through the already-approved `opencv-contrib-python`. If Q7 forces YuNet,
+  that is still a vendored asset, not a package.
+- **Per-asset licence.** Nothing enters `src/voicelock/models/sface/` until its
+  licence is established from a source naming *that file* — embedded metadata
+  first (`project.md` guardrail 1). A non-stub `LICENSE` and `NOTICE` recording
+  the evidence chain ship with it.
+- **Convert, never refuse.** The faceprint path accepts whatever frame the
+  camera gives it and resizes/crops/aligns as needed. Refusing an unexpected
+  frame size is forbidden — see §1's blind spot and §5's check.
+- **Python owns the state; JS renders.** No face state in the page.
+- **No unexercised surface.** Every branch added ships with a test that drives
+  it (`project.md` guardrail), and every test must fail if the behaviour it
+  claims to cover is removed (`project.md` guardrail) — F6's own §5 makes the
+  second one runnable rather than aspirational.
 
 ## 5. Verification — definition of done (runnable)
+
+*(Draft. The feature-specific commands below are the shape the Gate will run;
+several cannot be finalised until Q1, Q5 and Q7 are resolved, and the ones that
+depend on a fixture name are marked. At Mode 2+ every command needs pinned
+expectations — filling those in is part of resolving the questions.)*
 
 **Standing** (the regression net — `project.md`'s Gate commands):
 
 - `uv run ruff check .` → exit 0.
-- `uv run pytest` → exit 0. Reference: 122 passing before this feature; the
-count rises by the new `load_wav` tests and must not fall.
+- `uv run pytest` → exit 0. Reference: **124 passing** at the end of F5.5; the
+  count rises by F6's tests and must not fall.
 
 **Feature-specific:**
 
-1. **The dead surface is gone.**
-  `uv run python -c "import inspect; from voicelock import voiceprint as v; s = inspect.getsource(v); assert '_resample' not in s, '_resample survives'; assert 'sample_rate' not in str(inspect.signature(v.embed)), 'embed still takes sample_rate'; assert 'sample_rate' not in str(inspect.signature(v.compare)), 'compare still takes sample_rate'; assert '.ndim > 1' not in s, 'the downmix branch survives'"`
+1. **The vendored SFace model is present and licence-documented.**
+   `uv run python -c "import pathlib; d = pathlib.Path('src/voicelock/models/sface'); assert d.is_dir(); assert (d / 'LICENSE').stat().st_size > 200; assert (d / 'NOTICE').stat().st_size > 200"`
+   → exit 0. Mirrors the standing check F5 pinned for `models/face_landmarker/`.
+2. **The faceprint is computed offline** — no DNS resolution during a load +
+   embed, the same socket-blocking pattern
+   `tests/test_voiceprint.py::test_model_loads_offline_from_vendored_path` uses.
    → exit 0.
-2. **Bad audio raises instead of being converted** — the behaviour, driven
-  directly rather than through a name filter:
+3. **Same face close, different face far** — the assertions Q1 decides. Pinned
+   expectations pending Q1/Q5.
+4. **The face path CONVERTS rather than refuses** — the F5.5 blind-spot
+   mitigation, made runnable: feed the embedder a frame at a resolution the
+   camera never produces (e.g. 1280×720 and 320×240) and assert it returns an
+   embedding instead of raising.
+   `uv run python -c "import numpy as np; from voicelock import faceprint; ..."`
+   → exit 0. **This is the command that stops F6 inheriting the wrong half of
+   F5.5.**
+5. **The justification travels with the code**, the converse of F5.5 §6:
+   `uv run python -c "import inspect; from voicelock import faceprint as f; s = inspect.getsource(f); assert 'voiceprint' in s, 'the module does not record WHY it converts where voiceprint.py refuses'"`
    → exit 0.
-   And the tests for it must actually exist — a `-k` filter that matches
-   nothing still exits 0, so the count is asserted rather than assumed:
-   `uv run python -c "import pathlib; t = pathlib.Path('tests/test_voiceprint.py').read_text(encoding='utf-8'); assert 'multichannel' in t, 'no multichannel load_wav test'; assert t.count('pytest.raises(ValueError)') >= 2, 'fewer than 2 ValueError tests for load_wav'"`
-   → exit 0.
-3. **The measured constants did not move.**
-  `uv run python -c "from voicelock.voiceprint import ACCEPT_CUTOFF, REJECT_CUTOFF; assert ACCEPT_CUTOFF == 0.45, ACCEPT_CUTOFF; assert REJECT_CUTOFF == 0.65, REJECT_CUTOFF"`
-   → exit 0. This is the anti-temptation pin: nothing in this feature may be
-   "fixed" by moving a threshold.
-4. **The impostor test genuinely depends on the speaker model** — a permanent,
-  runnable mutation proof, and the enforcement half of the guardrail adopted
-   2026-07-26 ("a test must assert something that would break if the behaviour
-   were removed"):
-   `uv run python -c "import numpy as np, pathlib; from voicelock import voiceprint as vp; f = lambda a: (lambda v: (v / np.linalg.norm(v)).astype(np.float32))(np.log1p(np.array([b.mean() for b in np.array_split(np.abs(np.fft.rfft(a.astype(np.float64))), 192)]))); d = pathlib.Path('tests/fixtures/voiceprint'); ref = vp._normalize(np.mean([f(vp.load_wav(d / ('speakerA_take%d.wav' % i))) for i in (1, 2, 3)], axis=0)); dist = vp.cosine_distance(ref, f(vp.load_wav(d / 'speakerB.wav'))); assert dist < vp.REJECT_CUTOFF, 'a dummy embedder with no speaker modelling still rejects the impostor - the impostor test has no teeth'"`
-   → exit 0. Measured 2026-07-26: real ECAPA scores the impostor **0.832**
-   (reject); the dummy scores **0.113** (accept), so the assertion holds and the
-   test is proven mutation-sensitive.
-5. **The overclaiming test name is gone.**
-  `uv run python -c "import pathlib; t = pathlib.Path('tests/test_voiceprint.py').read_text(encoding='utf-8'); assert 'def test_same_speaker_accepts' not in t, 'the overclaiming test name survives'; assert 'sub-window' in t or 'same recording' in t, 'the fixture limitation is not documented at the test'"`
-   → exit 0.
-
-**No manual check is required.** Unlike F1–F5 this feature has no live surface:
-it deletes unreachable code and renames a test. Nothing a human could observe in
-the Booth changes, so a live demo would be theatre rather than evidence. This is
-a deliberate departure from the per-feature manual-check precedent, and the
-reason is recorded here rather than left implicit.
+6. **The match test is mutation-sensitive** — F6's own version of F5.5 §5 cmd 4:
+   a dummy embedder with no face modelling must **fail** to separate the
+   fixtures, proving the real assertion depends on the model. Exact form pending
+   Q1.
+7. **Manual check** — pending Q9. If required: a human points the camera at
+   their own face with a reference set (accept), then at a different face
+   (reject), and attests it.
 
 **Out-of-scope default (Modes 3–4):** anything discovered during the build that
 is not in §1 gets recorded in `.out-of-scope/` and is never built.
@@ -183,31 +288,38 @@ is not in §1 gets recorded in `.out-of-scope/` and is never built.
 ## 6. Mode 2+ blind-spot question
 
 **"If every gate passed but the feature were still wrong, what would be wrong?"**
-**RESOLVED 2026-07-26 (human's answer): F6 would copy the strict-rejection
-pattern into a place it does not belong.**
 
-Every §5 command could pass and this feature could still do net harm, because
-its stated purpose is that **F6 inherits** `voiceprint.py` **as the pattern to
-copy** (§1). The pattern it will inherit is "refuse unexpected input loudly" —
-and that is correct **only** because `capture.py` pins the microphone to exactly
-one sample rate and one channel, so any deviation genuinely is a bug. F6's image
-path has **no equivalent pin**: camera frames legitimately vary in resolution,
-and a faceprint module that raises on an unexpected frame size would reject
-valid input. The gates cannot catch this, because the damage lands in a feature
-that does not exist yet.
+[NEEDS-CLARIFICATION: This is the mandatory Mode 2+ question and it is the
+human's to answer at approval — my draft answer is below, but it is not a
+resolution.
 
-**Chosen mitigation (a required check, not accepted risk):** the justification
-travels with the code.
+**My draft answer: the meter would read "accept" for a photograph, and a
+watching human would read that as "the face lock works".** F6 computes a face
+*match* and nothing else; a printed photo of the enrolled person will score as
+accept, by design, until F8 adds liveness. The gates cannot catch this because
+the behaviour is correct — the risk is in what the Booth *appears* to claim. The
+mitigation I would propose is the same shape as F5.5's: make the honesty
+runnable rather than cultural — the faceprint panel carries visible copy saying
+this is a match, not a liveness check, and a §5 command asserts that copy exists
+in `index.html` so a later UI tidy-up cannot quietly drop it.
 
-- The `ValueError` raises in `load_wav` each carry a comment stating that the
-pin in `capture.py` is what makes refusal correct here, and that a source
-without such a pin must convert rather than refuse.
-- §5 command 6 (below) asserts that comment exists, so it cannot be dropped in
-a later tidy-up.
+A second candidate, if the human prefers a different framing: **Mode choice.**
+F5.5 ran at Mode 4 and was suited to it — settled design, no dependencies, no
+live surface. F6 is the opposite on every count: a new vendored asset, an
+unresolved fixture-licence question, an unverified alignment path (Q7), and a
+live demo. **I would not recommend Mode 4 here**; Mode 2 or 3 fits the
+uncertainty better. The mode is the human's call and box 2 approves it.]
 
-1. **The rejection's justification is recorded at the code.**
-  `uv run python -c "import inspect; from voicelock import voiceprint as v; s = inspect.getsource(v.load_wav); assert 'capture.py' in s, 'the raises do not explain that the pinned capture rate is what justifies refusing'"`
-   → exit 0.
+## 7. What F6 inherits (recorded so it survives the next handoff rewrite)
 
-*(Numbered 7 to follow §5's list; it is a §5 Verification command and the Gate
-runs it with the others.)*
+- **From F5:** the fetched-not-committed fixture arrangement for `portrait.jpg`;
+  the vendored-model directory pattern with `LICENSE` + `NOTICE`; `FrameResult`
+  carrying **all 478 unflipped landmarks** specifically so this feature can
+  consume them; and the two-faces gap that Q1 must close.
+- **From F5.5:** the blind spot above — refuse-unexpected-input is correct for a
+  pinned source and wrong for a camera — and the harder lesson underneath it,
+  that a same-X test built on a derived probe proves the pipeline, not the
+  model. F6's Q1 is that lesson arriving one feature early, on purpose.
+- **From `project.md`:** the per-asset licence rule (which fired twice in F5, and
+  cleared one asset while rejecting another), the no-unexercised-surface rule,
+  and the mutation-sensitivity rule that §5 cmd 6 makes runnable.

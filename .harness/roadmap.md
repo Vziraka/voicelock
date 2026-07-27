@@ -198,7 +198,7 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   reference IS committed. **F6 inherits that arrangement** as well as the
   two-faces gap below.
 
-- [ ] **F5.5 — Voiceprint dead-surface hygiene** · blocked-by: F5 · Mode 4
+- [x] **F5.5 — Voiceprint dead-surface hygiene** · blocked-by: F5 · **DONE 2026-07-26 (Mode 4)**
   Inserted 2026-07-26 (human decision) — not an original design feature, and the
   second hygiene pause of its kind. Remove surface in `voiceprint.py` that no
   caller and no test can reach (`_resample`, its two call sites, the stereo
@@ -218,6 +218,17 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   justification stays written beside the code.
   *Demo:* none — no live surface. Deliberately the first feature with no manual
   check; the spec records why.
+  Built: `load_wav` now raises `ValueError` naming the real sample rate and the
+  real channel count instead of silently converting; `_resample`, both
+  `sample_rate` parameters and the downmix branch are deleted; the same-speaker
+  test is `test_compare_pipeline_runs_end_to_end` with the sub-window caveat in
+  its docstring. 3 tasks, `rejects: 1` on Task 1 (a criterion-vs-spelling
+  mismatch that found no defect), 0 elsewhere. Final Gate ran the full
+  seven-command list plus both standing commands: **9/9 exit 0, 124 passed**
+  (up from 122). No ADR earned — nothing here is hard to reverse.
+  **The blind spot is mitigated and enforced:** the justification for refusing
+  rather than converting is written beside the raises and §6's Gate command
+  asserts it stays there. **F6 must not inherit that pattern for image data.**
 
 - [ ] **F6 — Faceprint on screen** · blocked-by: F5, F5.5
   Compute the faceprint (face embedding) and show live match distance vs a stored

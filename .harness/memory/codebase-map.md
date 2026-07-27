@@ -4,7 +4,7 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Updated: 2026-07-26 after **F5**. Solid = built (F1 booth + F2 outer lock + F3
+- Updated: 2026-07-26 after **F5.5**. Solid = built (F1 booth + F2 outer lock + F3
   voiceprint diagnostic + F4 voice middle lock + **F5 camera booth**); dashed =
   planned (F6–F9). F4 made the voiceprint a real lock: a hand-rolled numpy
   code-offset fuzzy commitment turns it into a stable key, the vault is now
@@ -16,6 +16,8 @@ Regenerate it when it drifts.
   vendored MediaPipe Face Landmarker, composites an ellipse + landmarks onto
   each frame and pushes it to the page as a data URI, so **FaceView and
   FaceDetect are now solid**. It computes **no identity** — that is F6.
+  **F5.5 added no components** — it deleted unreachable surface from
+  `voiceprint.py` and made `load_wav` refuse bad audio instead of converting it.
 
 ## Architecture (data flow)
 
@@ -114,7 +116,12 @@ flowchart TB
   `CORRECTION_RADIUS = 110` pinned from 200 measured commits
 - `src/voicelock/voiceprint.py` — offline ECAPA speaker embedding (F3): `embed`,
   `set_reference` (3-take L2-avg, injectable path), `cosine_distance`, `compare`
-  → (distance, band) with pinned `ACCEPT/REJECT_CUTOFF`
+  → (distance, band) with pinned `ACCEPT/REJECT_CUTOFF`. **F5.5:** everything
+  here assumes 16 kHz mono and nothing converts — `load_wav` **raises**
+  `ValueError` naming the real rate / channel count, and `embed`/`compare` take
+  no `sample_rate`. That is correct only because `capture.py` pins the mic;
+  **a source without such a pin must convert, not refuse** (the comment beside
+  the raises says so, and a Gate command keeps it there)
 - `src/voicelock/models/ecapa/` — vendored SpeechBrain ECAPA (Apache-2.0), loaded
   offline (`HF_HUB_OFFLINE`, `pretrained_path` override + `LocalStrategy.NO_LINK`)
 - `src/voicelock/facedetect.py` — webcam + face landmarks (F5): `process_frame`

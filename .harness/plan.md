@@ -2,11 +2,12 @@
 
 ## Active context
 - Updated: 2026-07-26
-- Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **building —
-  Tasks 1–2 `DONE`, Task 3 `REVIEW` — the LAST task, so its
-  done-criterion is the FULL `spec.md` Verification list. Then the Mode 4
-  tail: F5.5's completion report, F6's spec drafted and parked, and the
-  feature-end checkpoint (commit + push approval).**
+- Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase:
+  **FEATURE COMPLETE — all 3 tasks `DONE`.** Final Gate ran the full
+  Verification list: 9/9 exit 0, 124 passed. Completion report is in
+  `handoff.md`; F6's spec is drafted and parked at its approval gate in
+  `spec.md`. Waiting at the **feature-end checkpoint** for the human: commit +
+  push approval, and yes/no on the parked guardrail.**
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 - Spec: `spec.md` holds F5.5's spec, `Status: CLEAR`, zero clarification
@@ -36,19 +37,17 @@ legitimately vary in resolution. Task 1 writes that justification beside the
 raises and a done-criterion asserts it stays there.
 
 ### Memory spine (≤5)
-1. **Where we are: Tasks 1–2 `DONE`; only Task 3 remains, and it is a rename
-   plus a docstring.** The dead surface is gone — `load_wav` refuses bad audio,
-   and `_resample`, both `sample_rate` parameters and the downmix branch are
-   deleted. Suite stands at **124 passed**, up from 122, and must stay there:
-   Task 3 changes no assertion and no fixture.
-2. **This feature's criteria match SOURCE TEXT literally — spell the code to
-   satisfy them, never edit the criterion.** Task 1 lost a full verify cycle to
-   exactly this: `spec.md` §5 cmd 2 counts the substring
-   `pytest.raises(ValueError)`, and `pytest.raises(ValueError, match=...)`
-   counts 0. Still ahead: Task 2's `'.ndim > 1' not in s` and `sample_rate`
-   absent from both signatures; Task 3's `def test_same_speaker_accepts` absent
-   and `sub-window`/`same recording` present. A criterion is `spec.md`'s and
-   human-approved — changing one is a spec amendment.
+1. **F5.5 is COMPLETE.** All three §1 outcomes hold, each pinned by a runnable
+   command: the dead surface is gone, `load_wav` refuses bad audio loudly, and
+   the same-speaker test no longer overclaims. 9/9 Gate commands exit 0, **124
+   passed** (up from 122), one reject feature-wide — and that reject found no
+   defect. This ledger is closed; F6 gets a fresh one when its spec is approved.
+2. **Verification commands that match SOURCE TEXT are brittle — spell the code
+   to satisfy them, never edit the criterion.** The feature's one reject was
+   exactly this: §5 cmd 2 counts the substring `pytest.raises(ValueError)`, and
+   `pytest.raises(ValueError, match=...)` counts 0. A criterion is `spec.md`'s
+   and human-approved; changing one is a spec amendment. **A guardrail proposing
+   regex/AST criteria instead is parked in `handoff.md`, awaiting the human.**
 3. **Nothing may be fixed by moving a threshold.** `ACCEPT_CUTOFF = 0.45` and
    `REJECT_CUTOFF = 0.65` are pinned by a done-criterion on Tasks 2 and 3, and
    §5 cmds 3 and 4 **pass today and must keep passing**.
@@ -172,9 +171,13 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count unchanged from Task 1)
   - feedback: (none)
 
-- [ ] **Task 3** — Stop the same-speaker test overclaiming *(LAST task — full spec Verification)*
-  - state: REVIEW
+- [x] **Task 3** — Stop the same-speaker test overclaiming *(LAST task — full spec Verification)*
+  - state: DONE
   - rejects: 0
+  - verdict: `memory/verdicts/2026-07-26-F5.5-T3.json` — GATE PASS on the FULL
+    spec Verification list (9/9 exit 0, `pytest` 124 passed / 0 failed),
+    REVIEW APPROVE (spec pass · standards pass), mechanism `subagent`,
+    2026-07-26
   - files: `tests/test_voiceprint.py`
   - notes: Rename `test_same_speaker_accepts` to say what it actually proves —
     that the compare pipeline runs end to end — and give it a docstring stating

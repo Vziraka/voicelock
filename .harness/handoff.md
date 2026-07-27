@@ -1,85 +1,112 @@
-# Handoff — F5.5 Task 3 (LAST) built, awaiting the full-Verification Gate
+# F5.5 — Voiceprint dead-surface hygiene · COMPLETION REPORT
 
-**Mode 4.** Task 3 is `REVIEW`, `rejects: 0`. It is the feature's **LAST** task,
-so its done-criterion is the **FULL `spec.md` Verification list** — the two
-standing commands plus §5 cmds 1–5 and §6's command, seven in all. The verifier
-starts itself.
+**DONE 2026-07-26 · Mode 4 · 3 tasks · 1 reject across the feature.**
+Awaiting the human at the **feature-end checkpoint**: commit + push approval,
+and a yes/no on the one parked guardrail.
 
-## Changed
+## Outcome vs the spec
 
-**Task 3 — stop the same-speaker test overclaiming.** `tests/test_voiceprint.py`
-only. Rename plus documentation; **no assertion changed, no fixture changed**,
-so the measured behaviour is byte-identical.
+`spec.md` §1 required three things to be true. All three are, each pinned by a
+runnable command rather than by assertion:
 
-- `test_same_speaker_accepts` → `test_compare_pipeline_runs_end_to_end`.
-- A docstring saying what it actually proves — the embed → average → persist →
-  load → distance → band pipeline — and stating plainly that
-  `speakerA_live.wav` is a **sub-window of the same recording** the three
-  reference takes are cut from, so a measure with no speaker modelling at all
-  would land in the accept band too. It points at
-  `test_different_speaker_rejects` as the test with teeth.
-- The section comment above it was updated to match; leaving it reading
-  "same-speaker fixtures land in the accept band" would have re-stated the
-  overclaim one line above the fix.
+1. **No unreachable surface in `voiceprint.py`.** `_resample`, both of its call
+   sites, the stereo-downmix branch, and the `sample_rate` parameters on `embed`
+   and `compare` are gone. §5 cmd 1 → exit 0. This closes the one blocking
+   finding **both** independent F3-T2 verifiers agreed on, and it is a direct
+   hit on the earned "no unexercised branch" guardrail.
+2. **Bad audio is refused loudly, not misread quietly.** `load_wav` raises
+   `ValueError` naming the real sample rate and the real channel count. Two
+   tests drive both raises through a real `soundfile` round-trip, so the
+   replacement is genuinely exercised and is not new dead surface of its own.
+   §5 cmd 2, both halves → exit 0.
+3. **The same-speaker test stops overclaiming.**
+   `test_same_speaker_accepts` → `test_compare_pipeline_runs_end_to_end`, with a
+   docstring stating that its probe is a sub-window of the same recording as the
+   reference takes and pointing at the impostor test as the one with teeth.
+   §5 cmd 5 → exit 0.
 
-**The claim was verified against the fixtures, not assumed.**
-`tests/fixtures/voiceprint/README.md:8-10` records that `speakerA_take1/2/3.wav`
-are consecutive thirds of `example1.wav` and `speakerA_live.wav` is "a central
-window" of that same file; `:18-22` already carries the honest caveat. The
-docstring now puts that limitation where a reader of the test will actually see
-it.
+**Demo, as specified:** `uv run pytest` is green with the measured constants
+unmoved, and `voiceprint.py` no longer contains a line that cannot execute.
 
-## Failed + lesson
+## Final Gate — the FULL spec Verification list, run on Task 3
 
-Nothing failed on this task. Feature-wide there was **one** failure — Task 1's
-Gate FAIL #1 — and its lesson is the parked guardrail below.
+| # | Command | Exit |
+|---|---|---|
+| 1 | `uv run ruff check .` | **0** — "All checks passed!" |
+| 2 | `uv run pytest` | **0** — **124 passed**, 0 failed, 41.98 s |
+| 3 | §5 cmd 1 — the dead surface is gone | **0** |
+| 4 | §5 cmd 2 (behaviour) — `load_wav` raises on stereo and on 44.1 kHz | **0** |
+| 5 | §5 cmd 2 (existence) — the tests for it exist | **0** |
+| 6 | §5 cmd 3 — `ACCEPT_CUTOFF == 0.45`, `REJECT_CUTOFF == 0.65` | **0** |
+| 7 | §5 cmd 4 — the dummy-embedder mutation proof | **0** |
+| 8 | §5 cmd 5 — the overclaiming name is gone, the limitation documented | **0** |
+| 9 | §6 cmd — the `capture.py` justification is still at the raises | **0** |
 
-## next_action
+Test count went **122 → 124**: the spec required it to rise by the new
+`load_wav` tests and never fall, and it did exactly that.
 
-**Verify Task 3** — clean-context subagent, `formats/VERIFIER-PROMPT.md`
-verbatim, base `20fb953`, head `f4c8074`. **This is the feature's last task, so
-the Gate runs the FULL `spec.md` Verification list**, including §5 cmd 4's
-permanent dummy-embedder mutation proof (the enforcement half of the
-2026-07-26 "a test must assert something that would break if the behaviour were
-removed" guardrail) and §6's justification-at-the-code command.
+**No manual check, deliberately.** `spec.md` §5 records why: this is the first
+feature with no live surface, so a Booth demo would be theatre rather than
+evidence. The Task 3 verifier explicitly did **not** treat its absence as a gap.
 
-On APPROVE this session writes F5.5's completion report, drafts **F6's spec
-parked at its approval gate** (the Mode 4 tail), and then stops at the
-**feature-end checkpoint** for commit + push approval.
+## Per-task record
 
-## What I ran (disclosure — the Gate is fresh eyes' job)
+| Task | What | rejects | Verdict |
+|---|---|---|---|
+| 1 | `load_wav` refuses bad audio (+ the F6 justification comment) | **1** | `memory/verdicts/2026-07-26-F5.5-T1.json` |
+| 2 | Remove the `sample_rate` params, delete `_resample` | 0 | `…-F5.5-T2.json` |
+| 3 | Stop the same-speaker test overclaiming (LAST) | 0 | `…-F5.5-T3.json` |
 
-- `uv run ruff check .` → **exit 0** (the step-5 quick lint).
-- **`spec.md` §5 cmd 5 verbatim** → exit 0. This is a Gate command and I ran it;
-  it is the direct check of the one thing this task changes, and I am naming it
-  rather than leaving it implicit. Every other Verification command is unrun by
-  me — in particular §5 cmd 4's mutation proof and `uv run pytest`.
-- A repo-wide grep for `test_same_speaker_accepts`: the only surviving hits are
-  harness documents (`spec.md`, `plan.md`, the calibration findings) referring
-  to it historically. **No code or `-k` filter references the old name.**
+All three verified by **clean-context subagents** (four runs; Task 1 twice).
+Every verdict records `"mechanism": "subagent"` and `"dev_mode": "Mode 4"`.
 
-## Things I am not certain about
+**The one reject, in full:** Task 1's Gate FAIL #1 found **no defect**. `spec.md`
+§5 cmd 2 counts the literal substring `pytest.raises(ValueError)`; the tests were
+spelled `pytest.raises(ValueError, match=…)`, so the comma broke the match and
+the count measured 0. Every other criterion passed on that attempt, `pytest`
+included. Fixed in the test spelling — `with pytest.raises(ValueError) as
+excinfo:` plus an assertion on `str(excinfo.value)` — which satisfies the
+command as written and keeps the message assertion. **The criterion was not
+touched**: it is human-approved spec text, and editing it to fit the code would
+have been a silent spec amendment.
 
-1. **The section comment was edited** (`# --- case (1): the compare pipeline
-   runs end to end and bands its result ---`). The task specified "rename +
-   docstring"; this is a third line. Justified because the old comment restated
-   the exact overclaim being removed, but it is strictly beyond the literal
-   instruction.
-2. **The suite count must stay at 124.** A rename changes no count. If it
-   moves, something else did.
+## `memory/deviations.md` entries during this feature
 
-## Ledger
+**None.** No rule proved impossible to follow literally, and no conflict between
+state files arose. Verified against git history for the feature's commit range.
 
-| Task | State |
-|---|---|
-| 1 — `load_wav` refuses bad audio | `DONE`, `rejects: 1`, verdict archived |
-| 2 — remove the `sample_rate` params, delete `_resample` | `DONE`, `rejects: 0`, verdict archived |
-| 3 — **LAST** — stop the same-speaker test overclaiming | **`REVIEW`**, `rejects: 0` ← this session |
+## Escalation-worthy things that resolved themselves
+
+1. **A spec-vs-plan wording mismatch.** `spec.md` §6 says the raises "**each**
+   carry a comment"; `plan.md` Task 1 says "a comment" (singular). Resolved
+   without escalating by satisfying the stricter reading — one block comment
+   carrying the full doctrine plus a per-raise inline comment naming the pin
+   each rests on — and by flagging it in the handoff so the verifier ruled on it
+   rather than inheriting my judgment. It approved the arrangement.
+2. **A dependency that fell out of use.** Deleting `_resample` removed the
+   repo's only `torchaudio` import. Not acted on: §4 forbids touching
+   `pyproject.toml`, it is not in §1, and it would change nothing —
+   `speechbrain` declares `torchaudio>=2.1.0` itself. Recorded per §5's Modes
+   3–4 out-of-scope default in
+   `.out-of-scope/2026-07-26-torchaudio-no-longer-imported-directly.md`.
+
+## The named blind spot — mitigated, and the mitigation is enforced
+
+`spec.md` §6's answer to "if every gate passed but the feature were still wrong":
+**F6 would copy the strict-rejection pattern into a place it does not belong.**
+Refusing unexpected input is correct in `voiceprint.py` *only* because
+`capture.py` pins the mic to one rate and one channel; camera frames have no
+such pin and legitimately vary in resolution.
+
+The mitigation is live: the justification is written beside the raises, and §6's
+Gate command asserts it stays there, so a later tidy-up cannot silently drop it.
+**F6's spec must not inherit "refuse unexpected input" for image data.**
 
 ## Pending guardrail
 
-**One, from Task 1, still awaiting the human's yes/no** — not written to
-`project.md`. It is due at the feature-end checkpoint:
+**None — the one proposal was ADOPTED.** `learn` proposed one guardrail across
+the feature (Tasks 2 and 3 recorded `"lesson": "none"`); the human approved it
+2026-07-26 and it is now the seventh entry in `project.md`'s Earned guardrails:
 
 > - **[Done]** A Verification command that asserts on **source text** must match
 >   the behaviour's *meaning*, not one exact spelling — use a regex or an AST
@@ -94,39 +121,38 @@ parked at its approval gate** (the Mode 4 tail), and then stops at the
 >     routinely — the per-module stream-fake tripwire asserts `read`/`release`
 >     appear in `tests/test_facedetect.py`, and F5.5 carries five more. Task 2
 >     dodged the `.ndim > 1` one only by deliberate spelling, and Task 3 had to
->     hit `sub-window` exactly — which is the fragility the rule names.
->     Enforcement beats memory and is cheap — write the criteria as regexes —
->     but that changes `spec.md`'s Verification commands, so it goes through the
->     spec/approval path.
+>     hit `sub-window` exactly. Enforcement beats memory and is cheap — write
+>     the criteria as regexes — but that changes `spec.md`'s Verification
+>     commands, so it goes through the spec/approval path.
 >   - _Overlap-checked_ against all six current guardrails: closest is "a test
 >     must assert something that would break if the behaviour were removed", and
 >     it is the converse — that catches a **test** that passes vacuously; this
->     catches a **criterion** that fails a sound test. Low overlap.
+>     catches a **criterion** that fails a sound test. Low overlap; a new entry
+>     rather than an edit.
 
-## Still not to be re-litigated
+## Mode 4 tail — F6's spec
 
-1. **Do not re-propose the ordering assertion** on the `enroll1`/`enroll5` pair
-   — disproved by measurement (0.077 < 0.113 from a dummy embedder). This task
-   is deliberately a rename, not a stronger assertion; that was tried and
-   measured false.
-2. **Do not move a threshold to make anything pass** — §5 cmd 3 pins both.
-3. **Do not touch `load_reference`'s re-normalize** (`voiceprint.py:114`).
-4. **Do not expect a manual check.** `spec.md` §5 records why this feature has
-   none — no live surface, so a Booth demo would be theatre. A verifier should
-   **not** `ESCALATE_HUMAN` over its absence here.
-
-## Verifier path
-
-**Subagent**, spawned with `formats/VERIFIER-PROMPT.md` **verbatim**. Three
-clean subagent runs so far this feature; this is the fourth and the only one
-running the full list.
+Drafted and **parked at its approval gate** with every open question embedded as
+a clarification marker and its `Mode:` line left blank. Never approved, never
+built. See `spec.md`. It carries forward: OpenCV SFace as the embedding, the
+two-faces fixture gap, the per-asset licence rule, and — from this feature's
+blind spot — the explicit instruction **not** to copy `voiceprint.py`'s
+refuse-unexpected-input pattern onto camera frames.
 
 ## Commits
 
-- Task 1: `b063f30`…`a86f8d0` (DONE, `rejects: 1`)
-- Task 2: `0a7d8a9`…`a00d013` (DONE, `rejects: 0`)
-- Task 3: `20fb953` (DOING) → **`f4c8074` (build)**
-- **Base for the Gate diff: `20fb953`** · head: **`f4c8074`**
-- Plus this bookkeeping commit, putting actual HEAD one ahead — expected.
-- Session base was `5d39918`. Remote `origin` exists (private); **nothing
-  pushed** — the push is human-gated at the feature-end checkpoint.
+- Task 1: `b063f30` → `a86f8d0` (4 commits incl. the FAIL record and the retry)
+- Task 2: `0a7d8a9` → `a00d013`
+- Task 3: `20fb953` → `f4c8074` → `c143792` → this wrap-up commit
+- Feature base: `5d39918`.
+- **Nothing pushed.** `origin` exists (private) and the push is part of the
+  approval being requested here.
+
+## next_action
+
+**Resolve F6's parked spec.** The feature-end checkpoint is closed — the human
+approved the commit + push and adopted the guardrail (2026-07-26). What remains
+is `spec.md`: answer its **ten** embedded clarification markers (Q1 fixtures and
+Q7 alignment are the ones that change what gets built), set the `Mode:` line,
+and check box 2. Only then does `/plan` run. Q1 likely needs a `research` pass
+first — it is a licence question as much as a technical one.
