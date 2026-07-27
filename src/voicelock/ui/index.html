@@ -520,6 +520,92 @@
     min-height: 15px;
   }
   .vp-hint.warn { color: #f0d0a0; }
+  .faceprint {
+    width: 100%;
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    animation: vlFade 0.35s ease;
+  }
+  .fp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .fp-label {
+    font-size: 10.5px;
+    color: #5f6673;
+    letter-spacing: 0.12em;
+  }
+  .fp-distance {
+    font-size: 12px;
+    color: #8a8f99;
+  }
+  .fp-distance.accept { color: #8fe0a0; }
+  .fp-distance.borderline { color: #f0d0a0; }
+  .fp-distance.reject { color: #f0a0a0; }
+  .fp-meter {
+    position: relative;
+    width: 100%;
+    height: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Decorative 3-band scale. Per the 2026-07-27 cutoff decision,
+       ACCEPT_CUTOFF == REJECT_CUTOFF for the face path, so the amber
+       borderline band has zero width in practice -- the gradient still
+       renders it for visual consistency with the voiceprint meter, but a
+       live distance can never actually land there. The match band itself
+       is decided in Python and applied via the readout color -- JS never
+       judges. */
+    background: linear-gradient(90deg,
+      rgba(90, 210, 130, 0.85) 0%, rgba(90, 210, 130, 0.85) 75%,
+      rgba(240, 200, 120, 0.85) 75%, rgba(240, 200, 120, 0.85) 76%,
+      rgba(240, 110, 110, 0.85) 76%, rgba(240, 110, 110, 0.85) 100%);
+  }
+  .fp-needle {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: 0%;
+    width: 3px;
+    border-radius: 2px;
+    background: #f4f6fb;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.65);
+    transition: left 0.12s ease;
+  }
+  .fp-needle.idle { opacity: 0.25; }
+  .fp-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .fp-take-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .fp-take-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .fp-take-dot.filled {
+    background: #8fe0a0;
+  }
+  .fp-hint {
+    font-size: 11px;
+    color: #8a8f99;
+    min-height: 15px;
+  }
+  .fp-hint.warn { color: #f0d0a0; }
+  .fp-liveness-note {
+    font-size: 10.5px;
+    color: #6f7681;
+    line-height: 1.4;
+  }
 </style>
 </head>
 <body>
@@ -666,6 +752,28 @@
           <div class="vp-hint mono" id="vp-hint" aria-live="polite">set reference first — record 3 short sentences</div>
         </div>
 
+        <div class="faceprint" id="faceprint-panel">
+          <div class="fp-head">
+            <span class="fp-label mono">FACEPRINT · LIVE MATCH</span>
+            <span class="fp-distance mono" id="fp-distance">distance —</span>
+          </div>
+          <div class="fp-meter" id="fp-meter" role="meter" aria-label="Faceprint match distance meter"
+               aria-valuemin="0" aria-valuemax="1.5">
+            <div class="fp-needle idle" id="fp-needle"></div>
+          </div>
+          <div class="fp-row">
+            <button type="button" class="btn btn-secondary" id="btn-set-face-reference">Set face reference</button>
+            <button type="button" class="btn btn-secondary" id="btn-reset-face-reference">Reset</button>
+            <div class="fp-take-dots" id="fp-take-dots" aria-label="face reference takes recorded">
+              <span class="fp-take-dot"></span>
+              <span class="fp-take-dot"></span>
+              <span class="fp-take-dot"></span>
+            </div>
+          </div>
+          <div class="fp-hint mono" id="fp-hint" aria-live="polite">set face reference first — 3 frames, a second apart</div>
+          <div class="fp-liveness-note mono" id="fp-liveness-note">Matches a face — does not prove a live person; liveness arrives in F8.</div>
+        </div>
+
         <div class="inert-panel" aria-hidden="true">
           <div class="inert-label mono">DEMO — LATER FEATURES (INERT)</div>
           <div class="chips">
@@ -740,10 +848,24 @@
     const vpHint = document.getElementById("vp-hint");
     const vpTakeDots = document.getElementById("vp-take-dots");
     const VP_DISPLAY_MAX = 1.2; // display-only scale for the needle; not a match decision
+    const btnSetFaceReference = document.getElementById("btn-set-face-reference");
+    const btnResetFaceReference = document.getElementById("btn-reset-face-reference");
+    const fpDistance = document.getElementById("fp-distance");
+    const fpNeedle = document.getElementById("fp-needle");
+    const fpHint = document.getElementById("fp-hint");
+    const fpTakeDots = document.getElementById("fp-take-dots");
+    const FP_DISPLAY_MAX = 1.5; // display-only scale for the needle; not a match decision
+    // Faceprint meter updates on a low fixed interval while recording, never
+    // inside FaceEngine's 30 fps preview loop -- mirrors how the voiceprint
+    // meter updates once per take rather than every frame, adapted for a
+    // camera path with no discrete "take" boundary.
+    const FP_COMPARE_INTERVAL_MS = 1000;
     let level = 0.11;
     let recording = false;
     let playing = false;
     let hasTake = false;
+    let hasFaceReference = false;
+    let faceCompareTimer = null;
     let pendingOverwrite = false;
 
     function drawBars() {
@@ -822,6 +944,17 @@
         sub.textContent = hasTake ? "press Play to hear the capture" : "record · visualizer · play back";
         status.textContent = hasTake ? "LOCKED · TAKE READY" : "LOCKED · BOOTH READY";
         document.getElementById("mode-badge").textContent = "RECORDING BOOTH";
+      }
+      refreshFaceCompareTimer();
+    }
+
+    function refreshFaceCompareTimer() {
+      if (faceCompareTimer) {
+        clearInterval(faceCompareTimer);
+        faceCompareTimer = null;
+      }
+      if (recording && hasFaceReference) {
+        faceCompareTimer = setInterval(updateFaceprintMeter, FP_COMPARE_INTERVAL_MS);
       }
     }
 
@@ -1047,6 +1180,48 @@
       setVoiceprintHint("reference set — speak to see the live match", false);
     }
 
+    /* Faceprint meter — JS renders only; Python owns the embedding + band. */
+    function renderFaceDistance(distance, band) {
+      const d = Number(distance);
+      if (!isFinite(d)) return;
+      const pct = Math.max(0, Math.min(1, d / FP_DISPLAY_MAX)) * 100;
+      fpNeedle.style.left = pct + "%";
+      fpNeedle.classList.remove("idle");
+      fpDistance.textContent = "distance " + d.toFixed(3);
+      fpDistance.classList.remove("accept", "borderline", "reject");
+      if (band) fpDistance.classList.add(band);
+    }
+
+    function setFaceprintHint(text, warn) {
+      fpHint.textContent = text;
+      fpHint.classList.toggle("warn", !!warn);
+    }
+
+    function showNoFace() {
+      setFaceprintHint("no face detected — centre your face in view", true);
+    }
+
+    function showSetFaceReferenceFirst() {
+      setFaceprintHint("set face reference first — 3 frames, a second apart", false);
+      fpDistance.textContent = "distance —";
+      fpDistance.classList.remove("accept", "borderline", "reject");
+      fpNeedle.classList.add("idle");
+    }
+
+    function setFaceReferenceProgress(done) {
+      const dots = fpTakeDots.querySelectorAll(".fp-take-dot");
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle("filled", i < Number(done));
+      });
+    }
+
+    function showFaceReferenceReady() {
+      setFaceReferenceProgress(3);
+      hasFaceReference = true;
+      refreshFaceCompareTimer();
+      setFaceprintHint("reference set — live match updates while recording", false);
+    }
+
     async function call(name, payload) {
       if (!(window.pywebview && window.pywebview.api && window.pywebview.api[name])) {
         return { ok: false, error: "Bridge not ready" };
@@ -1246,6 +1421,64 @@
       }
       setReferenceProgress(0);
       showSetReferenceFirst();
+    });
+
+    btnSetFaceReference.addEventListener("click", async function () {
+      /* Bank the last camera frame as one of the 3 face reference takes;
+         the engine averages + persists on the 3rd. JS renders progress /
+         edges, same shape as the voice reference button. */
+      const result = await call("set_face_reference");
+      if (!result || !result.ok) {
+        if (result && result.error === "no_face") {
+          showNoFace();
+          return;
+        }
+        if (!(window.pywebview && window.pywebview.api && window.pywebview.api.set_face_reference)) {
+          setFaceprintHint("set face reference — bridge not ready", true);
+          return;
+        }
+        setFaceprintHint((result && result.error) || "set face reference failed", true);
+        return;
+      }
+      if (result.done) {
+        showFaceReferenceReady();
+        return;
+      }
+      const progress = Number(result.progress) || 0;
+      setFaceReferenceProgress(progress);
+      setFaceprintHint(
+        "face reference frame " + progress + " of 3 saved — hold still, then press again",
+        false
+      );
+    });
+
+    async function updateFaceprintMeter() {
+      const result = await call("compare_face");
+      if (!result || !result.ok) {
+        if (result && result.error === "no_reference") {
+          showSetFaceReferenceFirst();
+          return;
+        }
+        if (result && result.error === "no_face") {
+          showNoFace();
+          return;
+        }
+        return; // bridge not ready or other — leave the meter as it is
+      }
+      renderFaceDistance(result.distance, result.band);
+      setFaceprintHint("live match — " + result.band, false);
+    }
+
+    btnResetFaceReference.addEventListener("click", async function () {
+      const result = await call("reset_face_reference");
+      if (!result || !result.ok) {
+        setFaceprintHint("reset — bridge not ready", true);
+        return;
+      }
+      hasFaceReference = false;
+      refreshFaceCompareTimer();
+      setFaceReferenceProgress(0);
+      showSetFaceReferenceFirst();
     });
 
     btnRecord.addEventListener("click", async function () {
