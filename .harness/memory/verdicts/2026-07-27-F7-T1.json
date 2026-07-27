@@ -1,0 +1,26 @@
+{
+  "task": "F7-T1",
+  "spec": "spec.md@967cc66",
+  "change": "2753768..18118f0",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_facelock.py -q",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "Intermediate task (plan.md done-criteria, not the feature's last task). 28 passed in tests/test_facelock.py; ruff clean; full suite 173 passed, 0 failed (up from 145 at F6's end, exact match to the 28 new tests). Scope check (git diff 2753768..18118f0 --stat): src/voicelock/facelock.py (new), tests/test_facelock.py (new), .harness/plan.md (Task 1 DOING->REVIEW) -- matches Task 1's declared files exactly, no forbidden writes."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Confirmed commit()/reconcile() bind and recover a secret with all four helper components (seed/mask/offset/commitment); same-person reconcile recovers the identical secret, different-person raises ReconcileError; CANDIDATE_BITS/RELIABLE_BITS/KEY_BITS/REPETITION reused unchanged from middlelock.py; CORRECTION_RADIUS=95 asserted against a live-measured genuine/impostor gap each test run, not a hard-coded pass. Verified decision 1 (variable-length, non-fixed-count enrollment) is correctly implemented -- facelock.py only requires non-empty, unlike middlelock.py's exact-count assert. Verified EMBEDDING_DIM=128 is pinned locally with justification since faceprint.py exports no such constant. Offline claim is actually tested (socket.getaddrinfo patched to raise). Standards: naming/placement/division-of-labor conform, no new dependency, scope surgical (only the two new files plus plan.md bookkeeping)."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-27",
+  "rejects": 0,
+  "note": "First task of F7. Clean build, no rejects, no human correction needed. CORRECTION_RADIUS was measured (not guessed) via 100 fresh-LSH-seed trials against the real vendored SFace model and the real A1/A2/B fixtures before being pinned into the module, per the existing dry-run-before-pinning guardrail -- correct application of an existing rule, not a new lesson."
+}

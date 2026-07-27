@@ -3,8 +3,8 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 1 built, awaiting fresh-eyes verification.** Task 1 is
-  `REVIEW` (WIP=1) — no other task may start until it wraps up.
+  Phase: **Task 1 DONE.** Task 2 (`vault.py` v3) is next — Mode 3's standing
+  "go" starts it unattended, same session.
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -74,18 +74,15 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    extends the chain one layer).
 
 ### Memory spine
-1. Decisions 1–6 above are the load-bearing ones; nothing else is open.
-2. Thin-evidence disclosure (spec Q1/Q2, §6): `CORRECTION_RADIUS` for
-   `facelock.py` is measured from n=1 genuine + n=2 impostor residuals (enroll
-   A1→reconcile A2; enroll A1 or A2→reconcile B) — Task 1's done-criteria
-   assert the measured *relationship* (radius strictly between the genuine
-   residual and the impostor floor), not a hard-coded number, so the test
-   stays honest about which value the real measurement produced.
-3. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py` are
-   read-only references for this feature — F7 adds a sibling module and
-   extends `vault.py`/`app.py`/`index.html`; it does not edit the four
-   read-only ones (spec §3 non-goals).
-4. F7 is the last task's full-Verification feature — cmd 4 (the live 3-way
+1. **Task 1 DONE** — `facelock.py` built, `CORRECTION_RADIUS = 95` measured
+   (n=1 genuine ≤ 20 residual, n=2 impostor ≥ 170, over 100 fresh-LSH-seed
+   trials against the real A1/A2/B fixtures; see
+   `memory/verdicts/2026-07-27-F7-T1.json`). Decisions 1–6 above still govern
+   Tasks 2–4; nothing else is open.
+2. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py` remain
+   read-only references — Task 2 extends `vault.py`, not those four (spec §3
+   non-goals).
+3. F7 is the last task's full-Verification feature — cmd 4 (the live 3-way
    manual check) is REQUIRED and only the human can attest it, at the
    feature-end checkpoint.
 
@@ -96,8 +93,8 @@ Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — `facelock.py`: face fuzzy commitment (commit/reconcile/derive_key), measured `CORRECTION_RADIUS`
-  - state: REVIEW
+- [x] **Task 1** — `facelock.py`: face fuzzy commitment (commit/reconcile/derive_key), measured `CORRECTION_RADIUS`
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/facelock.py` (new), `tests/test_facelock.py` (new)
   - notes: Port `middlelock.py`'s shape (decision 1 changes only the
