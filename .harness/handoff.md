@@ -1,106 +1,73 @@
-# Handoff — curate (second pass) complete; F6 is next
+# Handoff — F5.5 spec drafted, parked at the approval gate
 
-**F5 is DONE and COMMITTED** (`319b48b`, 2026-07-26) — 7/7 tasks, live demo
-human-attested, roadmap box checked. The previous handoff said "awaiting the
-feature-end commit checkpoint"; that commit has since landed, and this file was
-stale until now. No action outstanding from F5.
+**Waiting on one thing: the human checks box 2 in `spec.md` §0.** The agent
+never checks it. Nothing may be planned or built until it is checked.
 
-**This session ran `/curate`** (second pass) at the human's request. All writes
-below were human-approved before being made.
+## Where the project is
 
-## What changed in this session
+- **F5 — Camera booth: DONE and committed** (`319b48b`). 7/7 tasks, live demo
+  attested, roadmap box checked.
+- **`/curate` (second pass): DONE and committed** (`296357a`). 6 guardrails,
+  archive move, calibration run 2 (0/3 — see
+  `memory/verdicts/2026-07-26-CALIBRATION-RUN-2.md`).
+- **`/setup` re-run: DONE and committed** (`2a87c28`). Both tools recorded,
+  `CLAUDE.md` added beside `AGENTS.md`, Claude Code adapter installed as 16
+  per-skill junctions, private remote recorded.
+- **F5.5 — Voiceprint dead-surface hygiene: SPEC DRAFTED, unapproved.**
 
-| File | Change |
-|---|---|
-| `constitution/project.md` | 4 guardrails → **6**; two updated; stamp refreshed |
-| `memory/decisions.md` | one superseded entry MOVED to `## Archive`, unedited |
-| `memory/verdicts/2026-07-26-CALIBRATION-RUN-2.md` | **new** — calibration run 2 |
-| `.out-of-scope/2026-07-26-calibration-findings-run2.md` | **new** — findings, not fixed |
+## F5.5 in one paragraph
 
-### Guardrails (human-approved, all three parked proposals adopted)
+Remove code in `voiceprint.py` that no caller and no test can reach, refuse bad
+audio loudly instead of converting it silently, and stop one test overclaiming.
+Sourced from calibration run 2. Inserted before F6 for the same reason F4.5 was
+inserted before F5: **F6 reopens this exact module** and will copy its shape.
 
-- **Rule 1 `[Approval]` licence — UPDATED** with proposal B: check the asset's
-  own embedded metadata FIRST (EXIF/XMP for images, bundle metadata for models).
-  Quoted from `project.md`: *"**Check the asset's own embedded metadata FIRST —
-  EXIF/XMP for images, bundle metadata for models** — it is the most
-  authoritative statement available and the cheapest to read."*
-- **Rule 3 `[Forbidden]` test-double callback — UPDATED**, two drifted
-  references corrected. It claimed F5's camera fake did not exist yet and that
-  the per-module tripwire "should be repeated in F5's spec"; both are now false.
-  Quoted: *"**F5 did repeat the tripwire per-module, and adapted it honestly**"*
-  … *"**The shared-base-class question is now answerable and the answer is no**"*.
-- **NEW `[Forbidden]` release-on-every-path** (proposal C, strongest evidence —
-  two consecutive features). Quoted: *"every path that ends the operation must
-  release it — including the paths that end it without user action (timeouts,
-  soft caps, error exits)"*.
-- **NEW `[Forbidden]` tests must break if the behaviour is removed** (proposal
-  A). Quoted: *"Before claiming a test covers behaviour X, delete or neuter X
-  and confirm the test fails."*
-- Rules 2 and 4 kept unchanged — both actively cited in recent verdicts.
-- Stamp now reads: `Last curated: 2026-07-26 (second pass) · verdicts then: 29`.
-- Human **declined** trimming rule 1's evidence prose. Not to be re-proposed
-  without being asked.
+- **Mode 4** (human's choice, 2026-07-26). Unlock verified mechanically: all 29
+  verdict files record `"dev_mode": "Mode 3"`, and F3/F4/F5 completion reports
+  are in history (`627963e`, `22e6a4a`, `319b48b`). Mode 4 means F5.5 runs to
+  DONE unattended, **then F6's spec is drafted with questions embedded and
+  parked at the gate** — never approved, never built.
+- **Grilling record: `CLEAR`**, zero markers (verified mechanically: a grep for
+  the marker token returns **0**).
+- **No new dependencies. No live surface. No manual check** — the first feature
+  with none, and §5 records why rather than leaving it implicit.
 
-### Calibration run 2 — 0 of 3 agreement, confounds fixed
+## Two things worth knowing before planning
 
-Full record: `memory/verdicts/2026-07-26-CALIBRATION-RUN-2.md`. Headline: the
-0/3 from run 1 **held up** under a corrected setup (verbatim prompt, real
-worktrees at the archived commits, per-commit `uv sync`). **2 of the 3 rejects
-do not depend on the new guardrails** and are corroborated by the project's own
-later behaviour — F4.5 exists to fix the F1-T2 deadlock, and the F2-T3
-overwrite-confirm bug was later rewritten. The third (F3-T2) is guardrail-driven
-and its Spec axis passed.
-
-Both newly-adopted guardrails were cited by `file:line` in reviews written
-minutes after being written. Mutation testing appeared in all three run-2
-reviews and in none of the three archived verdicts.
-
-**Method note for run 3:** check out the **bookkeeping** commit, not the build
-commit — the build commit's `handoff.md` still describes the previous task.
-Run 2 hit this and discarded three verifier runs because of it. Run 3 should
-also sample **F4/F4.5/F5** verdicts rather than repeating F1–F3.
+1. **The scope shrank during grilling, on measurement.** A fourth item — an
+   *ordering* assertion on the byte-disjoint `enroll1`/`enroll5` pair — was
+   drafted and then **disproved**: a dummy embedder with no speaker modelling
+   orders that pair correctly too (0.077 < 0.113), so the new test would have
+   been as vacuous as the one it replaced. Root cause is not byte overlap but
+   **one recording session per speaker**. With one clip per speaker in the
+   Apache-2.0 source and offline-only forbidding a fetch, **no fixture-based
+   same-speaker assertion can be made mutation-resistant.** That is already the
+   standing position of `tests/fixtures/voiceprint/README.md:89-93`. Do not
+   re-propose it.
+2. **The §5 commands were dry-run before approval** (a `FAILURES.md` lesson —
+   unrunnable pinned commands survived grilling twice). All seven execute; cmds
+   1, 2, 5 and 7 fail today with assertions naming the exact build targets, and
+   cmds 3 (constants unmoved) and 4 (mutation proof) **pass today and must keep
+   passing**.
 
 ## Open items for the human
 
-1. **Commit the curate pass.** Four files are uncommitted (two modified, two
-   new). Nothing is committed for this session yet. **Remote: none**, so this
-   is a local commit only.
-2. **A live code finding is logged, not fixed** —
-   `.out-of-scope/2026-07-26-calibration-findings-run2.md`. One blocking item
-   (`_resample` and friends are unexercised surface in `voiceprint.py`), plus a
-   narrow one (the same-speaker assertion is weak by construction because
-   `speakerA_live` is a byte-exact sub-window of the reference takes). Both fit
-   **F9 — Demo reliability**. Note `voiceprint.py` is frozen by F4's spec §4, so
-   touching it needs a spec that says otherwise. Run 1's items 1 and 2 are now
-   **closed** — F4.5 fixed both.
-3. **A PRIVATE remote is now wired and everything is pushed** — done this
-   session, nothing outstanding. `origin` →
-   `https://github.com/Vziraka/voicelock`. The human dropped the
-   exclude-`.harness` idea once told that `.gitignore` cannot do it
-   retroactively, so **the full history including `.harness/` is on the
-   remote**. Rationale and rejected alternatives: `memory/decisions.md`
-   (2026-07-26 entry). Facts worth not re-deriving:
-   - **Verified private**, not assumed: `isPrivate: true`, `visibility:
-     PRIVATE`, anonymous API request returns **404**.
-   - **No secrets anywhere** — re-verified across all 190 pre-push commits.
-   - **`embedding_model.ckpt` is 79.5 MB**, so every push touching it emits
-     GitHub's large-file warning (non-blocking; the block is at 100 MB).
-     `.git` is 92 MB. Git LFS was considered and not adopted.
-   - **Do not flip this repo to public without re-reading the decisions entry**
-     — it would publish `.harness/` in full (including `FAILURES.md` and the
-     verbatim decision log) plus the author email in every commit.
-   - Pushes from here on follow the existing checkpoint rules — feature-end at
-     Modes 2–4, message-approved at Mode 1.
+1. **Check box 2 in `spec.md` §0** — the only thing blocking `/plan`.
+2. **A live finding stays logged, not fixed** —
+   `.out-of-scope/2026-07-26-calibration-findings-run2.md`. F5.5 takes its
+   item 1; item 2 shrank to the rename; item 3 is closed history.
 
 ## Pending guardrail
 
-None. All three parked proposals were resolved this session (all adopted).
+None.
+
+## Commits
+
+- Session base: `2a87c28` → head: this bookkeeping commit.
+- Remote `origin` exists (private), so the checkpoint pushes as well as commits.
 
 ## next_action
 
-**Human: approve the curate commit.** After that, **F6 — Faceprint on screen**
-is the next roadmap feature and starts with `/spec`. F6 inherits from F5: the
-fetched-not-committed fixture arrangement, the two-faces gap (a CC0 shortlist is
-in `memory/research/2026-07-26-f5-fixture-replacement-candidates.md`), and a
-second vendored model dir for OpenCV's SFace — which now also owes a per-asset
-licence check under the updated rule 1.
+**Human: check box 2 in `spec.md` §0.** Then `/plan` in a fresh session — it
+breaks F5.5 into small ordered tasks. Expect roughly two: the deletion plus its
+raises and tests, then the test rename and the justification comment.

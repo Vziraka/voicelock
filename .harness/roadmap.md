@@ -198,7 +198,28 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   reference IS committed. **F6 inherits that arrangement** as well as the
   two-faces gap below.
 
-- [ ] **F6 — Faceprint on screen** · blocked-by: F5
+- [ ] **F5.5 — Voiceprint dead-surface hygiene** · blocked-by: F5 · Mode 4
+  Inserted 2026-07-26 (human decision) — not an original design feature, and the
+  second hygiene pause of its kind. Remove surface in `voiceprint.py` that no
+  caller and no test can reach (`_resample`, its two call sites, the stereo
+  downmix, the `sample_rate` parameters on `embed`/`compare`), replace it with
+  explicit `ValueError`s so bad audio is refused loudly instead of misread
+  quietly, and rename the same-speaker test so it stops claiming to prove
+  something these fixtures cannot. Sourced from calibration run 2
+  (`.out-of-scope/2026-07-26-calibration-findings-run2.md`) — the same channel
+  that produced F4.5.
+  *Why before F6:* F6 reopens this exact module — it adds a faceprint that
+  mirrors the voiceprint's shape and will read `voiceprint.py` as the pattern to
+  copy. F4.5 exists because a bad pattern nearly propagated into F5; this is the
+  same argument one feature later.
+  *Carries a named blind spot:* "refuse unexpected input" is right only because
+  `capture.py` pins the mic to one rate. **F6 must not copy it** — camera frames
+  legitimately vary in resolution. The spec pins a Gate check that this
+  justification stays written beside the code.
+  *Demo:* none — no live surface. Deliberately the first feature with no manual
+  check; the spec records why.
+
+- [ ] **F6 — Faceprint on screen** · blocked-by: F5, F5.5
   Compute the faceprint (face embedding) and show live match distance vs a stored
   sample — not wired into the lock yet. The visual analog of F3.
   *Demo:* same face → close / accept-colored; different face → far / reject-colored.
