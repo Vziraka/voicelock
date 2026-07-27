@@ -3,8 +3,11 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BLOCKED** — Task 1 `DONE`, Task 2 `BLOCKED` (plan contradiction,
-  needs a human call; same shape as F4 Task 3's precedent).
+  Phase: **Building Task 2 (merged).** Task 1 `DONE`. Human resolved the
+  2026-07-27 block by choosing to merge former Tasks 2+3 into one Task 2
+  (`memory/deviations.md` entry F7-T2) — Task 2 is `DOING` again, now
+  covering vault.py v3 **and** the Booth bridge. Former Task 4 is renumbered
+  **Task 3** (UI, unchanged scope, still the LAST task).
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -18,11 +21,18 @@ nested locks (passphrase outer, voice middle, face inner) instead of two.
 No new model or fixture vendoring this time (unlike F5/F6) — F7 only touches
 code, so the chain is a straight line: **Task 1** (`facelock.py`, the
 construction itself) has no dependency on the rest and must land first — Task
-2 imports it to seal the vault. **Task 2** (`vault.py` v3) must precede
-**Task 3** (the Booth bridge calls both `vault.enroll`/`unlock`'s new
-signature and `facelock` for the enroll-face capture step), which must
-precede **Task 4** (the UI calls the bridge's new methods and renders the
-third reject). WIP=1 makes this the actual build sequence.
+2 imports it to seal the vault. **Task 2** (`vault.py` v3 **+** the Booth
+bridge) must precede **Task 3** (the UI calls the bridge's new methods and
+renders the third reject). WIP=1 makes this the actual build sequence.
+
+**2026-07-27 amendment:** Task 2 originally covered only `vault.py`, with the
+Booth bridge as a separate Task 3. Building Task 2 as declared broke
+`app.py`'s two existing callers (it adds a required `faceprints`/`faceprint`
+parameter) and, through them, the full test suite — the identical shape F4
+Task 3 hit. Stopped per the universal `[Modes]` rule, presented options, and
+the human chose to merge the vault work and the bridge work into one Task 2
+(`memory/deviations.md`, task F7-T2). The former standalone bridge task is
+absorbed; the former Task 4 (UI) is renumbered **Task 3**, scope unchanged.
 
 ### Named architecture decisions carried into this ledger
 These fill the "exact call shape" gaps the spec deliberately left to `/plan`
@@ -41,7 +51,7 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    both n=1 and n=3. Only the minimum (≥1, non-empty) is asserted.
 2. **New constant `facelock.ENROLLMENT_TAKES = 3`** — the live-production take
    count (Q1: reuse F6's `REFERENCE_TAKES = 3` burst pattern), consumed by
-   Task 3's new bridge capture step. Deliberately a **separate** constant from
+   Task 2's new bridge capture step. Deliberately a **separate** constant from
    `faceprint.REFERENCE_TAKES` (also 3, coincidentally) — they gate two
    independent flows (Q4) and must not be import-aliased into one just because
    the numbers currently match.
@@ -78,11 +88,17 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    (n=1 genuine ≤ 20 residual, n=2 impostor ≥ 170, over 100 fresh-LSH-seed
    trials against the real A1/A2/B fixtures; see
    `memory/verdicts/2026-07-27-F7-T1.json`). Decisions 1–6 above still govern
-   Tasks 2–4; nothing else is open.
-2. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py` remain
-   read-only references — Task 2 extends `vault.py`, not those four (spec §3
-   non-goals).
-3. F7 is the last task's full-Verification feature — cmd 4 (the live 3-way
+   the rest; nothing else is open.
+2. **Task 2 merged with the former standalone bridge task** (2026-07-27,
+   human decision, `memory/deviations.md` F7-T2) — `vault.py` v3 (built,
+   green: 52 passed across `test_vault.py`/`test_outer_lock.py`/
+   `test_middlelock.py`) plus the Booth bridge (`app.py`/
+   `test_booth_api.py`) are now ONE task, verified once. The former Task 4
+   (UI) is renumbered **Task 3**, scope unchanged.
+3. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py` remain
+   read-only references — Task 2 extends `vault.py` and `app.py`, not those
+   four (spec §3 non-goals).
+4. F7 is the last task's full-Verification feature — cmd 4 (the live 3-way
    manual check) is REQUIRED and only the human can attest it, at the
    feature-end checkpoint.
 
@@ -141,48 +157,48 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed; count rises from F6's 145)
 
-- [ ] **Task 2** — `vault.py`: bump to v3, nest the face inner lock, refuse v1 **and** v2
-  - state: BLOCKED
-  - blocked 2026-07-27 — **the task's own ledger entry is self-contradictory**,
-    the same shape universal.md's [Modes] rule requires a Mode 3 session to
-    STOP on rather than interpret, and the identical shape F4 Task 3 hit
-    (`git log`: `2706679` BLOCKED → `d583749` UNBLOCKED by human decision).
-    This task's `files:` line is `vault.py` / `tests/test_vault.py`, but its
-    done-criteria include `uv run pytest` → exit 0 (full suite). Task 2 adds
-    a required `faceprints`/`faceprint` parameter to `vault.enroll`/
-    `vault.unlock`, and `src/voicelock/app.py:173,204` are the only other
-    callers — the plan assigns the bridge fix to Task 3. Both criteria
-    cannot hold at once.
-    **Everything inside the declared (plus unavoidably-coupled) scope is
-    built and green:** `vault.py` v3 nested layout exactly as spec §2 Q3 and
-    this ledger's decisions 4–6 pin it — `FaceAuthError`, both legacy
-    versions refused by name ("predates voice" / "predates face"), peel
-    order outer→middle→inner. `tests/test_vault.py` (declared) plus
-    `tests/test_outer_lock.py` and `tests/test_middlelock.py`'s nested-vault
-    section (both call the same changed signature, unavoidable for the same
-    reason F4's precedent flagged) all updated: **52 passed** across
-    `test_vault.py`/`test_outer_lock.py`/`test_middlelock.py`, `uv run ruff
-    check .` exit 0. The ONLY failures are **8** pre-existing
-    `test_booth_api.py` cases that call the old signature (170 passed, 8
-    failed on the full suite) — confirmed by actually running it, not
-    predicted. Resolution needs a human choice — see `handoff.md`.
+- [ ] **Task 2** — `vault.py` v3 **+** Booth bridge: nest the face inner lock, enroll-face capture step, distinct `auth_face` *(merged with the former standalone bridge task, human decision 2026-07-27 — see `memory/deviations.md` F7-T2)*
+  - state: DOING
   - rejects: 0
-  - files: `src/voicelock/vault.py`, `tests/test_vault.py`
-  - notes: Apply decisions 4–6 verbatim. `enroll()` gains a `faceprints:
-    list[np.ndarray]` parameter (after `voiceprints`, before `path`) and calls
-    `facelock.commit` the same way it already calls `middlelock.commit`;
-    `unlock()` gains a `faceprint: np.ndarray` parameter (after `voiceprint`,
-    before `path`) and, only after the middle box opens, calls
-    `facelock.reconcile` against `helper_data_face` and decrypts
-    `inner_ciphertext` with the derived inner key — any `FaceLockError`-family
-    exception or `CryptoError` there raises `FaceAuthError("Face didn't
-    match")`, mirroring exactly how `VoiceAuthError` wraps
-    `middlelock.MiddleLockError`/`CryptoError` today. Rename the outer
-    plaintext's `"helper_data"` key to `"helper_data_voice"` — safe because v3
-    refuses v2 outright, so no code path ever needs to read the old key name.
-    `_parse_outer`/`_parse_profile`-equivalent parsing extends one layer
-    deeper; keep the "corrupt payload" `VaultError` for malformed JSON at any
-    layer, same as today.
+  - files: `src/voicelock/vault.py`, `tests/test_vault.py`,
+    `src/voicelock/app.py`, `tests/test_booth_api.py` (plus
+    `tests/test_outer_lock.py` and `tests/test_middlelock.py`'s nested-vault
+    section — unavoidably coupled callers of the changed `vault` signature,
+    already updated and green: 52 passed)
+  - notes: **Vault half (decisions 4–6, already built and green):** Apply
+    decisions 4–6 verbatim. `enroll()` gains a `faceprints: list[np.ndarray]`
+    parameter (after `voiceprints`, before `path`) and calls `facelock.commit`
+    the same way it already calls `middlelock.commit`; `unlock()` gains a
+    `faceprint: np.ndarray` parameter (after `voiceprint`, before `path`)
+    and, only after the middle box opens, calls `facelock.reconcile` against
+    `helper_data_face` and decrypts `inner_ciphertext` with the derived inner
+    key — any `FaceLockError`-family exception or `CryptoError` there raises
+    `FaceAuthError("Face didn't match")`, mirroring exactly how
+    `VoiceAuthError` wraps `middlelock.MiddleLockError`/`CryptoError` today.
+    Renamed the outer plaintext's `"helper_data"` key to `"helper_data_voice"`
+    — safe because v3 refuses v2 outright, so no code path ever needs to read
+    the old key name. `_parse_outer`/`_parse_middle`/`_parse_profile` parsing
+    extends one layer deeper; kept the "corrupt payload" `VaultError` for
+    malformed JSON at any layer, same as before.
+    **Bridge half (decision 3, absorbed from the former Task 3 — still
+    TODO):** Add `self._enroll_faceprints: list[np.ndarray] = []` beside
+    `self._enroll_voiceprints` in `__init__`. `enroll_face_take()` mirrors
+    `enroll_take()`'s shape exactly but reads `self.face.last_frame` and
+    calls `faceprint.embed_frame` to validate (mirrors
+    `set_face_reference`'s validate-before-accept pattern) — a frame with no
+    face is `{"ok": False, "error": "no_face", "progress": ...}` and does NOT
+    advance; on the `facelock.ENROLLMENT_TAKES`-th take, banks and reports
+    `done: True`. `reset_enroll_face_takes()` mirrors `reset_enroll_takes()`.
+    `enroll()` gains the same `need_face_takes` guard `need_voice_takes`
+    already has, and passes
+    `self._enroll_faceprints[:facelock.ENROLLMENT_TAKES]` to `vault_enroll`,
+    clearing both lists only after a successful seal. `unlock()` embeds
+    `self.face.last_frame` via `faceprint.embed_frame` (a missing/faceless
+    frame is a new `{"ok": False, "error": "no_face"}` edge — same shape as
+    `need_more_audio`'s role for voice) and passes it to `vault_unlock`;
+    catch `FaceAuthError` → `{"ok": False, "error": "auth_face"}`, added
+    alongside the existing `auth_outer`/`auth_voice` branches, before the
+    generic exception fallback.
   - done-criteria:
     - §5 cmd 2 — verbatim, exit 0:
       ```
@@ -197,31 +213,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       raises the new `FaceAuthError` (inner REJECT); a v1 **or** v2 vault is
       refused via `LegacyVaultError`, each message naming its own missing
       layer; no reject path returns the name or any plaintext.
-    - `uv run ruff check .` → exit 0
-    - `uv run pytest` → exit 0 (0 failed, count rises)
-
-- [ ] **Task 3** — Booth bridge: enroll-face capture step, `unlock`'s third layer, distinct `auth_face`
-  - state: TODO
-  - rejects: 0
-  - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
-  - notes: Apply decision 3. Add `self._enroll_faceprints: list[np.ndarray] =
-    []` beside `self._enroll_voiceprints` in `__init__`. `enroll_face_take()`
-    mirrors `enroll_take()`'s shape exactly but reads `self.face.last_frame`
-    and calls `faceprint.embed_frame` to validate (mirrors
-    `set_face_reference`'s validate-before-accept pattern) — a frame with no
-    face is `{"ok": False, "error": "no_face", "progress": ...}` and does NOT
-    advance; on the `facelock.ENROLLMENT_TAKES`-th take, banks and reports
-    `done: True`. `reset_enroll_face_takes()` mirrors `reset_enroll_takes()`.
-    `enroll()` gains the same `need_face_takes` guard `need_voice_takes`
-    already has, and passes `self._enroll_faceprints[:facelock.ENROLLMENT_TAKES]`
-    to `vault_enroll`, clearing both lists only after a successful seal.
-    `unlock()` embeds `self.face.last_frame` via `faceprint.embed_frame`
-    (a missing/faceless frame is a new `{"ok": False, "error": "no_face"}`
-    edge — same shape as `need_more_audio`'s role for voice) and passes it to
-    `vault_unlock`; catch `FaceAuthError` → `{"ok": False, "error":
-    "auth_face"}`, added alongside the existing `auth_outer`/`auth_voice`
-    branches, before the generic exception fallback.
-  - done-criteria:
+      — **DONE this session, 52 passed** (see files: line above).
     - §5 cmd 3 — verbatim, exit 0:
       ```
       uv run pytest tests/test_booth_api.py -q
@@ -231,11 +223,11 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       diagnostic bridge test fakes, no real camera); unlock returning a
       distinct reason per layer (`auth_outer`/`auth_voice`/`auth_face`), none
       leaking the name; the `no_face` edge during enroll-face capture and
-      during unlock.
+      during unlock. — **TODO this session.**
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed, count rises)
 
-- [ ] **Task 4** — Booth UI: enroll-face capture step + third reject chip *(LAST task — full spec Verification)*
+- [ ] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*
   - state: TODO
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
@@ -264,7 +256,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     fixed-height flex column deserves the same caution.
   - done-criteria: **the FULL list from `spec.md`'s Verification section**, namely —
     - `uv run ruff check .` → exit 0
-    - `uv run pytest` → exit 0 (0 failed, ≥145 passing, count risen by Tasks 1–3's new tests)
+    - `uv run pytest` → exit 0 (0 failed, ≥145 passing, count risen by Tasks 1–2's new tests)
     - §5 cmd 1 — `uv run pytest tests/test_facelock.py -q` → exit 0
     - §5 cmd 2 — `uv run pytest tests/test_vault.py -q` (or wherever vault
       tests live) → exit 0
