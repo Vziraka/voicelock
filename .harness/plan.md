@@ -303,7 +303,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (count rises from F5.5's 124, 0 failed)
 
 - [ ] **Task 4** — Booth bridge: `~/.voicelock/faceprint.ref`, on-demand set/compare/reset
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/facedetect.py` (additive only — see decision 3),
     `src/voicelock/app.py`, `tests/test_booth_api.py`
