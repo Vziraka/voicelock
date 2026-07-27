@@ -59,6 +59,21 @@ its own diff), but only once the manual attestation is in hand, so that
 verifier can complete the FULL Gate (including that line, marked exit 0
 on the strength of the attestation) and proceed straight to Review.
 
+## Layout fix (found by the human's manual smoke test, before formal verify)
+
+The human ran the Booth to perform §5 cmd 8 and immediately hit a real bug:
+the window's top (the face preview disk) and the new faceprint panel's
+buttons were both clipped. Root cause: `.window` has a fixed height budget
+with `overflow: hidden`, and `main` centered `.booth` via
+`justify-content: center` — a flexbox quirk where overflowing centered
+content is pushed past BOTH edges and becomes unreachable even with
+`overflow-y: auto`. Fixed within `index.html` only (no `app.py` window-size
+change, staying in Task 5's declared scope): `main` drops
+`justify-content: center` and gains `overflow-y: auto`; `.booth` centers
+itself via `margin: auto 0`, which degrades to top-anchored + scrollable
+when content doesn't fit, instead of clipping. Re-ran ruff, the full
+suite (145 passed), and cmd 7 — all still exit 0. Commit `e4c17bd`.
+
 ## next_action
 
 **Waiting on the human — the ONLY blocker.** Once they run `uv run
@@ -80,6 +95,9 @@ rather than a separate touchpoint.
 
 ## Commits
 
-Session base → head: `1b93e90` → `dc0e7b5` (two commits: `f57a1d9` DOING,
-`dc0e7b5` build + REVIEW). This `handoff.md` write is a third,
-bookkeeping-only commit. Nothing pushed.
+Session base → head: `1b93e90` → `e4c17bd` (three commits: `f57a1d9` DOING,
+`dc0e7b5` build + REVIEW, `e4c17bd` the layout fix above). This
+`handoff.md` write is a fourth, bookkeeping-only commit. Nothing pushed.
+**The verifier's diff base/head should be `1b93e90`..`e4c17bd`**, not the
+earlier `dc0e7b5` — the layout fix landed after this handoff was first
+written and is folded in here.
