@@ -1,10 +1,12 @@
-# F6 — Faceprint on screen · COMPLETION REPORT
+# F6 — Faceprint on screen · CLOSED
 
 **Feature complete 2026-07-27 (Mode 3 — Spec-to-done).** All 5 tasks
-`DONE`, final Gate PASS, final Review APPROVE. This is the **Mode 3
-feature-end checkpoint** — report + commit/push approval, per
-`constitution/universal.md`'s Modes table. Nothing has been committed for
-this wrap-up yet; everything below is staged and waiting on you.
+`DONE`, final Gate PASS, final Review APPROVE. The Mode 3 feature-end
+checkpoint is **resolved**: the human approved the commit (`be2be85`), all
+three guardrail proposals ("guardrails yes"), and a push. All three
+guardrails are now written into `constitution/project.md`'s Earned
+guardrails section. Push completed this session — see Commits below for
+the hash.
 
 ## Outcome vs. spec.md §1
 
@@ -99,99 +101,39 @@ judgment call either had a clear, unambiguous fix (Task 4's plan.md
 SyntaxError) or went through the BLOCKED/human-approval path above, never
 the Modes-1–2 self-resolution path that requires a deviations.md entry.
 
-## THREE pending guardrail proposals — need your decision
+## Three guardrail proposals — APPROVED, all written to project.md
 
-None have been written to `project.md` yet. Each is independent — approve,
-decline, or amend any subset.
+Human approved all three as-proposed ("guardrails yes"). Written verbatim
+into `constitution/project.md`'s Earned guardrails section, each with
+`_Added:_ 2026-07-27 (human-approved; proposed by F6 Task N's learn scan)`:
 
-**#1 — VIDEO-mode landmarker tracker-state hazard** (from Task 2):
-> **[Forbidden]** A `VIDEO`-mode `FaceLandmarker` instance must not be
-> reused across unrelated still images — only across genuine sequential
-> video frames. It carries face-tracker state across `detect_for_video`
-> calls, so feeding it unrelated stills back-to-back silently drops the
-> face (0 detections, no error) on any frame after the first. Use a fresh
-> instance per unrelated image, or `IMAGE` mode outright. `warn` ·
-> expires: 2027-01-31 · evidence: commit `4c8f880`,
-> `tests/fixtures/face/README.md`'s "Detection re-verified" section.
+1. **VIDEO-mode landmarker tracker-state hazard** (from Task 2) — a
+   `VIDEO`-mode `FaceLandmarker` must not be reused across unrelated still
+   images.
+2. **Dry-run verification commands before pinning** (from Tasks 3+4) — a
+   command exercising a real model, or with concrete literal parameters,
+   must be run once before being pinned into `spec.md`/`plan.md`.
+3. **CSS/layout regressions have zero Gate coverage** (from Task 5) —
+   visible Booth content changes need a manual smoke test; this repo's
+   Gate cannot detect them.
 
-**#2 — dry-run verification commands before pinning** (from Tasks 3+4,
-two occurrences):
-> **[Done]** A Verification command that exercises a real vendored model,
-> or any command with concrete literal parameters, must be dry-run BEFORE
-> being pinned into `spec.md`/`plan.md`. `warn` · expires: 2027-01-31 ·
-> evidence: (1) Task 3's `spec.md` cmd 4 resize was undetectable by design
-> (see above); (2) Task 4's `plan.md` done-criteria one-liner was a raw
-> Python `SyntaxError` that had never been run.
+Curate check: **37 verdicts** (`memory/verdicts/*.json`) minus 29
+(`project.md`'s "Last curated" stamp) = **8 tasks since the last curate**
+— still below the 10-due threshold, but close; the next feature will
+likely trip it.
 
-**#3 — NEW, from Task 5's `learn` scan — CSS/layout regressions have zero
-Gate coverage:**
-> **[Forbidden]** Adding visible content to the Booth's `main`/`.booth`
-> column (a new panel, section, or meaningfully taller block) must be
-> visually smoke-tested in the running app — this repo's Gate (`ruff` +
-> `pytest`) cannot detect CSS/layout regressions at all, and `.window`'s
-> fixed height + `overflow: hidden` combined with flexbox centering
-> silently clips overflowing content past BOTH edges with no error, test
-> failure, or console warning. `warn` · expires: 2027-01-31
-> - _Evidence:_ F6 Task 5 (2026-07-27). Adding the faceprint panel pushed
->   `.booth` past `.window`'s height budget. Every automated check passed
->   — ruff, the full suite, all 7 automatable spec commands, even a
->   manual `node --check` JS-syntax pass added specifically because this
->   feature had already had two unrun-before-pinning close calls (see
->   guardrail #2). NOTHING caught it. Only the human's own manual smoke
->   test — run for the unrelated reason of the required live camera check
->   — surfaced it, by seeing the top of the window cut off. Root cause:
->   `justify-content: center` on an overflowing flex container clips past
->   both edges and `overflow-y: auto` alone cannot reach the clipped
->   region — a real, citable CSS/flexbox gotcha, not a one-off typo.
->   Enforcement considered and rejected for now: real coverage would need
->   browser-based visual-regression tooling (e.g. a headless-browser
->   screenshot diff), which is a new dependency/tool this repo doesn't
->   have — that decision belongs to a TECH-PICK, not a `learn` guardrail
->   written unattended. Prose + mandatory manual smoke-testing is the
->   fallback until/unless that tooling is adopted.
-> - _Added:_ 2026-07-27 (proposed — pending human approval)
+## Commits — feature closed, pushed
 
-Curate check: **37 verdicts** (`memory/verdicts/*.json`, counted after
-this feature's 5) minus 29 (`project.md`'s "Last curated" stamp) = **8
-tasks since the last curate** — still below the 10-due threshold, so no
-reminder is printed, but it is close; the next feature will likely trip
-it.
-
-## Proposed commit (staged, NOT yet committed — waiting on you)
-
-Everything below is `git add`ed but not committed: the Task 5 verdict
-file, `roadmap.md` (F6 checked off, summary written), `memory/codebase-map.md`
-(refreshed for F6's additions), `plan.md` (Active context + spine +
-Task 5 → `DONE`), and this `handoff.md`.
-
-Proposed message:
-```
-F6 complete: faceprint diagnostic on screen
-
-5 tasks, 1 retry (Task 3, unexercised branch), 1 mid-feature spec
-amendment (Sec5 cmd4's resize was undetectable by design, fixed with
-human approval before being re-pinned), 1 layout bug caught by the
-human's manual smoke test and fixed pre-verification. Full spec.md
-Verification list PASS on the final task, manual camera check
-attested by the human. Faceprint, Booth bridge, and Booth UI panel
-are all solid; roadmap.md and codebase-map.md updated accordingly.
-
-Three guardrail proposals from this feature's learn scans remain
-pending separate human approval (not written to project.md).
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-```
-
-**Waiting on you for:**
-1. The three guardrail proposals above (yes/no/amend each).
-2. Approval to commit the staged state files with the message above.
-3. Whether to push — `origin` exists (private) but no push has happened
-   this feature; say the word if you want one.
+- `be2be85` — F6 completion state (verdict, roadmap, codebase-map, plan,
+  handoff).
+- (this write) — the three guardrails added to `constitution/project.md`.
+- Pushed to `origin` (private) on the human's explicit "go ahead and
+  push", this session.
 
 ## next_action
 
-Once you respond: write any approved guardrails into `project.md` (human
-sign-off required before that file changes, per the guardrail write
-rule), commit the state files, push only if asked, and F6 is closed.
-There is no unattended next step from here — this is a human touchpoint
-by design (Mode 3's feature-end checkpoint).
+**None — F6 is closed.** The next roadmap feature is **F7 — Face as the
+inner lock**, blocked-by F4 and F6 (both now satisfied). Starting it
+needs a fresh `/spec` session; nothing here triggers it automatically —
+Mode 3's standing "go" scoped to F6 and does not reach past the feature,
+per `constitution/universal.md`'s [Approval] rule.
