@@ -1,74 +1,68 @@
-# F6 — Faceprint on screen · IMPLEMENT SESSION (Task 2)
+# F6 — Faceprint on screen · Task 2 WRAP-UP
 
-**Session date: 2026-07-27.** Continuing the same session after Task 1's
-wrap-up completed (Mode 3's standing "go").
+**Session date: 2026-07-27.** Task 2 built, verified (clean-context
+subagent, APPROVE), and wrapped up in this session.
 
 ## What happened this session
 
-- Set Task 2 `DOING`, committed alone (`8123012`) before any build work.
-  Base commit for the Gate diff: `a4c3528` (parent of the DOING commit).
-- Re-confirmed all three fixture licences directly against Wikimedia
-  Commons' per-file `imageinfo&extmetadata` API (not trusted from the Q1
-  research file alone, per the task's own instruction that a filename can
-  drift between research and build): `personA_1.jpg` (LOC, Public domain),
-  `personA_2.jpg` (NARA, Public domain), `personB.jpg` (MET, CC0) — all
-  matched the research file's findings exactly.
-- Fetched all three from Commons; each committed file's SHA-1 verified
-  byte-identical to the `sha1` Commons' own `imageinfo` API reports.
-  `personA_2` exists upstream only as a 2094×3000 TIFF — converted to a
-  1280×1834 JPEG (resize-only, no crop/rotate/retouch; the specific
-  dimensions match the size the Q1 research already proved detects
-  reliably).
-- **Found and fixed a real bug in the plan's own template script**
-  (`scripts/_check_face_fixtures.py`): the plan-authored version reused one
-  `VIDEO`-mode `FaceLandmarker` instance across all three images via
-  `detect_for_video`. That carries face-tracker state (an ROI prior) across
-  calls, so on unrelated stills it silently dropped the face (0 detections,
-  no error) on whichever image was NOT first. Confirmed by reordering — the
-  failing image changed depending on call order, not on image size/quality.
-  Fixed by instantiating a fresh landmarker per image. This does not affect
-  Task 3: `faceprint.py`'s own embedder already plans a separate `IMAGE`-mode
-  landmarker (decision 2, `plan.md`), which is stateless per call by design.
-  Documented in both the build commit and a new `README.md` section (so a
-  future reader of the fixtures folder sees the finding, not just the fix).
-- Ran Task 2's four done-criteria locally (measurement exception):
-  - `uv run python scripts/_check_face_fixtures.py` → `ok`, exit 0 (all
-    three fixtures detect 1 face / 478 landmarks through the vendored
-    bundle).
-  - README content check (`personA_1.jpg`/`personA_2.jpg`/`personB.jpg` +
-    `Public domain`/`CC0` present) → exit 0.
-  - `uv run ruff check .` → exit 0.
-  - `uv run pytest` → 124 passed (unchanged, as expected — Task 2 adds no
-    pytest tests, only the throwaway script).
-- Build commit: `4c8f880` (fixtures + README + script + `plan.md` Task 2 →
-  `REVIEW`).
-- `git status` confirmed the diff matches Task 2's declared files exactly;
-  `portrait.jpg` remains correctly `.gitignore`d (`git check-ignore`
-  confirmed), untouched by this task.
+- Spawned the clean-context verifier (subagent path) with
+  `formats/VERIFIER-PROMPT.md` verbatim. Verdict: **GATE PASS, REVIEW
+  APPROVE**, no feedback. Full reasoning in
+  `memory/verdicts/2026-07-27-F6-T2.json`.
+- Wrap-up checklist run in full:
+  - **ADR:** none — fails condition 1 (hard to reverse). Committing
+    licence-cleared fixtures and fixing a throwaway script bug is not an
+    architecture decision.
+  - **`learn` scan:** ran. One lesson cleared the bar — see **Pending
+    guardrail** below (parked, not written to `project.md`; Mode 3 is
+    unattended, no human present to approve).
+  - No idea was declined by a human this task — no `.out-of-scope/` entry
+    owed.
+  - **Roadmap:** unchanged — 3 tasks remain in Feature 6 (Tasks 3–5).
+  - **`plan.md`:** Active context, memory spine, and Task 2's line
+    refreshed; Task 2 → `DONE`.
 
-## Failed attempts / lessons
+## Pending guardrail
 
-One real fix mid-task, already folded into the build commit and README (see
-above) — not a rejected attempt, caught and corrected before Gate. Whether
-this rises to a `project.md` guardrail is a call for this task's `learn`
-scan at wrap-up, not decided here.
+**Proposed, awaiting human approval** (learn scan, F6 Task 2, 2026-07-27):
+
+> **[Forbidden]** A `VIDEO`-mode `FaceLandmarker` instance must not be
+> reused across unrelated still images — only across genuine sequential
+> video frames. It carries face-tracker state (an ROI prior) across
+> `detect_for_video` calls, so feeding it unrelated stills back-to-back
+> silently drops the face (0 detections, no error) on any frame after the
+> first whose face falls outside the prior frame's tracked region. Use a
+> fresh instance per unrelated image, or `IMAGE` mode outright, for any
+> script/test that compares or checks multiple independent photographs.
+> `warn` · expires: 2027-01-31
+> - _Evidence:_ F6 Task 2 (2026-07-27) — the plan's own template script for
+>   checking the three face fixtures reused one shared `VIDEO`-mode
+>   landmarker via `detect_for_video` across `personA_1.jpg`,
+>   `personA_2.jpg`, `personB.jpg`. It found 0 faces on whichever image was
+>   NOT first (confirmed by deliberately reordering the images — the
+>   failing image changed with call order, ruling out an image-quality
+>   explanation). A fresh `load_landmarker()` call per image fixed it
+>   immediately, with zero other code changes. Cost ~5 diagnostic tool
+>   calls to isolate. Does not affect `facedetect.py` (real, continuous
+>   video frames — the mode fits) or `faceprint.py`'s planned embedder
+>   (already `IMAGE` mode per `plan.md` decision 2) — the hazard is
+>   specific to ad-hoc multi-still test/check scripts, which F7/F8 may
+>   also need to write.
+> - _Added:_ 2026-07-27 (proposed — pending human approval)
+
+Verdict file records `"lesson": "proposed — pending approval"`. A human
+needs to approve (or decline) this diff before it lands in `project.md`.
 
 ## next_action
 
-**Mode 3 — spawn the clean-context verifier now.**
-
-- Task: **F6 Task 2** — now `REVIEW`
-- Base commit: `a4c3528` (parent of the `DOING` commit `8123012`)
-- Head commit: `4c8f880`
-- Verifier: `formats/VERIFIER-PROMPT.md`, used verbatim
-- On REJECT: feedback appended to Task 2's log in `plan.md`, task back to
-  `TODO`, `rejects` incremented (cap 3).
-- On APPROVE: `wrap-up` runs (including the `learn` scan on the VIDEO-mode
-  tracker-state finding above), verdict written, Task 2 → `DONE`, then
-  Task 3 (`faceprint.py` itself) starts unattended per Mode 3.
+**Mode 3 — the approved spec's Mode line is the standing "go."** This same
+session continues to **Task 3** (`faceprint.py`: alignment, embed/compare,
+cutoffs, convert-not-refuse, mutation-sensitive test) — Task 2's wrap-up is
+the precondition, and it just completed. **The pending guardrail above
+needs a human's attention at the next touchpoint** — it does not block
+Task 3, which is unrelated code.
 
 ## Commits
 
-Session base → head: `a4c3528` → `4c8f880` (two commits: `8123012` DOING
-state, `4c8f880` build + REVIEW state). This `handoff.md` write is a third,
-bookkeeping-only commit. Nothing pushed.
+Session base → head: `4c8f880` → (this wrap-up's commits: verdict file +
+`handoff.md` + `plan.md` DONE state). Nothing pushed.

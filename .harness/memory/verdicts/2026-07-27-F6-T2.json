@@ -1,0 +1,25 @@
+{
+  "task": "F6-T2",
+  "spec": "spec.md@1acb613",
+  "change": "a4c3528..4c8f880",
+  "gate": {
+    "commands": [
+      "uv run python scripts/_check_face_fixtures.py",
+      "uv run python -c \"import pathlib; t = pathlib.Path('tests/fixtures/face/README.md').read_text(encoding='utf-8'); assert 'personA_1.jpg' in t and 'personA_2.jpg' in t and 'personB.jpg' in t; assert 'Public domain' in t or 'CC0' in t\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "124 passed, unchanged. Scope check clean: diff matches Task 2's declared files exactly; portrait.jpg untouched and still .gitignore'd."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Independently re-verified all three fixtures' licences against Wikimedia Commons' live imageinfo&extmetadata API and re-hashed the committed files against the README's claimed SHA-256s, both matched exactly. Confirmed the honest fix (VIDEO-mode tracker-state bug in the throwaway check script) was disclosed in-code and in the README, not hidden."
+  },
+  "mechanism": "subagent",
+  "lesson": "proposed — pending approval",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-27"
+}

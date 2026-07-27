@@ -3,9 +3,13 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 6 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building.** Task 1 `DONE` (vendored SFace + licence, clean-context
-  APPROVE, verdict `memory/verdicts/2026-07-27-F6-T1.json`). Task 2 (commit
-  the three face fixtures) is next, unattended per Mode 3's standing "go".
+  Phase: **Building.** Tasks 1–2 `DONE` (SFace vendored + licensed; fixtures
+  committed with provenance README — verdicts
+  `memory/verdicts/2026-07-27-F6-T{1,2}.json`). Task 3 (`faceprint.py`
+  itself) is next, unattended per Mode 3's standing "go". **A guardrail
+  proposal from Task 2's `learn` scan is parked in `handoff.md`, pending
+  human approval** (VIDEO-mode landmarker tracker-state hazard for
+  multi-still scripts) — does not block Task 3.
 - Spec: `spec.md` holds F6's spec, `Status: CLEAR`, both approval boxes
   checked, `Mode: Mode 3` set 2026-07-27 by the human.
 - One plan-time design gap the spec deliberately left open (`§5 cmd 3` note:
@@ -72,12 +76,12 @@ actual build sequence, not just a dependency note.
 1. **`REJECT_CUTOFF == ACCEPT_CUTOFF == 1.128`, L2 distance — human-decided
    this session, do not invent a second number.** See decision above and
    `memory/decisions.md`.
-2. **Fixtures are already sourced by research, not by this ledger:** A1 =
-   Douglass 1870 (LOC), A2 = Douglass c.1879 (NARA), B = MET elderly-man
-   daguerreotype (CC0) — `memory/research/2026-07-26-f6-same-person-fixture-pair.md`.
-   Task 2 fetches and commits them (unlike `portrait.jpg`, all three are
-   Public domain/CC0 with no redistribution restriction, so — like the voice
-   fixtures — they are committed, not `.gitignore`d).
+2. **Fixtures are committed, at `tests/fixtures/face/{personA_1,personA_2,personB}.jpg`
+   (Task 2, DONE):** A1 = Douglass 1870 (LOC), A2 = Douglass c.1879 (NARA,
+   a resize-only JPEG derivative of the upstream TIFF), B = MET elderly-man
+   daguerreotype (CC0). Licences re-confirmed live against Commons at build
+   time, not just trusted from research. Task 3 reads these paths directly
+   (§5 cmd 3's pinned command names them).
 3. **The MediaPipe→SFace alignment is verified, not experimental:**
    5-point YuNet-shaped row from landmark indices 33/133 (eye), 263/362 (eye),
    4 (nose), 61/291 (mouth corners), confirmed by real embeddings on the Q1
@@ -136,8 +140,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed; count unchanged from F5.5's 124 — this task adds no tests)
 
-- [ ] **Task 2** — Commit the three face fixtures (personA_1, personA_2, personB) with provenance README
-  - state: REVIEW
+- [x] **Task 2** — Commit the three face fixtures (personA_1, personA_2, personB) with provenance README
+  - state: DONE
   - rejects: 0
   - files: `tests/fixtures/face/personA_1.jpg`, `tests/fixtures/face/personA_2.jpg`,
     `tests/fixtures/face/personB.jpg`, `tests/fixtures/face/README.md` (append a
