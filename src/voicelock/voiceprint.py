@@ -62,14 +62,16 @@ def default_reference_path() -> Path:
     return Path.home() / ".voicelock" / "voiceprint.ref"
 
 
-def embed(audio: np.ndarray, sample_rate: int = SAMPLE_RATE) -> np.ndarray:
+def embed(audio: np.ndarray) -> np.ndarray:
     """Return the L2-normalized ECAPA speaker embedding for mono PCM audio.
+
+    The audio is expected at ``SAMPLE_RATE`` — the only two sources are
+    ``capture.py``, which pins the microphone there, and ``load_wav``, which
+    refuses anything else.
 
     Raises ``NeedMoreAudioError`` when the clip is too short or near-silent.
     """
     sig = np.asarray(audio, dtype=np.float32).reshape(-1)
-    if sample_rate != SAMPLE_RATE:
-        sig = _resample(sig, sample_rate, SAMPLE_RATE)
     if sig.size < int(MIN_SPEECH_SECONDS * SAMPLE_RATE) or _rms(sig) < MIN_RMS:
         raise NeedMoreAudioError("need more audio")
 
@@ -112,16 +114,14 @@ def load_reference(path: Path | None = None) -> np.ndarray:
     return _normalize(vec)
 
 
-def compare(
-    live_audio: np.ndarray, path: Path | None = None, sample_rate: int = SAMPLE_RATE
-) -> tuple[float, str]:
+def compare(live_audio: np.ndarray, path: Path | None = None) -> tuple[float, str]:
     """Return ``(distance, band)`` of live audio against the stored reference.
 
     Raises ``NoReferenceError`` if no reference is set, ``NeedMoreAudioError`` if
     the live clip is too short/silent.
     """
     reference = load_reference(path)  # checked first, so no-reference is cheap
-    live = embed(live_audio, sample_rate)
+    live = embed(live_audio)
     distance = cosine_distance(reference, live)
     return distance, band_for(distance)
 
@@ -213,11 +213,3 @@ def _save_reference(reference: np.ndarray, path: Path | None = None) -> None:
     ref_path.parent.mkdir(parents=True, exist_ok=True)
     with open(ref_path, "wb") as handle:
         np.save(handle, np.asarray(reference, dtype=np.float64))
-
-
-def _resample(sig: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
-    import torch
-    import torchaudio.functional as func
-
-    out = func.resample(torch.from_numpy(np.asarray(sig, dtype=np.float32)), orig_sr, target_sr)
-    return out.numpy().astype(np.float32)
