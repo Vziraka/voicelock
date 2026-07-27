@@ -159,7 +159,32 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 
 - [x] **Task 2** — `vault.py` v3 **+** Booth bridge: nest the face inner lock, enroll-face capture step, distinct `auth_face` *(merged with the former standalone bridge task, human decision 2026-07-27 — see `memory/deviations.md` F7-T2)*
   - state: REVIEW
-  - rejects: 0
+  - rejects: 1
+  - feedback (newest first):
+    - **2026-07-27 · REJECT 1 of 3** (verifier subagent; GATE PASSed first —
+      181 passed, ruff 0 — so this is a Standards+Spec-axis reject on missing
+      test coverage, no crypto or peel-order defect found):
+      1. `unlock()`'s new face-check `no_face` edge (both `face.last_frame is
+         None` and a faceless/blank frame) was never exercised by any test.
+      2. `enroll_face_take()`'s `no_face` edge (both cases) was likewise
+         never exercised — it was called exactly once in the whole test
+         file, always with a valid frame.
+      3. `reset_enroll_face_takes()` had **zero callers and zero tests** —
+         a direct hit on `project.md`'s earned no-unexercised-surface
+         guardrail (evidenced there by three prior F4 REJECTs, one of them
+         `reset_enroll_takes()` itself).
+      **Fix applied, same session:** added
+      `test_bridge_enroll_face_take_rejects_a_faceless_frame`,
+      `test_bridge_enroll_face_take_no_camera_frame_yet`,
+      `test_reset_enroll_face_takes_discards_an_abandoned_run` (mirroring
+      the voice-side tests exactly), `test_bridge_unlock_no_camera_frame_yet`,
+      `test_bridge_unlock_no_face_in_current_frame` to
+      `tests/test_booth_api.py`. Chose "add tests" over "delete
+      `reset_enroll_face_takes()`" (the F4 precedent's other valid fix)
+      because decision 3 explicitly commits to building this method in this
+      task, mirroring the voice pair exactly — deferring it to Task 3 would
+      just recreate the same gap when the UI needs it. Re-ran: 186 passed
+      (up from 181), ruff exit 0.
   - files: `src/voicelock/vault.py`, `tests/test_vault.py`,
     `src/voicelock/app.py`, `tests/test_booth_api.py` (plus
     `tests/test_outer_lock.py` and `tests/test_middlelock.py`'s nested-vault
@@ -223,9 +248,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       diagnostic bridge test fakes, no real camera); unlock returning a
       distinct reason per layer (`auth_outer`/`auth_voice`/`auth_face`), none
       leaking the name; the `no_face` edge during enroll-face capture and
-      during unlock. — **DONE this session, 36 passed.**
+      during unlock. — **DONE this session, 41 passed** (36 + 5 added on the
+      REJECT-1 retry, see feedback log above).
     - `uv run ruff check .` → exit 0 — **DONE, All checks passed!**
-    - `uv run pytest` → exit 0 (0 failed, count rises) — **DONE, 181 passed
+    - `uv run pytest` → exit 0 (0 failed, count rises) — **DONE, 186 passed
       (up from 173 at Task 1's end).**
 
 - [ ] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*

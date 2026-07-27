@@ -187,6 +187,28 @@ def test_bridge_wrong_face_rejects_distinctly(tmp_path: Path) -> None:
     assert "name" not in rejected
 
 
+def test_bridge_unlock_no_camera_frame_yet(tmp_path: Path) -> None:
+    """Unlock refuses to proceed with no face captured yet -- same shape as
+    ``need_more_audio``'s role for a too-short voice take."""
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = None  # no frame captured since enrollment banked its takes
+    rejected = api.unlock({"passphrase": "correct-horse"})
+    assert rejected["ok"] is False
+    assert rejected["error"] == "no_face"
+    assert "name" not in rejected
+
+
+def test_bridge_unlock_no_face_in_current_frame(tmp_path: Path) -> None:
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = np.zeros((480, 640, 3), dtype=np.uint8)  # blank -- no face
+    rejected = api.unlock({"passphrase": "correct-horse"})
+    assert rejected["ok"] is False
+    assert rejected["error"] == "no_face"
+    assert "name" not in rejected
+
+
 def test_bridge_enroll_take_rejects_a_short_take(tmp_path: Path) -> None:
     cap = _StubCapture()
     api = BoothApi(capture=cap, vault_path=tmp_path / "vault.vl")
@@ -197,6 +219,52 @@ def test_bridge_enroll_take_rejects_a_short_take(tmp_path: Path) -> None:
     assert rejected["ok"] is False
     assert rejected["error"] == "need_more_audio"
     assert rejected["progress"] == 1  # the bad take did not advance progress
+
+
+def test_bridge_enroll_face_take_rejects_a_faceless_frame(tmp_path: Path) -> None:
+    face = _StubFace()
+    api = BoothApi(vault_path=tmp_path / "vault.vl", face=face)
+    face.last_frame = _face_fx("personA_1.jpg")
+    assert api.enroll_face_take()["progress"] == 1
+    face.last_frame = np.zeros((480, 640, 3), dtype=np.uint8)  # blank -- no face
+    rejected = api.enroll_face_take()
+    assert rejected["ok"] is False
+    assert rejected["error"] == "no_face"
+    assert rejected["progress"] == 1  # the bad frame did not advance progress
+
+
+def test_bridge_enroll_face_take_no_camera_frame_yet(tmp_path: Path) -> None:
+    face = _StubFace()
+    api = BoothApi(vault_path=tmp_path / "vault.vl", face=face)
+    assert face.last_frame is None
+    rejected = api.enroll_face_take()
+    assert rejected["ok"] is False
+    assert rejected["error"] == "no_face"
+    assert rejected["progress"] == 0
+
+
+def test_reset_enroll_face_takes_discards_an_abandoned_run(tmp_path: Path) -> None:
+    """An abandoned face enrollment must not leak takes into the next one.
+
+    Mirrors ``test_reset_enroll_takes_discards_an_abandoned_run`` exactly, for
+    the face side: without this, an abandoned run's banked faces would seal
+    into the next vault's inner key alongside the new ones.
+    """
+    face = _StubFace()
+    api = BoothApi(vault_path=tmp_path / "vault.vl", face=face)
+
+    face.last_frame = _face_fx("personA_1.jpg")
+    api.enroll_face_take()
+    assert api.enroll_face_take()["progress"] == 2
+
+    assert api.reset_enroll_face_takes() == {
+        "ok": True,
+        "progress": 0,
+        "needed": FACE_ENROLLMENT_TAKES,
+    }
+
+    # The next take starts the count over, so the UI's dots and the bridge agree.
+    assert api.enroll_face_take()["progress"] == 1
 
 
 def test_reset_enroll_takes_discards_an_abandoned_run(tmp_path: Path) -> None:
