@@ -3,10 +3,7 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 2 DONE.** Task 3 (Booth UI, renumbered from the former
-  Task 4) is next — the LAST task, full spec Verification including the
-  required live manual check. Mode 3's standing "go" starts it unattended,
-  same session.
+  Phase: **Building Task 3 (LAST task).** Task 3 is `DOING` (WIP=1).
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -255,7 +252,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       (up from 173 at Task 1's end).**
 
 - [ ] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: Mirror the existing `#enroll-voice-step` block (Q4) almost
