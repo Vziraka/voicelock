@@ -196,14 +196,27 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count unchanged)
 
 - [ ] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
-  - state: REVIEW
-  - rejects: 0 (blocked pre-Gate, not a Gate/Reviewer reject — the retry counter is untouched)
+  - state: TODO
+  - rejects: 1
   - **UNBLOCKED (2026-07-27, human-approved):** spec.md §5 cmd 4 amended to
     resize aspect-preservingly instead of a hard non-uniform stretch (full
     reasoning: `memory/decisions.md` 2026-07-27 entry, `spec.md` §5 cmd 4's
     amendment note). Re-ran verbatim against the amended command: exit 0.
-    All of Task 3's done-criteria now pass: cmds 2/3/5/6, the cutoff pin,
+    All of Task 3's done-criteria passed: cmds 2/3/5/6, the cutoff pin,
     ruff, full suite (138 passed, 0 failed).
+  - **REJECT #1 (2026-07-27, clean-context subagent verifier):** Gate PASS,
+    Review REJECT on the Standards axis (Spec axis: pass). Feedback:
+    1. `src/voicelock/faceprint.py:121-123` — `embed_file`'s "unreadable
+       image" branch (`if frame is None: raise FaceprintError(...)`) is
+       reachable but driven by zero tests. Violates `project.md`'s earned
+       no-unexercised-branch guardrail (three prior REJECTs in F4 for this
+       exact class). Fix: add a test asserting `embed_file` on a
+       nonexistent/corrupt path raises `FaceprintError`, or remove the
+       check until a caller needs it.
+    2. Minor, non-blocking: `test_compare_without_reference` and
+       `test_load_reference_missing_raises` in `tests/test_faceprint.py`
+       are byte-identical tests — worth deduping while reworking this task,
+       not itself a guardrail violation.
   - files: `src/voicelock/faceprint.py` (new), `tests/test_faceprint.py` (new)
   - notes: The largest single task — the module itself. Mirror
     `voiceprint.py`'s shape wherever Q3/Q4/Q8 say to, and deliberately
