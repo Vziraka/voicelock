@@ -127,16 +127,18 @@ def test_load_wav_refuses_multichannel(tmp_path: Path) -> None:
     """Stereo audio raises and names the channel count — it is not downmixed."""
     path = tmp_path / "stereo.wav"
     sf.write(path, np.zeros((SAMPLE_RATE, 2), dtype=np.float32), SAMPLE_RATE)
-    with pytest.raises(ValueError, match="2 channels"):
+    with pytest.raises(ValueError) as excinfo:
         load_wav(path)
+    assert "2 channels" in str(excinfo.value)  # the real count, not a generic message
 
 
 def test_load_wav_refuses_wrong_sample_rate(tmp_path: Path) -> None:
     """44.1 kHz audio raises and names the real rate — it is not resampled."""
     path = tmp_path / "rate44100.wav"
     sf.write(path, np.zeros(44_100, dtype=np.float32), 44_100)
-    with pytest.raises(ValueError, match="44100 Hz"):
+    with pytest.raises(ValueError) as excinfo:
         load_wav(path)
+    assert "44100 Hz" in str(excinfo.value)  # the real rate, not a generic message
 
 
 def test_band_for_boundaries() -> None:
