@@ -44,7 +44,7 @@ Mode 3 is the standing "go" — the next session runs `/implement` for Task 1
 (`facelock.py`) without waiting for a further human prompt. No blockers.
 
 ## Commits this session
-Base: `96806ba` (F7 spec grilled, parked at approval gate). This session:
-human checked spec.md's box 2 (approval); `/plan` wrote `plan.md` (F7 task
-ledger, superseding F6's completed one) and this `handoff.md`. Proposing the
-commit next, pending your go-ahead.
+Base: `96806ba` (F7 spec grilled, parked at approval gate). Head: `967cc66`
+— human checked spec.md's box 2 (approval); `/plan` wrote `plan.md` (F7 task
+ledger, superseding F6's completed one) and this `handoff.md`. Committed, not
+pushed (no push requested this session).

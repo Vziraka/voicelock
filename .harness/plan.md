@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Ready to build.** Task 1 is `TODO`, nothing `DOING` yet (WIP=1).
+  Phase: **Building.** Task 1 is `DOING` (WIP=1).
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -96,7 +96,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — `facelock.py`: face fuzzy commitment (commit/reconcile/derive_key), measured `CORRECTION_RADIUS`
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/facelock.py` (new), `tests/test_facelock.py` (new)
   - notes: Port `middlelock.py`'s shape (decision 1 changes only the
