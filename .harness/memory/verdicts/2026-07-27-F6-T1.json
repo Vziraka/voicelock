@@ -1,0 +1,24 @@
+{
+  "task": "F6-T1",
+  "spec": "spec.md@1acb613",
+  "change": "88e73e7..8efb235",
+  "gate": {
+    "commands": [
+      "uv run python -c \"import pathlib; d = pathlib.Path('src/voicelock/models/sface'); assert d.is_dir(); assert (d / 'LICENSE').stat().st_size > 200; assert (d / 'NOTICE').stat().st_size > 200\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "124 passed, unchanged from F5.5 baseline as expected (Task 1 adds no tests). Scope check: diff touches only .harness/plan.md and src/voicelock/models/sface/{LICENSE,NOTICE,face_recognition_sface_2021dec.onnx} — matches Task 1's declared files exactly."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Independently re-verified provenance rather than trusting handoff claims: reproduced the SHA-256, the embedded-metadata byte-scan (with a sanity check that the scan method actually works), and a live re-fetch of opencv_zoo's README confirming the per-directory licence statement verbatim. One non-blocking cosmetic note: build commit checked the plan.md task-ledger box while state was still REVIEW (repo convention is to leave it unchecked until DONE); corrected during wrap-up."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-27"
+}

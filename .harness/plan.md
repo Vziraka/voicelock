@@ -3,9 +3,9 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 6 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Ready to build.** Spec approved (both boxes checked 2026-07-27),
-  Grilling record `CLEAR`, zero `NEEDS-CLARIFICATION` hits (grep-verified this
-  session). This is the first task ledger for F6 — `/implement` starts Task 1.
+  Phase: **Building.** Task 1 `DONE` (vendored SFace + licence, clean-context
+  APPROVE, verdict `memory/verdicts/2026-07-27-F6-T1.json`). Task 2 (commit
+  the three face fixtures) is next, unattended per Mode 3's standing "go".
 - Spec: `spec.md` holds F6's spec, `Status: CLEAR`, both approval boxes
   checked, `Mode: Mode 3` set 2026-07-27 by the human.
 - One plan-time design gap the spec deliberately left open (`§5 cmd 3` note:
@@ -102,7 +102,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [x] **Task 1** — Vendor the SFace ONNX weights and establish their per-asset licence
-  - state: REVIEW
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/models/sface/*.onnx`, `src/voicelock/models/sface/LICENSE`,
     `src/voicelock/models/sface/NOTICE`
