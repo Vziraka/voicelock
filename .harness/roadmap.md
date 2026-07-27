@@ -122,7 +122,7 @@ flowchart TB
     Liveness -- "gate before unlock" --> Inner
 
     classDef planned stroke-dasharray:6 4
-    class FaceView,FaceDetect,Voiceprint,Faceprint,FuzzyV,FuzzyF,Middle,Inner,Liveness planned
+    class FaceView,FaceDetect,Voiceprint,FuzzyV,FuzzyF,Middle,Inner,Liveness planned
 ```
 
 ## Features (vertical slices, in build order)
@@ -230,24 +230,32 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   rather than converting is written beside the raises and §6's Gate command
   asserts it stays there. **F6 must not inherit that pattern for image data.**
 
-- [ ] **F6 — Faceprint on screen** · blocked-by: F5, F5.5
+- [x] **F6 — Faceprint on screen** · blocked-by: F5, F5.5 · **DONE 2026-07-27 (Mode 3)**
   Compute the faceprint (face embedding) and show live match distance vs a stored
   sample — not wired into the lock yet. The visual analog of F3.
   *Demo:* same face → close / accept-colored; different face → far / reject-colored.
-  **Two constraints inherited from F5's spec (2026-07-26), recorded here so they
-  survive the next handoff rewrite:**
-  (1) **The embedding is OpenCV's SFace**, already reachable through the
-  `opencv-contrib-python` F5 declares (`cv2.FaceRecognizerSF` + an ONNX file from
-  `opencv_zoo`) — named in F5's TECH-PICK but deliberately **not** vendored there.
-  MediaPipe has no face-identity model, so F6 owns a second vendored model dir.
-  (2) **F6 needs TWO faces in its fixtures** — a same-person-close and a
-  different-person-far probe — and F5 commits only one (`portrait.jpg`). This is
-  the wall F3 hit (its model repo shipped one clip per speaker, so its
-  same-speaker probe is a window of the same recording, disclosed as a caveat);
-  a photo cannot be windowed that way. **F6's spec must say where face B comes
-  from**, and licence provenance must be established per-asset — MediaPipe's own
-  samples use a Pixabay-licensed image, whose terms restrict redistributing
-  unaltered copies, so "it came from the vendor" is not evidence.
+  Built: vendored OpenCV SFace ONNX (Apache-2.0, licence established from
+  opencv_zoo's own per-directory statement — stronger evidence than F5's
+  model-card chain); `faceprint.py` (hand-built MediaPipe→YuNet 5-point
+  alignment feeding `cv2.FaceRecognizerSF`, `ACCEPT_CUTOFF == REJECT_CUTOFF
+  == 1.128` L2 per the 2026-07-27 decision, convert-never-refuse honored);
+  three committed fixtures (two independent Douglass photographs + a CC0
+  daguerreotype) with licence re-confirmed live at build time; Booth bridge
+  (`set_face_reference`/`compare_face`/`reset_face_reference`, an additive
+  `FaceEngine.last_frame`); Booth UI panel mirroring F3's voiceprint panel,
+  polling `compare_face` on a 1s interval while recording, plus visible
+  liveness-honesty copy. 5 tasks, `rejects: 1` (Task 3, an unexercised
+  error branch). One mid-feature spec amendment (§5 cmd 4's resize was
+  aspect-distorting and undetectable by design — fixed via a human-approved
+  spec correction, not a code change) and one UI regression caught by the
+  human's own manual smoke test (a Booth layout clipping bug with zero Gate
+  coverage — this repo's Gate cannot detect CSS/layout regressions).
+  **Two constraints inherited from F5's spec (2026-07-26), both resolved:**
+  (1) **The embedding is OpenCV's SFace** — vendored as F6's second model
+  dir, exactly as anticipated. (2) **F6 needed TWO faces in its fixtures**
+  — resolved by `research`: two independent Frederick Douglass photographs
+  (different photographer, negative, and custodial chain — not a derived
+  probe) plus the MET daguerreotype carried over from F5.
 
 - [ ] **F7 — Face as the inner lock (innermost)** · blocked-by: F4, F6
   Fuzzy-reconcile the faceprint into a stable key; wrap the voice-sealed box

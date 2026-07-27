@@ -1,0 +1,33 @@
+{
+  "task": "F6-T5",
+  "spec": "spec.md@f6578e2",
+  "change": "1b93e90..e4c17bd",
+  "gate": {
+    "commands": [
+      "uv run ruff check .",
+      "uv run pytest",
+      "spec.md Sec5 cmd 1 (SFace model + licence present)",
+      "spec.md Sec5 cmd 2 (pytest tests/test_faceprint.py -k offline)",
+      "spec.md Sec5 cmd 3 (same/different face separation, verbatim)",
+      "spec.md Sec5 cmd 4 (convert-not-refuse, amended verbatim)",
+      "spec.md Sec5 cmd 5 (justification mentions voiceprint, verbatim)",
+      "spec.md Sec5 cmd 6 (pytest tests/test_faceprint.py -k mutation)",
+      "spec.md Sec5 cmd 7 (liveness-honesty copy present, verbatim)",
+      "spec.md Sec5 cmd 8 (MANUAL, human-attested live camera check)"
+    ],
+    "exit": 0,
+    "note": "FULL spec.md Verification list run (F6's last task). 145 passed, 0 failed. cmd 3 measured: d_same=0.7269 <= 1.128, d_diff=1.3146 >= 1.128. cmd 8 ATTESTED, not run by the verifier: human ran uv run voicelock after a mid-build layout fix, set a face reference on themself (accept), held up a different face (reject), verbatim 'yup did all three' in direct reply to an explicit three-part question -- judged sufficient per this repo's own precedent (2026-07-23-F3-T5.json, 2026-07-26-F5-T7.json, same attestation shape). Scope: git diff 1b93e90..e4c17bd touches only .harness/{handoff,plan}.md and src/voicelock/ui/index.html -- matches Task 5's declared file plus the disclosed, in-scope layout fix (no app.py window-size change)."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Verified compare_face polling is correctly gated (recording && hasFaceReference, never inside the 30fps preview loop -- traced facedetect.py has no compare_face call, app.py's compare_face is the sole caller, invoked only by the JS setInterval). Verified engine-owns-state guardrail holds (JS renders result.distance/result.band only; hasFaceReference is UI-flow state mirroring the pre-existing hasTake pattern, not match state). Verified liveness-honesty copy is genuine visible panel text, not buried. Traced the layout fix through .window's fixed-height flex parent and confirmed it is sound (margin:auto degrades to top-anchored+scrollable under overflow, not just plausible-looking)."
+  },
+  "mechanism": "subagent",
+  "lesson": "proposed — pending approval",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-27",
+  "rejects": 0,
+  "note": "F6's final task. Feature complete. Full feature retry tally: T1 0, T2 0, T3 1 (unexercised-branch REJECT, unrelated to the mid-build spec.md amendment which was a BLOCKED/human-approval cycle, not a Gate/Reviewer reject), T4 0, T5 0. Two pending guardrail proposals from T2/T3 plus a third from this task's own learn scan (CSS/layout regression risk -- this repo's Gate has zero ability to detect it) are all still awaiting human decision, surfaced together at the feature-end checkpoint per handoff.md."
+}

@@ -3,16 +3,15 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 6 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building — last task.** Tasks 1–4 `DONE` (verdicts
-  `memory/verdicts/2026-07-27-F6-T{1,2,3,4}.json`). Task 5 (Booth UI, the
-  LAST task) is next, unattended per Mode 3's standing "go" — but its
-  §5 cmd 8 manual check is REQUIRED and needs a human at a real camera; it
-  cannot run unattended regardless of Mode. **TWO guardrail proposals are
-  still parked in `handoff.md`, each awaiting a separate human decision** —
-  neither approved nor declined yet (VIDEO-mode landmarker tracker-state
-  hazard; dry-run-before-pinning for concrete-parameter Verification
-  commands — now with a second occurrence from Task 4). Neither blocks
-  Task 5's build.
+  Phase: **FEATURE COMPLETE.** All 5 tasks `DONE` (verdicts
+  `memory/verdicts/2026-07-27-F6-T{1,2,3,4,5}.json`). Task 5's manual check
+  (§5 cmd 8) was attested by the human in-session after a mid-build layout
+  fix. At the **Mode 3 feature-end checkpoint** now: `handoff.md` holds the
+  completion report; **THREE pending guardrail proposals** (VIDEO-mode
+  landmarker tracker-state hazard; dry-run-before-pinning for
+  concrete-parameter Verification commands; CSS/layout regression risk
+  with zero Gate coverage) and the commit/push decision are all awaiting
+  the human together at this single touchpoint.
 - Spec: `spec.md` holds F6's spec, `Status: CLEAR`, both approval boxes
   checked, `Mode: Mode 3` set 2026-07-27 by the human.
 - One plan-time design gap the spec deliberately left open (`§5 cmd 3` note:
@@ -75,28 +74,13 @@ actual build sequence, not just a dependency note.
    take rather than every frame) calling a bridge method that embeds
    `FaceEngine.last_frame` — never inside the 30 fps preview loop itself.
 
-### Memory spine (≤5)
-1. **`REJECT_CUTOFF == ACCEPT_CUTOFF == 1.128`, L2 distance — human-decided
-   this session, do not invent a second number.** See decision above and
-   `memory/decisions.md`.
-2. **Fixtures are committed, at `tests/fixtures/face/{personA_1,personA_2,personB}.jpg`
-   (Task 2, DONE):** A1 = Douglass 1870 (LOC), A2 = Douglass c.1879 (NARA,
-   a resize-only JPEG derivative of the upstream TIFF), B = MET elderly-man
-   daguerreotype (CC0). Licences re-confirmed live against Commons at build
-   time, not just trusted from research. Task 3 reads these paths directly
-   (§5 cmd 3's pinned command names them).
-3. **`faceprint.py` (Task 3) and the Booth bridge (Task 4) are both `DONE`
-   — Task 5's calls, exactly:** `call('set_face_reference')`,
-   `call('compare_face')` (returns `{"ok", "distance", "band"}` or
-   `{"ok": false, "error": "no_reference"|"no_face"}`),
-   `call('reset_face_reference')`. `compare_face` must be polled on a low
-   fixed interval from JS (decision 4), never every frame — mirrors how F3's
-   voice meter updates. Python already computes distance + band; Task 5's
-   JS renders only, per the engine-owns-state guardrail.
-5. **No lock wiring, no liveness claim.** `faceprint.py` never touches
-   `vault.py` (that's F7); the Booth panel must visibly disclose "match, not
-   liveness" (§5 cmd 7, Task 5) — a photo held to the camera is *expected* to
-   pass this feature's meter, on purpose.
+### Memory spine — feature complete, all items resolved
+All 5 tasks are `DONE`; nothing here still needs doing. Kept brief as a
+pointer, not restated: cutoff decision and the mid-feature spec amendment
+are in `memory/decisions.md` (2026-07-27 entries); the built module's
+shape is in `memory/codebase-map.md`; per-task detail is in
+`memory/verdicts/2026-07-27-F6-T{1,2,3,4,5}.json`. F7 (face as the inner
+lock) is the next roadmap feature and will need its own fresh `/plan`.
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
@@ -358,8 +342,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (count rises, 0 failed)
 
-- [ ] **Task 5** — Booth UI: faceprint panel + liveness-honesty copy *(LAST task — full spec Verification)*
-  - state: REVIEW
+- [x] **Task 5** — Booth UI: faceprint panel + liveness-honesty copy *(LAST task — full spec Verification)*
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: Mirror the existing `.voiceprint`/`#voiceprint-panel` block (Q8)
