@@ -196,7 +196,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed, count unchanged)
 
 - [ ] **Task 3** — `faceprint.py`: alignment, embed/compare, cutoffs, convert-not-refuse, mutation-sensitive test
-  - state: TODO
+  - state: DOING
   - rejects: 1
   - **UNBLOCKED (2026-07-27, human-approved):** spec.md §5 cmd 4 amended to
     resize aspect-preservingly instead of a hard non-uniform stretch (full
