@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-26
 - Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **building —
-  Task 1 `REVIEW` (awaiting the clean-context verifier), Tasks 2–3 `TODO`.**
+  Task 1 back to `TODO` after Gate FAIL #1 (`rejects: 1`), Tasks 2–3 `TODO`.**
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 - Spec: `spec.md` holds F5.5's spec, `Status: CLEAR`, zero clarification
@@ -59,8 +59,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — `load_wav`: refuse bad audio instead of silently converting it
-  - state: REVIEW
-  - rejects: 0
+  - state: TODO
+  - rejects: 1
   - files: `src/voicelock/voiceprint.py`, `tests/test_voiceprint.py`
   - notes: Edit `load_wav` (`:148-158`) only. Remove the downmix branch
     (`:154-155`) and the resample call (`:156-157`); in their place raise
@@ -83,6 +83,15 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     **Why first:** it is the only task that adds behaviour; Tasks 2 and 3 are
     pure subtraction and renaming, and both are cleaner against a `load_wav`
     that already refuses bad input.
+    **Retry 1 note (from the Gate FAIL below):** done-criterion 2 counts the
+    **literal substring** `pytest.raises(ValueError)`, so
+    `pytest.raises(ValueError, match=...)` does not count — the comma breaks the
+    match. Write the raises as `with pytest.raises(ValueError) as exc:` and keep
+    the message assertion on `str(exc.value)`; that satisfies the command as
+    written **and** keeps the test stronger than the command demands. Do NOT
+    edit the criterion to fit the code — it is repeated verbatim in `spec.md`
+    §5 cmd 2 and in Task 3's full list, and changing it is a spec amendment
+    needing human approval.
   - done-criteria:
     - §5 cmd 2, behaviour half — verbatim, exit 0:
       ```
@@ -104,7 +113,21 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run python -c "import inspect; from voicelock import voiceprint as v; s = inspect.getsource(v.load_wav); assert 'capture.py' in s, 'the raises do not explain that the pinned capture rate is what justifies refusing'"` → exit 0 (§6's command — the F6 blind-spot mitigation)
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed; the count rises by the new tests and must not fall below 122)
-  - feedback: (none)
+  - feedback:
+    - **GATE FAIL #1 (2026-07-26, subagent verifier, base `b063f30` → head
+      `a6572c0`).** Done-criterion 2 (`plan.md:103` = `spec.md` §5 cmd 2 second
+      half) exited 1: `AssertionError: fewer than 2 ValueError tests for
+      load_wav`. The command counts the literal substring
+      `pytest.raises(ValueError)`; the two new tests were written as
+      `pytest.raises(ValueError, match="2 channels")`
+      (`tests/test_voiceprint.py:130`) and
+      `pytest.raises(ValueError, match="44100 Hz")` (`:138`), so the literal
+      count measured **0**, not 2. Every other criterion passed: behaviour half
+      exit 0, §6 justification command exit 0, `ruff` exit 0, `pytest` exit 0
+      with **124 passed** (up from 122, 0 failed). Scope check PASS —
+      `_resample` correctly left in place, no protected-file writes.
+      Command-vs-code mismatch, not a behaviour defect; the fix is in the test
+      spelling, not in the criterion.
 
 - [ ] **Task 2** — Remove the `sample_rate` parameters and delete `_resample`
   - state: TODO
