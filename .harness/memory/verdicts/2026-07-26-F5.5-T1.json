@@ -1,0 +1,27 @@
+{
+  "task": "T1",
+  "feature": "Feature 5.5 — Voiceprint dead-surface hygiene",
+  "spec": "spec.md@5d39918",
+  "change": "b063f30..d110551 (whole task arc; attempt 1 built at a6572c0, retry 1 at d110551)",
+  "gate": {
+    "commands": [
+      "uv run python -c \"<spec.md §5 cmd 2 behaviour half — load_wav must refuse a real stereo file and a real 44.1 kHz file>\"",
+      "uv run python -c \"...'multichannel' in t; t.count('pytest.raises(ValueError)') >= 2...\"",
+      "uv run python -c \"...inspect.getsource(v.load_wav); assert 'capture.py' in s...\"",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "Retry 1 (base a16841f, head d110551): all five exit 0; pytest 124 passed / 0 failed / 44.65s, up from 122 before the feature. Attempt 1 (base b063f30, head a6572c0) FAILED command 2 with exit 1 — 'fewer than 2 ValueError tests for load_wav'. The command counts the literal substring 'pytest.raises(ValueError)' and the tests were spelled 'pytest.raises(ValueError, match=...)', so the comma broke the match and the count measured 0. Every other command passed on attempt 1 too, including pytest at 124. Command-vs-code mismatch, not a behaviour defect. Scope check PASS on both attempts; _resample deliberately left in place for Task 2."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Both axes carried quoted file:line evidence. The verifier proved mutation-sensitivity rather than asserting it: neutering both new checks to 'if False:' made exactly the two new tests fail ('2 failed, 9 deselected', 'DID NOT RAISE ValueError'), then restored the file and confirmed a clean tree — this is the enforcement half of the 2026-07-26 'a test must assert something that would break if the behaviour were removed' guardrail, performed unprompted. It also verified §4's no-live-path-behaviour-change claim independently rather than taking it from handoff.md: load_wav has zero production callers, all 11 call sites are tests reading the pinned 16 kHz mono fixture dir. All three handoff doubts were folded in and none changed the verdict."
+  },
+  "mechanism": "subagent",
+  "lesson": "proposed — pending approval",
+  "mode": "full",
+  "dev_mode": "Mode 4",
+  "date": "2026-07-26"
+}

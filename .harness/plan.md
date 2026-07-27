@@ -3,7 +3,8 @@
 ## Active context
 - Updated: 2026-07-26
 - Feature: Feature 5.5 from `roadmap.md` · Mode: Mode 4 · Phase: **building —
-  Task 1 `REVIEW` (retry 1, `rejects: 1`), Tasks 2–3 `TODO`.**
+  Task 1 `DONE` (`rejects: 1`). Next: `/implement` Task 2, then Task 3
+  (LAST, full spec Verification), then the Mode 4 tail.**
   (the Mode here is a convenience copy — `spec.md`'s Approval gate is the
   authoritative one on any disagreement, per the universal [State] precedence)
 - Spec: `spec.md` holds F5.5's spec, `Status: CLEAR`, zero clarification
@@ -33,23 +34,30 @@ legitimately vary in resolution. Task 1 writes that justification beside the
 raises and a done-criterion asserts it stays there.
 
 ### Memory spine (≤5)
-1. **Scope shrank during grilling, on measurement.** A fourth item — an ordering
+1. **Where we are: Task 1 `DONE`; Tasks 2 and 3 are pure subtraction and
+   renaming.** `load_wav` now refuses bad audio, but **`_resample` still exists
+   and `embed` still calls it** — Task 2 removes that last caller and then the
+   function. Suite stands at **124 passed**, up from 122.
+2. **This feature's criteria match SOURCE TEXT literally — spell the code to
+   satisfy them, never edit the criterion.** Task 1 lost a full verify cycle to
+   exactly this: `spec.md` §5 cmd 2 counts the substring
+   `pytest.raises(ValueError)`, and `pytest.raises(ValueError, match=...)`
+   counts 0. Still ahead: Task 2's `'.ndim > 1' not in s` and `sample_rate`
+   absent from both signatures; Task 3's `def test_same_speaker_accepts` absent
+   and `sub-window`/`same recording` present. A criterion is `spec.md`'s and
+   human-approved — changing one is a spec amendment.
+3. **Nothing may be fixed by moving a threshold.** `ACCEPT_CUTOFF = 0.45` and
+   `REJECT_CUTOFF = 0.65` are pinned by a done-criterion on Tasks 2 and 3, and
+   §5 cmds 3 and 4 **pass today and must keep passing**.
+4. **Scope shrank during grilling, on measurement.** A fourth item — an ordering
    assertion on the byte-disjoint `enroll1`/`enroll5` pair — was drafted then
    **disproved**: a dummy embedder with no speaker modelling orders that pair
    correctly too (0.077 < 0.113). Root cause is one recording session per
    speaker, not byte overlap. **Do not re-propose it.**
-2. **Nothing may be fixed by moving a threshold.** `ACCEPT_CUTOFF = 0.45` and
-   `REJECT_CUTOFF = 0.65` are pinned by a done-criterion on Tasks 2 and 3.
-3. **`voiceprint.py` is unfrozen for the named deletions only** (`spec.md` §0).
-   F4 froze it; every line not named in §4 stays as F4 left it. In particular
-   `load_reference`'s re-normalize (`:112`) is a **§3 non-goal** — a verifier
-   flagged it, and it is deliberately kept.
-4. **No new dependencies, no UI, no live surface, and no manual check** — the
-   first feature with none. `spec.md` §5 records why rather than leaving it
-   implicit.
-5. **All seven verification commands were dry-run before approval.** Cmds 3
-   (constants) and 4 (mutation proof) **pass today and must keep passing**; the
-   rest fail today with assertions naming their build targets.
+5. **`voiceprint.py` is unfrozen for the named deletions only** (`spec.md` §0);
+   `load_reference`'s re-normalize (`:112`) is a deliberate **§3 non-goal**. No
+   new dependencies, no UI, no live surface, and **no manual check** — the first
+   feature with none, and `spec.md` §5 records why.
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
@@ -58,9 +66,12 @@ Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — `load_wav`: refuse bad audio instead of silently converting it
-  - state: REVIEW
+- [x] **Task 1** — `load_wav`: refuse bad audio instead of silently converting it
+  - state: DONE
   - rejects: 1
+  - verdict: `memory/verdicts/2026-07-26-F5.5-T1.json` — GATE PASS (5/5, `pytest`
+    124 passed / 0 failed), REVIEW APPROVE (spec pass · standards pass),
+    mechanism `subagent`, 2026-07-26
   - files: `src/voicelock/voiceprint.py`, `tests/test_voiceprint.py`
   - notes: Edit `load_wav` (`:148-158`) only. Remove the downmix branch
     (`:154-155`) and the resample call (`:156-157`); in their place raise
