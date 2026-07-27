@@ -33,6 +33,7 @@ from voicelock.middlelock import (
     reconcile,
     residual_bits,
 )
+from voicelock.facelock import EMBEDDING_DIM as FACE_EMBEDDING_DIM
 from voicelock.vault import (
     FORMAT_VERSION,
     MAGIC,
@@ -308,34 +309,45 @@ def test_no_network_during_commit_and_reconcile(
 
 
 # =============================================================================
-# The nested v2 vault (Task 3) — spec §5 cases (1)-(7) end to end.
+# The nested v3 vault (Task 2) — voice-layer cases end to end, face held constant.
 # =============================================================================
+
+
+def a_faceprint(seed: int = 100) -> np.ndarray:
+    """A deterministic synthetic embedding — stands in for a face.
+
+    These vault-level cases are about the voice layer and the peel order, not
+    face identity (that is ``test_facelock.py``'s job), so the face is held
+    constant here with a synthetic unit-vector embedding.
+    """
+    vector = np.random.default_rng(seed).standard_normal(FACE_EMBEDDING_DIM)
+    return vector / np.linalg.norm(vector)
 
 
 @pytest.fixture
 def sealed_vault(tmp_path: Path, enrollment: list[np.ndarray]) -> Path:
     vault = tmp_path / "vault.vl"
-    vault_enroll(NAME, PASSPHRASE, enrollment, path=vault)
+    vault_enroll(NAME, PASSPHRASE, enrollment, [a_faceprint()], path=vault)
     return vault
 
 
-# --- case (1): enroll binds a middle key and seals a nested v2 vault ----------
-def test_enroll_seals_a_v2_vault(sealed_vault: Path) -> None:
+# --- case (1): enroll binds a middle key and seals a nested v3 vault ----------
+def test_enroll_seals_a_v3_vault(sealed_vault: Path) -> None:
     raw = sealed_vault.read_bytes()
     assert raw[:4] == MAGIC == b"VLCK"
-    assert raw[4] == FORMAT_VERSION == 2
+    assert raw[4] == FORMAT_VERSION == 3
 
 
 # --- case (2): the same speaker unlocks and gets the display name ------------
 def test_same_speaker_unlocks(sealed_vault: Path, same_speaker: np.ndarray) -> None:
-    assert vault_unlock(PASSPHRASE, same_speaker, path=sealed_vault) == NAME
+    assert vault_unlock(PASSPHRASE, same_speaker, a_faceprint(), path=sealed_vault) == NAME
 
 
 def test_each_enrollment_take_unlocks(
     sealed_vault: Path, enrollment: list[np.ndarray]
 ) -> None:
     for index, take in enumerate(enrollment, start=1):
-        assert vault_unlock(PASSPHRASE, take, path=sealed_vault) == NAME, (
+        assert vault_unlock(PASSPHRASE, take, a_faceprint(), path=sealed_vault) == NAME, (
             f"enrollment take {index} could not unlock"
         )
 
@@ -345,7 +357,7 @@ def test_different_speaker_is_a_middle_reject(
     sealed_vault: Path, different_speaker: np.ndarray
 ) -> None:
     with pytest.raises(VoiceAuthError) as caught:
-        vault_unlock(PASSPHRASE, different_speaker, path=sealed_vault)
+        vault_unlock(PASSPHRASE, different_speaker, a_faceprint(), path=sealed_vault)
     assert NAME not in str(caught.value)
 
 
@@ -354,7 +366,7 @@ def test_wrong_passphrase_is_an_outer_reject(
     sealed_vault: Path, same_speaker: np.ndarray
 ) -> None:
     with pytest.raises(AuthError) as caught:
-        vault_unlock("wrong-passphrase", same_speaker, path=sealed_vault)
+        vault_unlock("wrong-passphrase", same_speaker, a_faceprint(), path=sealed_vault)
     assert NAME not in str(caught.value)
 
 
@@ -367,7 +379,7 @@ def test_wrong_passphrase_outranks_a_wrong_voice(
     voice is ever consulted before the passphrase has been proven.
     """
     with pytest.raises(AuthError):
-        vault_unlock("wrong-passphrase", different_speaker, path=sealed_vault)
+        vault_unlock("wrong-passphrase", different_speaker, a_faceprint(), path=sealed_vault)
 
 
 def test_the_two_rejects_are_distinct_types(
@@ -375,20 +387,28 @@ def test_the_two_rejects_are_distinct_types(
 ) -> None:
     """The demo's whole point: the outer and middle rejects never collapse."""
     with pytest.raises(AuthError) as outer:
-        vault_unlock("wrong-passphrase", same_speaker, path=sealed_vault)
+        vault_unlock("wrong-passphrase", same_speaker, a_faceprint(), path=sealed_vault)
     with pytest.raises(VoiceAuthError) as middle:
-        vault_unlock(PASSPHRASE, different_speaker, path=sealed_vault)
+        vault_unlock(PASSPHRASE, different_speaker, a_faceprint(), path=sealed_vault)
     assert not isinstance(outer.value, VoiceAuthError)
     assert not isinstance(middle.value, AuthError)
 
 
-# --- case (6): a v1 vault is refused with the re-enroll signal ---------------
+# --- case (6): a v1 or v2 vault is refused with the re-enroll signal ---------
 def test_v1_vault_is_refused(sealed_vault: Path, same_speaker: np.ndarray) -> None:
     raw = bytearray(sealed_vault.read_bytes())
     raw[4] = 1
     sealed_vault.write_bytes(bytes(raw))
     with pytest.raises(LegacyVaultError, match="re-enroll"):
-        vault_unlock(PASSPHRASE, same_speaker, path=sealed_vault)
+        vault_unlock(PASSPHRASE, same_speaker, a_faceprint(), path=sealed_vault)
+
+
+def test_v2_vault_is_refused(sealed_vault: Path, same_speaker: np.ndarray) -> None:
+    raw = bytearray(sealed_vault.read_bytes())
+    raw[4] = 2
+    sealed_vault.write_bytes(bytes(raw))
+    with pytest.raises(LegacyVaultError, match="re-enroll"):
+        vault_unlock(PASSPHRASE, same_speaker, a_faceprint(), path=sealed_vault)
 
 
 # --- case (7): no leak — helper data and plaintext stay inside the outer box --
@@ -399,9 +419,16 @@ def test_vault_bytes_leak_neither_helper_data_nor_plaintext(
 
     # The display name never appears in the clear.
     assert NAME.encode("utf-8") not in raw
-    # Nor does the JSON scaffolding of either nested payload — if helper data sat
-    # outside the outer box, these field names would be readable.
-    for marker in (b"helper_data", b"middle_ciphertext", b"schema_version", b"seed"):
+    # Nor does the JSON scaffolding of any nested payload — if helper data sat
+    # outside its sealing box, these field names would be readable.
+    for marker in (
+        b"helper_data_voice",
+        b"helper_data_face",
+        b"middle_ciphertext",
+        b"inner_ciphertext",
+        b"schema_version",
+        b"seed",
+    ):
         assert marker not in raw
 
     # Nor any part of the reference embedding, in either byte order.

@@ -1,28 +1,36 @@
-"""Profile Vault — passphrase outer lock (F2) around a voice middle lock (F4).
+"""Profile Vault — passphrase outer lock (F2) around voice (F4) and face (F7) locks.
 
-The Vault is sealed by two nested AEAD layers, peeled in this order:
+The Vault is sealed by three nested AEAD layers, peeled in this order:
 
 1. **Outer lock** — Argon2id over the typed passphrase (F2, unchanged). Opening it
-   yields the non-secret helper data plus the still-sealed middle ciphertext.
+   yields the non-secret voice helper data plus the still-sealed middle ciphertext.
 2. **Middle lock** — a key reconciled from the speaker's voiceprint via the helper
-   data (``middlelock``). Opening it yields the profile JSON.
+   data (``middlelock``). Opening it yields the non-secret face helper data plus
+   the still-sealed inner ciphertext.
+3. **Inner lock** — a key reconciled from the enrolled face via the helper data
+   (``facelock``). Opening it yields the profile JSON.
 
 Peel order is load-bearing: a wrong passphrase raises ``AuthError`` before the
-voice is consulted at all, so the two reject reasons stay distinct and a wrong
-passphrase never leaks whether the voice would have matched.
+voice is consulted, a wrong voice raises ``VoiceAuthError`` before the face is
+consulted, and a wrong face raises ``FaceAuthError`` — before either upstream
+check gets to redisclose whether it would have passed, each reject reason
+stays distinct and each impostor class fails at its own named layer.
 
-On-disk layout (``FORMAT_VERSION`` 2)::
+On-disk layout (``FORMAT_VERSION`` 3)::
 
     VLCK | version | opslimit | memlimit | salt | outer ciphertext
                                                   |
-                    {helper_data, middle_ciphertext} sealed with the outer key
+              {helper_data_voice, middle_ciphertext} sealed with the outer key
                                        |
-                       {name, schema_version} sealed with the middle key
+                {helper_data_face, inner_ciphertext} sealed with the middle key
+                                       |
+                       {name, schema_version} sealed with the inner key
 
-Helper data lives *inside* the outer box. It is non-secret by design, but there is
-no reason to publish it at rest. A v1 (passphrase-only) vault has no voice layer
-at all and is refused with ``LegacyVaultError`` — there is deliberately no
-passphrase-only bypass, so "voice is now required" stays true.
+Helper data lives *inside* the box it reconciles into. It is non-secret by
+design, but there is no reason to publish it at rest. A v1 (passphrase-only)
+or v2 (pre-face) vault has no face layer and is refused with
+``LegacyVaultError`` — there is deliberately no bypass, so "voice and face are
+now required" stays true.
 """
 
 from __future__ import annotations
@@ -36,11 +44,12 @@ import numpy as np
 from nacl import pwhash, secret, utils
 from nacl.exceptions import CryptoError
 
-from voicelock import middlelock
+from voicelock import facelock, middlelock
 
 MAGIC = b"VLCK"
-FORMAT_VERSION = 2
-LEGACY_FORMAT_VERSION = 1
+FORMAT_VERSION = 3
+_PREVOICE_FORMAT_VERSION = 1
+_PREFACE_FORMAT_VERSION = 2
 _SALT_BYTES = pwhash.argon2id.SALTBYTES
 _OPS = pwhash.argon2id.OPSLIMIT_MODERATE
 _MEM = pwhash.argon2id.MEMLIMIT_MODERATE
@@ -64,8 +73,12 @@ class VoiceAuthError(VaultError):
     """Voice did not match — middle REJECT; no plaintext returned."""
 
 
+class FaceAuthError(VaultError):
+    """Face did not match — inner REJECT; no plaintext returned."""
+
+
 class LegacyVaultError(VaultError):
-    """A v1 vault predates the voice lock — re-enroll to add it."""
+    """A v1 or v2 vault predates a lock layer — re-enroll to add it."""
 
 
 class NoVaultError(VaultError):
@@ -80,12 +93,14 @@ def enroll(
     name: str,
     passphrase: str,
     voiceprints: list[np.ndarray],
+    faceprints: list[np.ndarray],
     path: Path | None = None,
 ) -> None:
-    """Seal a profile Vault behind the passphrase and the enrolled voice.
+    """Seal a profile Vault behind the passphrase, the enrolled voice, and face.
 
-    ``voiceprints`` are the enrollment embeddings (not audio — the DSP stays in
-    ``voiceprint``), one per enrollment sentence. Always writes ``FORMAT_VERSION``.
+    ``voiceprints``/``faceprints`` are the enrollment embeddings (not audio or
+    frames — the DSP/vision stays in ``voiceprint``/``faceprint``). Always
+    writes ``FORMAT_VERSION``.
     """
     display = (name or "").strip()
     secret_text = passphrase or ""
@@ -94,16 +109,28 @@ def enroll(
 
     vault_path = path if path is not None else default_vault_path()
 
-    middle_secret, helper_data = middlelock.commit(voiceprints)
-    middle_key = middlelock.derive_key(
-        middle_secret, base64.b64decode(helper_data["salt"])
+    inner_secret, helper_data_face = facelock.commit(faceprints)
+    inner_key = facelock.derive_key(
+        inner_secret, base64.b64decode(helper_data_face["salt"])
     )
     profile = _dumps({"name": display, "schema_version": 1})
-    middle_ciphertext = secret.SecretBox(middle_key).encrypt(profile)
+    inner_ciphertext = secret.SecretBox(inner_key).encrypt(profile)
+
+    middle_secret, helper_data_voice = middlelock.commit(voiceprints)
+    middle_key = middlelock.derive_key(
+        middle_secret, base64.b64decode(helper_data_voice["salt"])
+    )
+    middle_plaintext = _dumps(
+        {
+            "helper_data_face": helper_data_face,
+            "inner_ciphertext": base64.b64encode(inner_ciphertext).decode("ascii"),
+        }
+    )
+    middle_ciphertext = secret.SecretBox(middle_key).encrypt(middle_plaintext)
 
     outer_plaintext = _dumps(
         {
-            "helper_data": helper_data,
+            "helper_data_voice": helper_data_voice,
             "middle_ciphertext": base64.b64encode(middle_ciphertext).decode("ascii"),
         }
     )
@@ -117,15 +144,19 @@ def enroll(
 
 
 def unlock(
-    passphrase: str, voiceprint: np.ndarray, path: Path | None = None
+    passphrase: str,
+    voiceprint: np.ndarray,
+    faceprint: np.ndarray,
+    path: Path | None = None,
 ) -> str:
-    """Peel the outer then the middle lock; return the enrolled display name.
+    """Peel the outer, middle, then inner lock; return the enrolled display name.
 
-    Raises ``AuthError`` for a wrong passphrase (raised *before* the voice is
-    consulted), ``VoiceAuthError`` when the voice fails to reconcile or the middle
-    box will not open, ``LegacyVaultError`` for a pre-voice v1 vault, and
-    ``NoVaultError`` when there is nothing enrolled yet. No reject path returns a
-    name or any other plaintext.
+    Raises ``AuthError`` for a wrong passphrase (raised *before* the voice or
+    face is consulted), ``VoiceAuthError`` when the voice fails to reconcile
+    (raised *before* the face is consulted), ``FaceAuthError`` when the face
+    fails to reconcile, ``LegacyVaultError`` for a pre-voice (v1) or pre-face
+    (v2) vault, and ``NoVaultError`` when there is nothing enrolled yet. No
+    reject path returns a name or any other plaintext.
     """
     vault_path = path if path is not None else default_vault_path()
     if not vault_path.is_file():
@@ -142,9 +173,13 @@ def unlock(
         raise AuthError("Wrong passphrase")
 
     version = raw[4]
-    if version == LEGACY_FORMAT_VERSION:
+    if version == _PREVOICE_FORMAT_VERSION:
         raise LegacyVaultError(
             "This vault predates voice — re-enroll to add the voice lock"
+        )
+    if version == _PREFACE_FORMAT_VERSION:
+        raise LegacyVaultError(
+            "This vault predates face — re-enroll to add the face lock"
         )
     if version != FORMAT_VERSION:
         raise VaultError(f"Unsupported vault version: {version}")
@@ -159,17 +194,29 @@ def unlock(
     except CryptoError as exc:
         raise AuthError("Wrong passphrase") from exc
 
-    helper_data, middle_ciphertext = _parse_outer(outer_plaintext)
+    helper_data_voice, middle_ciphertext = _parse_outer(outer_plaintext)
 
     # Only now is the voice consulted — the passphrase has already been proven.
     try:
-        middle_secret = middlelock.reconcile(helper_data, voiceprint)
+        middle_secret = middlelock.reconcile(helper_data_voice, voiceprint)
         middle_key = middlelock.derive_key(
-            middle_secret, base64.b64decode(helper_data["salt"])
+            middle_secret, base64.b64decode(helper_data_voice["salt"])
         )
-        profile = secret.SecretBox(middle_key).decrypt(middle_ciphertext)
+        middle_plaintext = secret.SecretBox(middle_key).decrypt(middle_ciphertext)
     except (middlelock.MiddleLockError, CryptoError) as exc:
         raise VoiceAuthError("Voice didn't match") from exc
+
+    helper_data_face, inner_ciphertext = _parse_middle(middle_plaintext)
+
+    # Only now is the face consulted — the passphrase and voice already verified.
+    try:
+        inner_secret = facelock.reconcile(helper_data_face, faceprint)
+        inner_key = facelock.derive_key(
+            inner_secret, base64.b64decode(helper_data_face["salt"])
+        )
+        profile = secret.SecretBox(inner_key).decrypt(inner_ciphertext)
+    except (facelock.FaceLockError, CryptoError) as exc:
+        raise FaceAuthError("Face didn't match") from exc
 
     return _parse_profile(profile)
 
@@ -177,7 +224,7 @@ def unlock(
 def _parse_outer(outer_plaintext: bytes) -> tuple[dict, bytes]:
     try:
         payload = json.loads(outer_plaintext.decode("utf-8"))
-        helper_data = payload["helper_data"]
+        helper_data_voice = payload["helper_data_voice"]
         middle_ciphertext = base64.b64decode(payload["middle_ciphertext"])
     except (
         UnicodeDecodeError,
@@ -187,9 +234,27 @@ def _parse_outer(outer_plaintext: bytes) -> tuple[dict, bytes]:
         ValueError,
     ) as exc:
         raise VaultError("Vault payload is corrupt") from exc
-    if not isinstance(helper_data, dict):
+    if not isinstance(helper_data_voice, dict):
         raise VaultError("Vault payload is corrupt")
-    return helper_data, middle_ciphertext
+    return helper_data_voice, middle_ciphertext
+
+
+def _parse_middle(middle_plaintext: bytes) -> tuple[dict, bytes]:
+    try:
+        payload = json.loads(middle_plaintext.decode("utf-8"))
+        helper_data_face = payload["helper_data_face"]
+        inner_ciphertext = base64.b64decode(payload["inner_ciphertext"])
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        raise VaultError("Vault payload is corrupt") from exc
+    if not isinstance(helper_data_face, dict):
+        raise VaultError("Vault payload is corrupt")
+    return helper_data_face, inner_ciphertext
 
 
 def _parse_profile(profile: bytes) -> str:

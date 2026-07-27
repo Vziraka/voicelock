@@ -3,7 +3,8 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building Task 2.** Task 2 is `DOING` (WIP=1).
+  Phase: **BLOCKED** — Task 1 `DONE`, Task 2 `BLOCKED` (plan contradiction,
+  needs a human call; same shape as F4 Task 3's precedent).
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -141,7 +142,30 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises from F6's 145)
 
 - [ ] **Task 2** — `vault.py`: bump to v3, nest the face inner lock, refuse v1 **and** v2
-  - state: DOING
+  - state: BLOCKED
+  - blocked 2026-07-27 — **the task's own ledger entry is self-contradictory**,
+    the same shape universal.md's [Modes] rule requires a Mode 3 session to
+    STOP on rather than interpret, and the identical shape F4 Task 3 hit
+    (`git log`: `2706679` BLOCKED → `d583749` UNBLOCKED by human decision).
+    This task's `files:` line is `vault.py` / `tests/test_vault.py`, but its
+    done-criteria include `uv run pytest` → exit 0 (full suite). Task 2 adds
+    a required `faceprints`/`faceprint` parameter to `vault.enroll`/
+    `vault.unlock`, and `src/voicelock/app.py:173,204` are the only other
+    callers — the plan assigns the bridge fix to Task 3. Both criteria
+    cannot hold at once.
+    **Everything inside the declared (plus unavoidably-coupled) scope is
+    built and green:** `vault.py` v3 nested layout exactly as spec §2 Q3 and
+    this ledger's decisions 4–6 pin it — `FaceAuthError`, both legacy
+    versions refused by name ("predates voice" / "predates face"), peel
+    order outer→middle→inner. `tests/test_vault.py` (declared) plus
+    `tests/test_outer_lock.py` and `tests/test_middlelock.py`'s nested-vault
+    section (both call the same changed signature, unavoidable for the same
+    reason F4's precedent flagged) all updated: **52 passed** across
+    `test_vault.py`/`test_outer_lock.py`/`test_middlelock.py`, `uv run ruff
+    check .` exit 0. The ONLY failures are **8** pre-existing
+    `test_booth_api.py` cases that call the old signature (170 passed, 8
+    failed on the full suite) — confirmed by actually running it, not
+    predicted. Resolution needs a human choice — see `handoff.md`.
   - rejects: 0
   - files: `src/voicelock/vault.py`, `tests/test_vault.py`
   - notes: Apply decisions 4–6 verbatim. `enroll()` gains a `faceprints:
