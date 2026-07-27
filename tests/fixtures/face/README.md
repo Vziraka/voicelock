@@ -118,3 +118,71 @@ The repo owner's own face is deliberately **not** a fixture here: committing
 one's biometrics is a poor default, and a fixture that can be withdrawn later is
 a test that breaks later. The owner's face is proven live at runtime, never in
 git.
+
+## `personA_1.jpg`, `personA_2.jpg`, `personB.jpg` — F6 identity fixtures, COMMITTED
+
+Unlike `portrait.jpg` above, all three of these **are** committed — like
+`tests/fixtures/voiceprint/`'s `.wav` files, all three are Public
+domain/CC0 with no redistribution restriction, so there is no reason to make
+a fresh checkout fetch them. Sourced and licence-verified by `research`
+(`.harness/memory/research/2026-07-26-f6-same-person-fixture-pair.md`);
+each file's licence was **re-confirmed directly against Wikimedia Commons'
+per-file `imageinfo&extmetadata` API** at build time (2026-07-27), since a
+filename or licence tag can drift between a research session and the build
+that commits it.
+
+| File | Source | Credit / custodian | Date | Licence (Commons `LicenseShortName`) | SHA-256 (committed file) |
+|---|---|---|---|---|---|
+| `personA_1.jpg` | [Commons](https://commons.wikimedia.org/wiki/File:Frederick_Douglass,_head-and-shoulders_portrait,_facing_right_LCCN2004671911.jpg), via Library of Congress (LCCN 2004671911) | George Francis Schreiber (photographer) | 1870 | Public domain | `2af9262bf09bfd6b0aa5d89d8a30dc43d0b21d74656f44d645f5528c7dad9ed8` |
+| `personA_2.jpg` | [Commons](https://commons.wikimedia.org/wiki/File:Frederick_Douglass,_ca._1879_-_NARA_-_558770.tif), via U.S. National Archives (NARA 558770) | Photographer unrecorded | c. 1879 | Public domain | `554df56b1771970fd76fbc27d339a02db7cacb24fa999f388ad44cefb6c6726d` |
+| `personB.jpg` | [Commons](https://commons.wikimedia.org/wiki/File:-Elderly_Man;_Full_Face-_MET_37.14.52.jpg), via Metropolitan Museum of Art (37.14.52) | Southworth & Hawes | c. 1850 | CC0 (Creative Commons Zero) | `a849023ad4b6c7aec7ecd0a7d0c5c9df313e46b95f4c7be5ec021397e958fccc` |
+
+Both Douglass files' committed-file SHA-1 (not shown above; SHA-256 is what
+this repo standardizes on) were verified byte-identical to the `sha1` field
+Commons' own `imageinfo` API reports for each file, immediately after
+download and before commit.
+
+### `personA_2.jpg` is a JPEG derivative of an upstream TIFF
+
+Commons hosts NARA 558770 only as a 2094×3000 grayscale **TIFF**
+(6,282,281 bytes). This repo's fixtures are JPEG throughout, so
+`personA_2.jpg` is a **resize-only** derivative — no crop, no rotation, no
+retouch — to 1280×1834 (same aspect ratio, ~61% linear scale), saved at
+JPEG quality 95. The resize target was not arbitrary: MediaPipe's face
+tracker (see below) failed to find the face on some scale/resize choices and
+succeeded on others purely as a function of image dimensions, so 1280×1834
+is the specific size verified to detect reliably, not a rounded convenience
+number.
+
+### Why A1/A2 is an honest same-person pair, not a derived probe
+
+F5.5 exists because a same-X test built on a **derived** probe (a crop,
+rescale, or re-encode of one source file) proves the pipeline runs, not that
+the model discriminates identity — see that feature's guardrail in
+`.harness/constitution/project.md`. `personA_1.jpg` and `personA_2.jpg` are
+**not** derivatives of each other: different photographer (Schreiber vs. an
+unrecorded NARA photographer), different negative, a 9-year gap (1870 vs. c.
+1879 — different apparent age too), different custodial chain (Library of
+Congress vs. National Archives), different source format (JPEG vs. TIFF).
+There is no operation that turns one into the other; they are two
+independent photographic acts of the same person, `personA_2.jpg`'s
+resize-from-TIFF notwithstanding — that derivation happened once, from NARA's
+own TIFF to this repo's JPEG, never from `personA_1.jpg`.
+
+### Detection re-verified through the vendored bundle, not assumed
+
+All three files were re-run through `voicelock.facedetect.load_landmarker()`
+(the same vendored `models/face_landmarker/face_landmarker.task` bundle F5
+vendored) at build time, confirming `faces == 1` and `landmarks == 478` for
+each. **Finding, worth recording because it will recur:** MediaPipe's
+`VIDEO`-mode landmarker carries face-tracker state (an ROI prior) across
+calls on the **same instance** — feeding it three unrelated still photographs
+back-to-back, in one shared instance, silently drops the face on the 2nd and
+3rd image (0 detections, no error) because each photo's face falls outside
+the previous photo's tracked region. A **fresh landmarker instance per
+image** detects all three reliably every time. This is exactly why F6's own
+`faceprint.py` (Task 3) uses a separate `IMAGE`-mode landmarker rather than
+reusing `facedetect.py`'s `VIDEO`-mode one — `IMAGE` mode is stateless
+per call by design, so this failure mode does not apply there; it was only
+ever a hazard for ad-hoc multi-image scripts (like this fixture check) built
+against the `VIDEO`-mode loader.

@@ -137,7 +137,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count unchanged from F5.5's 124 — this task adds no tests)
 
 - [ ] **Task 2** — Commit the three face fixtures (personA_1, personA_2, personB) with provenance README
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `tests/fixtures/face/personA_1.jpg`, `tests/fixtures/face/personA_2.jpg`,
     `tests/fixtures/face/personB.jpg`, `tests/fixtures/face/README.md` (append a
