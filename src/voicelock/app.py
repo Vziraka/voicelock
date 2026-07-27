@@ -10,13 +10,14 @@ from typing import Any
 import numpy as np
 import webview
 
-from voicelock import faceprint, voiceprint
+from voicelock import facelock, faceprint, voiceprint
 from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, SAMPLE_RATE
 from voicelock.facedetect import FaceEngine, FaceStatus, FrameResult
 from voicelock.middlelock import ENROLLMENT_TAKES
 from voicelock.playback import PlaybackEngine
 from voicelock.vault import (
     AuthError,
+    FaceAuthError,
     LegacyVaultError,
     NoVaultError,
     ValidationError,
@@ -95,6 +96,11 @@ class BoothApi:
         # Kept separate from _reference_takes: that list belongs to the F3
         # diagnostic panel, which spec §3 keeps as an independent thing.
         self._enroll_voiceprints: list[np.ndarray] = []
+        # F7 enrollment faceprints, banked one per burst frame by
+        # enroll_face_take(). Kept separate from _face_reference_takes: that
+        # list belongs to F6's diagnostic panel, an independent thing (spec §3
+        # Q4) that never reads or writes these.
+        self._enroll_faceprints: list[np.ndarray] = []
         self._window: Any = None
         self._pumping = False
         self._pump_thread: threading.Thread | None = None
@@ -150,8 +156,51 @@ class BoothApi:
         self._enroll_voiceprints = []
         return {"ok": True, "progress": 0, "needed": ENROLLMENT_TAKES}
 
+    def enroll_face_take(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Bank the last camera frame as one of the enrollment faces.
+
+        Called once per press until ``facelock.ENROLLMENT_TAKES`` are banked;
+        ``enroll`` then seals the vault's inner lock from them. A frame with
+        no face (or no camera frame yet) is rejected with ``no_face`` and does
+        NOT advance — mirrors ``enroll_take``'s ``need_more_audio`` shape for
+        the voice path.
+        """
+        frame = self.face.last_frame
+        if frame is None:
+            return {
+                "ok": False,
+                "error": "no_face",
+                "progress": len(self._enroll_faceprints),
+            }
+        try:
+            embedding = faceprint.embed_frame(frame)
+        except faceprint.NoFaceError:
+            return {
+                "ok": False,
+                "error": "no_face",
+                "progress": len(self._enroll_faceprints),
+            }
+        self._enroll_faceprints.append(embedding)
+        progress = len(self._enroll_faceprints)
+        return {
+            "ok": True,
+            "done": progress >= facelock.ENROLLMENT_TAKES,
+            "progress": progress,
+            "needed": facelock.ENROLLMENT_TAKES,
+        }
+
+    def reset_enroll_face_takes(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Discard a half-finished face-enrollment run.
+
+        Mirrors ``reset_enroll_takes`` exactly, for the same reason: without
+        it, an abandoned run's banked faces would survive into the next
+        enrollment's inner key, possibly a different person's.
+        """
+        self._enroll_faceprints = []
+        return {"ok": True, "progress": 0, "needed": facelock.ENROLLMENT_TAKES}
+
     def enroll(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Seal (or overwrite) the Vault with name + passphrase + the banked voice."""
+        """Seal (or overwrite) the Vault with name + passphrase + voice + face."""
         data = payload or {}
         name = str(data.get("name", "") or "")
         passphrase = str(data.get("passphrase", "") or "")
@@ -168,9 +217,18 @@ class BoothApi:
                 "needed": ENROLLMENT_TAKES,
             }
 
+        if len(self._enroll_faceprints) < facelock.ENROLLMENT_TAKES:
+            return {
+                "ok": False,
+                "error": "need_face_takes",
+                "progress": len(self._enroll_faceprints),
+                "needed": facelock.ENROLLMENT_TAKES,
+            }
+
         voiceprints = self._enroll_voiceprints[:ENROLLMENT_TAKES]
+        faceprints = self._enroll_faceprints[: facelock.ENROLLMENT_TAKES]
         try:
-            vault_enroll(name, passphrase, voiceprints, path=self.vault_path)
+            vault_enroll(name, passphrase, voiceprints, faceprints, path=self.vault_path)
         except ValidationError as exc:
             return {
                 "ok": False,
@@ -179,15 +237,18 @@ class BoothApi:
             }
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": str(exc) or "Enroll failed"}
-        self._enroll_voiceprints = []  # a sealed vault consumes the run
+        # A sealed vault consumes the run.
+        self._enroll_voiceprints = []
+        self._enroll_faceprints = []
         return {"ok": True, "name": name.strip(), "path": str(self.vault_path)}
 
     def unlock(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Peel the outer then the middle lock; return the enrolled display name.
+        """Peel outer, middle, then inner; return the enrolled display name.
 
-        The two REJECT reasons stay visibly distinct, per spec §3: ``auth_outer``
-        for a wrong passphrase, ``auth_voice`` for a voice that did not match.
-        No failure path returns a ``name``.
+        The three REJECT reasons stay visibly distinct, per spec §3:
+        ``auth_outer`` for a wrong passphrase, ``auth_voice`` for a voice that
+        did not match, ``auth_face`` for a face that did not match. No
+        failure path returns a ``name``.
         """
         data = payload or {}
         passphrase = str(data.get("passphrase", "") or "")
@@ -200,14 +261,26 @@ class BoothApi:
         except voiceprint.NeedMoreAudioError:
             return {"ok": False, "error": "need_more_audio"}
 
+        frame = self.face.last_frame
+        if frame is None:
+            return {"ok": False, "error": "no_face"}
         try:
-            name = vault_unlock(passphrase, voiceprint_vector, path=self.vault_path)
+            faceprint_vector = faceprint.embed_frame(frame)
+        except faceprint.NoFaceError:
+            return {"ok": False, "error": "no_face"}
+
+        try:
+            name = vault_unlock(
+                passphrase, voiceprint_vector, faceprint_vector, path=self.vault_path
+            )
         except NoVaultError:
             return {"ok": False, "error": "no_vault"}
         except AuthError:
             return {"ok": False, "error": "auth_outer"}
         except VoiceAuthError:
             return {"ok": False, "error": "auth_voice"}
+        except FaceAuthError:
+            return {"ok": False, "error": "auth_face"}
         except LegacyVaultError:
             return {"ok": False, "error": "legacy_vault"}
         except Exception as exc:  # noqa: BLE001

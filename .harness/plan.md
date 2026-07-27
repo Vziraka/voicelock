@@ -3,11 +3,11 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Building Task 2 (merged).** Task 1 `DONE`. Human resolved the
-  2026-07-27 block by choosing to merge former Tasks 2+3 into one Task 2
-  (`memory/deviations.md` entry F7-T2) — Task 2 is `DOING` again, now
-  covering vault.py v3 **and** the Booth bridge. Former Task 4 is renumbered
-  **Task 3** (UI, unchanged scope, still the LAST task).
+  Phase: **Task 2 (merged) built, awaiting fresh-eyes verification.** Task 1
+  `DONE`, Task 2 `REVIEW` (WIP=1) — covers vault.py v3 **and** the Booth
+  bridge, per the 2026-07-27 merge decision (`memory/deviations.md` F7-T2).
+  Former Task 4 is renumbered **Task 3** (UI, unchanged scope, still the LAST
+  task) and may not start until Task 2's wrap-up fully completes.
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -157,8 +157,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed; count rises from F6's 145)
 
-- [ ] **Task 2** — `vault.py` v3 **+** Booth bridge: nest the face inner lock, enroll-face capture step, distinct `auth_face` *(merged with the former standalone bridge task, human decision 2026-07-27 — see `memory/deviations.md` F7-T2)*
-  - state: DOING
+- [x] **Task 2** — `vault.py` v3 **+** Booth bridge: nest the face inner lock, enroll-face capture step, distinct `auth_face` *(merged with the former standalone bridge task, human decision 2026-07-27 — see `memory/deviations.md` F7-T2)*
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/vault.py`, `tests/test_vault.py`,
     `src/voicelock/app.py`, `tests/test_booth_api.py` (plus
@@ -223,9 +223,10 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       diagnostic bridge test fakes, no real camera); unlock returning a
       distinct reason per layer (`auth_outer`/`auth_voice`/`auth_face`), none
       leaking the name; the `no_face` edge during enroll-face capture and
-      during unlock. — **TODO this session.**
-    - `uv run ruff check .` → exit 0
-    - `uv run pytest` → exit 0 (0 failed, count rises)
+      during unlock. — **DONE this session, 36 passed.**
+    - `uv run ruff check .` → exit 0 — **DONE, All checks passed!**
+    - `uv run pytest` → exit 0 (0 failed, count rises) — **DONE, 181 passed
+      (up from 173 at Task 1's end).**
 
 - [ ] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*
   - state: TODO

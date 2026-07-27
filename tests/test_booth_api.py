@@ -13,6 +13,7 @@ import cv2
 from voicelock.app import MIN_LOCK_SECONDS, BoothApi, lock_voiceprint
 from voicelock.capture import CaptureStatus
 from voicelock.facedetect import FaceStatus, FrameResult
+from voicelock.facelock import ENROLLMENT_TAKES as FACE_ENROLLMENT_TAKES
 from voicelock.middlelock import ENROLLMENT_TAKES
 from voicelock.voiceprint import (
     ACCEPT_CUTOFF,
@@ -113,30 +114,51 @@ def _bank_enrollment(api: BoothApi, cap: _StubCapture) -> None:
         assert api.enroll_take()["ok"] is True
 
 
-def _enrolled_booth(tmp_path: Path) -> tuple[BoothApi, _StubCapture, Path]:
+def _bank_face_enrollment(
+    api: BoothApi, face: "_StubFace", image: str = "personA_1.jpg"
+) -> None:
+    """Bank the enrollment-face burst through the bridge.
+
+    Real live production bursts several camera frames a fraction of a second
+    apart (facelock.py's own docstring notes these are near-identical
+    pixels); the fixture stand-in for that is the same still image banked
+    ``FACE_ENROLLMENT_TAKES`` times.
+    """
+    face.last_frame = _face_fx(image)
+    for _ in range(FACE_ENROLLMENT_TAKES):
+        assert api.enroll_face_take()["ok"] is True
+
+
+def _enrolled_booth(tmp_path: Path) -> tuple[BoothApi, _StubCapture, "_StubFace", Path]:
     vault = tmp_path / "vault.vl"
     cap = _StubCapture()
-    api = BoothApi(capture=cap, vault_path=vault, ref_path=tmp_path / "voiceprint.ref")
+    face = _StubFace()
+    api = BoothApi(
+        capture=cap, vault_path=vault, ref_path=tmp_path / "voiceprint.ref", face=face
+    )
     _bank_enrollment(api, cap)
+    _bank_face_enrollment(api, face)
     assert api.enroll({"name": "Ada", "passphrase": "correct-horse"})["ok"] is True
-    return api, cap, vault
+    return api, cap, face, vault
 
 
 def test_bridge_enroll_unlock_roundtrip(tmp_path: Path) -> None:
-    api, cap, vault = _enrolled_booth(tmp_path)
+    api, cap, face, vault = _enrolled_booth(tmp_path)
     assert vault.is_file()
     assert vault.read_bytes()[:4] == b"VLCK"
-    assert vault.read_bytes()[4] == 2  # nested v2 layout
+    assert vault.read_bytes()[4] == 3  # nested v3 layout
 
     cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")  # a genuinely different, independent take
     opened = api.unlock({"passphrase": "correct-horse"})
     assert opened["ok"] is True
     assert opened["name"] == "Ada"
 
 
 def test_bridge_wrong_passphrase_rejects(tmp_path: Path) -> None:
-    api, cap, _ = _enrolled_booth(tmp_path)
+    api, cap, face, _ = _enrolled_booth(tmp_path)
     cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
     rejected = api.unlock({"passphrase": "nope"})
     assert rejected["ok"] is False
     assert rejected["error"] == "auth_outer"
@@ -145,11 +167,23 @@ def test_bridge_wrong_passphrase_rejects(tmp_path: Path) -> None:
 
 def test_bridge_wrong_voice_rejects_distinctly(tmp_path: Path) -> None:
     """The demo's point: wrong passphrase and wrong voice never read the same."""
-    api, cap, _ = _enrolled_booth(tmp_path)
+    api, cap, face, _ = _enrolled_booth(tmp_path)
     cap.set(_fx("speakerB.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")  # face stays correct -- isolates the voice fail
     rejected = api.unlock({"passphrase": "correct-horse"})
     assert rejected["ok"] is False
     assert rejected["error"] == "auth_voice"
+    assert "name" not in rejected
+
+
+def test_bridge_wrong_face_rejects_distinctly(tmp_path: Path) -> None:
+    """The demo's point extended one layer: a wrong face reads distinctly too."""
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    cap.set(_fx("speakerA_live.wav"))  # voice stays correct -- isolates the face fail
+    face.last_frame = _face_fx("personB.jpg")
+    rejected = api.unlock({"passphrase": "correct-horse"})
+    assert rejected["ok"] is False
+    assert rejected["error"] == "auth_face"
     assert "name" not in rejected
 
 
@@ -190,16 +224,19 @@ def test_reset_enroll_takes_discards_an_abandoned_run(tmp_path: Path) -> None:
 def test_enroll_after_reset_uses_only_the_new_takes(tmp_path: Path) -> None:
     """The vault is sealed from the post-reset takes, not the abandoned ones."""
     cap = _StubCapture()
-    api = BoothApi(capture=cap, vault_path=tmp_path / "vault.vl")
+    face = _StubFace()
+    api = BoothApi(capture=cap, vault_path=tmp_path / "vault.vl", face=face)
 
     cap.set(_fx("speakerB.wav"))  # an abandoned run by a different speaker
     api.enroll_take()
     api.reset_enroll_takes()
 
     _bank_enrollment(api, cap)  # a full, clean run by speaker A
+    _bank_face_enrollment(api, face)
     assert api.enroll({"name": "Ada", "passphrase": "correct-horse"})["ok"] is True
 
     cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
     assert api.unlock({"passphrase": "correct-horse"})["name"] == "Ada"
 
 
@@ -212,6 +249,18 @@ def test_bridge_enroll_without_voice_takes_refuses(tmp_path: Path) -> None:
     assert not vault.exists()
 
 
+def test_bridge_enroll_without_face_takes_refuses(tmp_path: Path) -> None:
+    """Voice alone is not enough -- face is checked next, before the seal."""
+    vault = tmp_path / "vault.vl"
+    cap = _StubCapture()
+    api = BoothApi(capture=cap, vault_path=vault)
+    _bank_enrollment(api, cap)
+    result = api.enroll({"name": "Ada", "passphrase": "correct-horse"})
+    assert result["ok"] is False
+    assert result["error"] == "need_face_takes"
+    assert not vault.exists()
+
+
 def test_bridge_no_vault(tmp_path: Path) -> None:
     api = BoothApi(vault_path=tmp_path / "missing.vl")
     result = api.unlock({"passphrase": "anything"})
@@ -220,12 +269,27 @@ def test_bridge_no_vault(tmp_path: Path) -> None:
 
 
 def test_bridge_legacy_v1_vault(tmp_path: Path) -> None:
-    api, cap, vault = _enrolled_booth(tmp_path)
+    api, cap, face, vault = _enrolled_booth(tmp_path)
     raw = bytearray(vault.read_bytes())
     raw[4] = 1  # stamp it back to the F2 format version
     vault.write_bytes(bytes(raw))
 
     cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
+    result = api.unlock({"passphrase": "correct-horse"})
+    assert result["ok"] is False
+    assert result["error"] == "legacy_vault"
+
+
+def test_bridge_legacy_v2_vault(tmp_path: Path) -> None:
+    """A pre-face vault (F4's format) is refused the same way as a v1 one."""
+    api, cap, face, vault = _enrolled_booth(tmp_path)
+    raw = bytearray(vault.read_bytes())
+    raw[4] = 2  # stamp it back to the F4 format version
+    vault.write_bytes(bytes(raw))
+
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
     result = api.unlock({"passphrase": "correct-horse"})
     assert result["ok"] is False
     assert result["error"] == "legacy_vault"
@@ -234,8 +298,10 @@ def test_bridge_legacy_v1_vault(tmp_path: Path) -> None:
 def test_bridge_empty_enroll_refuses(tmp_path: Path) -> None:
     vault = tmp_path / "vault.vl"
     cap = _StubCapture()
-    api = BoothApi(capture=cap, vault_path=vault)
+    face = _StubFace()
+    api = BoothApi(capture=cap, vault_path=vault, face=face)
     _bank_enrollment(api, cap)
+    _bank_face_enrollment(api, face)
     result = api.enroll({"name": "", "passphrase": "x"})
     assert result["ok"] is False
     assert result["error"] == "validation"
@@ -243,9 +309,10 @@ def test_bridge_empty_enroll_refuses(tmp_path: Path) -> None:
 
 
 def test_bridge_re_enroll_needs_confirm(tmp_path: Path) -> None:
-    api, cap, vault = _enrolled_booth(tmp_path)
+    api, cap, face, vault = _enrolled_booth(tmp_path)
 
     _bank_enrollment(api, cap)
+    _bank_face_enrollment(api, face)
     blocked = api.enroll({"name": "Bea", "passphrase": "two"})
     assert blocked["needs_confirm"] is True
 
@@ -253,6 +320,7 @@ def test_bridge_re_enroll_needs_confirm(tmp_path: Path) -> None:
     assert overwritten["ok"] is True
 
     cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
     assert api.unlock({"passphrase": "two"})["name"] == "Bea"
 
 
@@ -297,7 +365,7 @@ def test_lock_floor_applies_to_both_enroll_and_unlock(tmp_path: Path) -> None:
     cap = _StubCapture()
     middling = _fx("speakerA_live.wav")[: int(0.8 * SAMPLE_RATE)]
 
-    api, cap_enrolled, _ = _enrolled_booth(tmp_path)
+    api, cap_enrolled, _, _ = _enrolled_booth(tmp_path)
     cap_enrolled.set(middling)
     assert api.unlock({"passphrase": "correct-horse"})["error"] == "need_more_audio"
 
