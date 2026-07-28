@@ -45,8 +45,9 @@ the Booth bridge both depend on it landing first, the same shape F7's
 
 ### Session commits
 
-Base → head: see the commit this session makes at its close (state-file
-commit checkpoint, proposed to the human before running).
+Base → head: `ad9c4a1` (F7 wrap-up, prior HEAD) → `49c3850` (this session's
+state-file commit: `spec.md`, `handoff.md`, `memory/decisions.md`,
+`memory/research/2026-07-28-f8-offline-stt-challenge-match.md`). Not pushed.
 
 ### Open items for whoever picks up `/plan`
 
