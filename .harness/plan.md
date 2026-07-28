@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BUILDING — Task 2 DOING.**
+  Phase: **Task 2 REVIEW — build complete, awaiting verification.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -272,7 +272,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises from F7's 186)
 
 - [ ] **Task 2** — `lipsync.py`: lag-windowed cross-correlation scorer
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/lipsync.py` (new), `tests/test_lipsync.py` (new)
   - notes: Apply decision 4 verbatim. `mouth_aperture()` reads two inner-lip
@@ -289,6 +289,21 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     docstring, plus the explicit disclosure that neither constant is
     measured against real human lip-sync data (spec §5 item 2's own
     requirement).
+  - build notes (2026-07-28): confirmed 13/14 as the inner-lip vertical-
+    centre indices directly from the vendored bundle's own topology (the
+    `FACE_LANDMARKS_LIPS` connection edges reconstruct into an inner ring
+    78-95-88-178-87-14-317-402-318-324-308-415-310-311-312-13-82-81-80-191-78,
+    with 13/14 sitting symmetric between the two inner corners 78/308 —
+    not assumed from index naming). Face-scale reference reuses
+    `faceprint.py`'s own eye-corner indices (33/133, 263/362) for
+    consistency. `SYNC_THRESHOLD`/`LAG_WINDOW` dry-run measured (per the
+    dry-run-before-pinning guardrail) on `speakerA_live.wav` (58 envelope
+    frames at `facedetect.FRAME_INTERVAL`'s hop): in-phase (affine
+    transform of the real envelope) scores 1.0; the same series shifted
+    15 frames (3x past a 5-frame lag window, non-circular shift) scores
+    -0.007; a flat series scores 0.0 by construction. `LAG_WINDOW = 5`,
+    `SYNC_THRESHOLD = 0.5` (midpoint of 1.0 and the ~0.0 negative-class
+    ceiling), both disclosed in the module docstring per spec §5 item 2.
   - done-criteria:
     - §5 cmd 2 — verbatim, exit 0:
       ```
