@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
 import cv2
 
-from voicelock.app import MIN_LOCK_SECONDS, BoothApi, lock_voiceprint
-from voicelock.capture import CaptureStatus
+import voicelock.app as app_module
+from voicelock.app import LIVENESS_CAPTURE_CEILING_SECONDS, MIN_LOCK_SECONDS, BoothApi, lock_voiceprint
+from voicelock.capture import MAX_SECONDS, CaptureStatus
+from voicelock.challenge import CHALLENGE_PHRASES
 from voicelock.facedetect import FaceStatus, FrameResult
 from voicelock.facelock import ENROLLMENT_TAKES as FACE_ENROLLMENT_TAKES
 from voicelock.middlelock import ENROLLMENT_TAKES
@@ -69,6 +72,7 @@ class _StubRecordingCapture:
         self.levels: list[float] = []
         self.started = 0
         self.stopped = 0
+        self.max_seconds = MAX_SECONDS
 
     @property
     def is_recording(self) -> bool:
@@ -142,12 +146,30 @@ def _enrolled_booth(tmp_path: Path) -> tuple[BoothApi, _StubCapture, "_StubFace"
     return api, cap, face, vault
 
 
-def test_bridge_enroll_unlock_roundtrip(tmp_path: Path) -> None:
+def _force_liveness_pass(api: BoothApi, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bypass the liveness gate for tests whose whole point is what happens
+    AFTER it — passphrase/voice/face outcomes, unchanged since F2/F4/F7.
+
+    No real "says a challenge phrase" fixture exists in this repo (Q5's
+    disclosed gap — the automated Gate can only prove challenge-match
+    correctly REJECTS on real audio, never that it ACCEPTs), so this is the
+    only honest way to exercise the vault-layer code paths that now sit
+    behind the liveness gate. ``challenge.py``/``lipsync.py``'s own
+    correctness is proven by their own Gate tests (Tasks 1-2), not re-proven
+    here — this only bypasses the gate to test BoothApi's OWN wiring/ordering.
+    """
+    monkeypatch.setattr(app_module.challenge, "check", lambda *a, **k: True)
+    monkeypatch.setattr(app_module.lipsync, "is_live", lambda *a, **k: True)
+    api._current_challenge = "open the blue door now"
+
+
+def test_bridge_enroll_unlock_roundtrip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     api, cap, face, vault = _enrolled_booth(tmp_path)
     assert vault.is_file()
     assert vault.read_bytes()[:4] == b"VLCK"
     assert vault.read_bytes()[4] == 3  # nested v3 layout
 
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerA_live.wav"))
     face.last_frame = _face_fx("personA_2.jpg")  # a genuinely different, independent take
     opened = api.unlock({"passphrase": "correct-horse"})
@@ -155,8 +177,9 @@ def test_bridge_enroll_unlock_roundtrip(tmp_path: Path) -> None:
     assert opened["name"] == "Ada"
 
 
-def test_bridge_wrong_passphrase_rejects(tmp_path: Path) -> None:
+def test_bridge_wrong_passphrase_rejects(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     api, cap, face, _ = _enrolled_booth(tmp_path)
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerA_live.wav"))
     face.last_frame = _face_fx("personA_2.jpg")
     rejected = api.unlock({"passphrase": "nope"})
@@ -165,9 +188,12 @@ def test_bridge_wrong_passphrase_rejects(tmp_path: Path) -> None:
     assert "name" not in rejected
 
 
-def test_bridge_wrong_voice_rejects_distinctly(tmp_path: Path) -> None:
+def test_bridge_wrong_voice_rejects_distinctly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The demo's point: wrong passphrase and wrong voice never read the same."""
     api, cap, face, _ = _enrolled_booth(tmp_path)
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerB.wav"))
     face.last_frame = _face_fx("personA_2.jpg")  # face stays correct -- isolates the voice fail
     rejected = api.unlock({"passphrase": "correct-horse"})
@@ -176,9 +202,12 @@ def test_bridge_wrong_voice_rejects_distinctly(tmp_path: Path) -> None:
     assert "name" not in rejected
 
 
-def test_bridge_wrong_face_rejects_distinctly(tmp_path: Path) -> None:
+def test_bridge_wrong_face_rejects_distinctly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The demo's point extended one layer: a wrong face reads distinctly too."""
     api, cap, face, _ = _enrolled_booth(tmp_path)
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerA_live.wav"))  # voice stays correct -- isolates the face fail
     face.last_frame = _face_fx("personB.jpg")
     rejected = api.unlock({"passphrase": "correct-horse"})
@@ -289,7 +318,9 @@ def test_reset_enroll_takes_discards_an_abandoned_run(tmp_path: Path) -> None:
     assert api.enroll_take()["progress"] == 1
 
 
-def test_enroll_after_reset_uses_only_the_new_takes(tmp_path: Path) -> None:
+def test_enroll_after_reset_uses_only_the_new_takes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The vault is sealed from the post-reset takes, not the abandoned ones."""
     cap = _StubCapture()
     face = _StubFace()
@@ -303,6 +334,7 @@ def test_enroll_after_reset_uses_only_the_new_takes(tmp_path: Path) -> None:
     _bank_face_enrollment(api, face)
     assert api.enroll({"name": "Ada", "passphrase": "correct-horse"})["ok"] is True
 
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerA_live.wav"))
     face.last_frame = _face_fx("personA_2.jpg")
     assert api.unlock({"passphrase": "correct-horse"})["name"] == "Ada"
@@ -336,12 +368,13 @@ def test_bridge_no_vault(tmp_path: Path) -> None:
     assert result["error"] == "no_vault"
 
 
-def test_bridge_legacy_v1_vault(tmp_path: Path) -> None:
+def test_bridge_legacy_v1_vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     api, cap, face, vault = _enrolled_booth(tmp_path)
     raw = bytearray(vault.read_bytes())
     raw[4] = 1  # stamp it back to the F2 format version
     vault.write_bytes(bytes(raw))
 
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerA_live.wav"))
     face.last_frame = _face_fx("personA_2.jpg")
     result = api.unlock({"passphrase": "correct-horse"})
@@ -349,13 +382,14 @@ def test_bridge_legacy_v1_vault(tmp_path: Path) -> None:
     assert result["error"] == "legacy_vault"
 
 
-def test_bridge_legacy_v2_vault(tmp_path: Path) -> None:
+def test_bridge_legacy_v2_vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A pre-face vault (F4's format) is refused the same way as a v1 one."""
     api, cap, face, vault = _enrolled_booth(tmp_path)
     raw = bytearray(vault.read_bytes())
     raw[4] = 2  # stamp it back to the F4 format version
     vault.write_bytes(bytes(raw))
 
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerA_live.wav"))
     face.last_frame = _face_fx("personA_2.jpg")
     result = api.unlock({"passphrase": "correct-horse"})
@@ -376,7 +410,7 @@ def test_bridge_empty_enroll_refuses(tmp_path: Path) -> None:
     assert not vault.exists()
 
 
-def test_bridge_re_enroll_needs_confirm(tmp_path: Path) -> None:
+def test_bridge_re_enroll_needs_confirm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     api, cap, face, vault = _enrolled_booth(tmp_path)
 
     _bank_enrollment(api, cap)
@@ -387,6 +421,7 @@ def test_bridge_re_enroll_needs_confirm(tmp_path: Path) -> None:
     overwritten = api.enroll({"name": "Bea", "passphrase": "two", "overwrite": True})
     assert overwritten["ok"] is True
 
+    _force_liveness_pass(api, monkeypatch)
     cap.set(_fx("speakerA_live.wav"))
     face.last_frame = _face_fx("personA_2.jpg")
     assert api.unlock({"passphrase": "two"})["name"] == "Bea"
@@ -771,3 +806,264 @@ def test_bridge_reset_face_reference_clears_a_set_reference(tmp_path: Path) -> N
     result = api.compare_face()
     assert result["ok"] is False
     assert result["error"] == "no_reference"
+
+
+# ---------------------------------------------------------------------------
+# F8 — liveness (challenge-response + lip-sync), gated before vault.unlock
+# ---------------------------------------------------------------------------
+
+
+def _lip_sync_landmarks(upper_y: float, lower_y: float) -> list:
+    """478 fake landmarks with only the indices lipsync.mouth_aperture() reads set."""
+    points = [SimpleNamespace(x=0.5, y=0.5) for _ in range(478)]
+    points[13] = SimpleNamespace(x=0.5, y=upper_y)
+    points[14] = SimpleNamespace(x=0.5, y=lower_y)
+    points[33] = SimpleNamespace(x=0.35, y=0.4)
+    points[133] = SimpleNamespace(x=0.45, y=0.4)
+    points[263] = SimpleNamespace(x=0.55, y=0.4)
+    points[362] = SimpleNamespace(x=0.65, y=0.4)
+    return points
+
+
+# --- start_unlock_capture() / stop_unlock_capture(): AV-capture lifecycle ----
+def test_start_unlock_capture_starts_camera_and_arms_retention(tmp_path: Path) -> None:
+    api, cap, face = _recording_booth(tmp_path)
+
+    assert api.start_unlock_capture()["ok"] is True
+    assert face.starts == 1
+    assert face.status == FaceStatus.RUNNING
+    assert cap.is_recording
+    assert api._retain_landmarks is True
+    assert api._liveness_mouth_series == []
+
+
+def test_stop_unlock_capture_stops_camera_and_disarms_retention(tmp_path: Path) -> None:
+    api, cap, face = _recording_booth(tmp_path)
+    api.start_unlock_capture()
+
+    assert api.stop_unlock_capture()["ok"] is True
+    assert face.stops == 1
+    assert face.status == FaceStatus.IDLE
+    assert not cap.is_recording
+    assert api._retain_landmarks is False
+
+
+def test_unlock_capture_caps_at_the_liveness_ceiling_not_the_enroll_ceiling(
+    tmp_path: Path,
+) -> None:
+    api, cap, face = _recording_booth(tmp_path)
+    assert cap.max_seconds == MAX_SECONDS  # untouched before the first liveness capture
+
+    api.start_unlock_capture()
+    assert cap.max_seconds == LIVENESS_CAPTURE_CEILING_SECONDS
+
+    api.stop_unlock_capture()
+    assert cap.max_seconds == MAX_SECONDS  # restored -- the NEXT enroll take is unaffected
+
+
+def test_a_camera_failure_during_unlock_capture_does_not_prevent_audio(tmp_path: Path) -> None:
+    """Mirrors the F5 enroll-side guarantee: a broken webcam must not fail the take."""
+    api, cap, face = _recording_booth(tmp_path, camera_fails=True)
+
+    result = api.start_unlock_capture()
+
+    assert result["ok"] is True
+    assert cap.is_recording
+    assert face.status == FaceStatus.ERROR
+
+    assert api.stop_unlock_capture()["ok"] is True
+    assert face.stops == 1
+
+
+def test_a_second_unlock_capture_after_stop_starts_the_camera_again(tmp_path: Path) -> None:
+    api, _, face = _recording_booth(tmp_path)
+
+    api.start_unlock_capture()
+    api.stop_unlock_capture()
+    api.start_unlock_capture()
+    api.stop_unlock_capture()
+
+    assert face.starts == 2
+    assert face.stops == 2
+
+
+def test_the_liveness_ceiling_auto_stop_releases_the_camera_too(tmp_path: Path) -> None:
+    """A take can end without anyone pressing Stop -- the fixed ceiling firing.
+
+    Without this the webcam light stays on, the mouth-aperture series keeps
+    growing, and the NEXT (enroll) take would still be capped at the shorter
+    liveness ceiling -- the same defect class F4.5/F5 Task 7 fixed for the
+    30s soft cap, now checked for the new fixed-ceiling exit path too.
+    """
+    cap = _SelfStoppingCapture()
+    face = _StubFace()
+    api = BoothApi(
+        capture=cap,
+        vault_path=tmp_path / "vault.vl",
+        ref_path=tmp_path / "voiceprint.ref",
+        face=face,
+    )
+    scripts: list[str] = []
+    api._eval = scripts.append  # type: ignore[method-assign]
+
+    assert api.start_unlock_capture()["ok"] is True
+
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline and not any("setFaceIdle" in s for s in scripts):
+        time.sleep(0.01)
+
+    assert face.stops == 1, "the camera was left running after the take self-ended"
+    assert face.status == FaceStatus.IDLE
+    assert api._retain_landmarks is False, "retention stayed armed past the take's own end"
+    assert cap.max_seconds == MAX_SECONDS, "the ceiling override outlived the take"
+
+
+def test_shutdown_during_unlock_capture_releases_the_camera(tmp_path: Path) -> None:
+    """The window-close exit path releases the camera too -- the third of the
+    three exit paths spec §5 cmd 3 names (explicit stop, auto-stop, shutdown)."""
+    api, _, face = _recording_booth(tmp_path)
+    api.start_unlock_capture()
+
+    api.shutdown()
+
+    assert face.stops == 1
+    assert face.status == FaceStatus.IDLE
+
+
+# --- retention wiring: _push_face_frame only feeds the series when armed -----
+def test_push_face_frame_retains_mouth_aperture_only_when_armed(tmp_path: Path) -> None:
+    api, _, face = _recording_booth(tmp_path)
+    landmarks = _lip_sync_landmarks(upper_y=0.45, lower_y=0.55)
+
+    api._push_face_frame(FrameResult(data_uri="data:image/jpeg;base64,AAAA", landmarks=[]))
+    assert api._liveness_mouth_series == []  # not armed yet -- enroll's start_record path
+
+    api.start_unlock_capture()
+    api._push_face_frame(FrameResult(data_uri="data:image/jpeg;base64,AAAA", landmarks=landmarks))
+    assert len(api._liveness_mouth_series) == 1
+    assert api._liveness_mouth_series[0] > 0.0
+
+    api.stop_unlock_capture()
+    api._push_face_frame(FrameResult(data_uri="data:image/jpeg;base64,AAAA", landmarks=landmarks))
+    assert len(api._liveness_mouth_series) == 1  # disarmed -- no further growth
+
+
+def test_push_face_frame_skips_a_faceless_frame_during_retention(tmp_path: Path) -> None:
+    api, _, face = _recording_booth(tmp_path)
+    api.start_unlock_capture()
+
+    api._push_face_frame(FrameResult(data_uri="data:image/jpeg;base64,AAAA", landmarks=[]))
+
+    assert api._liveness_mouth_series == []  # a faceless frame contributes nothing, doesn't crash
+
+
+# --- new_challenge() -----------------------------------------------------------
+def test_new_challenge_returns_a_pool_phrase_and_stores_it(tmp_path: Path) -> None:
+    api = BoothApi(vault_path=tmp_path / "vault.vl")
+    result = api.new_challenge()
+    assert result["ok"] is True
+    assert result["phrase"] in CHALLENGE_PHRASES
+    assert api._current_challenge == result["phrase"]
+
+
+def test_new_challenge_never_immediately_repeats(tmp_path: Path) -> None:
+    api = BoothApi(vault_path=tmp_path / "vault.vl")
+    previous = api.new_challenge()["phrase"]
+    for _ in range(50):
+        current = api.new_challenge()["phrase"]
+        assert current != previous
+        previous = current
+
+
+# --- liveness gate: before ANY call into the vault layer -----------------------
+def test_unlock_fails_liveness_before_touching_the_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """spec §5 cmd 3's core assertion: zero calls into vault_unlock on a
+    liveness-fail case."""
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    api.new_challenge()
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
+
+    calls = []
+    monkeypatch.setattr(app_module, "vault_unlock", lambda *a, **k: calls.append((a, k)))
+    monkeypatch.setattr(app_module.challenge, "check", lambda *a, **k: False)
+    monkeypatch.setattr(app_module.lipsync, "is_live", lambda *a, **k: True)
+
+    rejected = api.unlock({"passphrase": "correct-horse"})
+
+    assert rejected["ok"] is False
+    assert rejected["error"] == "auth_liveness"
+    assert "name" not in rejected
+    assert calls == [], "vault_unlock was called despite a failed liveness check"
+
+
+def test_unlock_liveness_pass_reaches_the_vault_layer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The mirror case: liveness passing DOES let a correct attempt through."""
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    _force_liveness_pass(api, monkeypatch)
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
+
+    opened = api.unlock({"passphrase": "correct-horse"})
+
+    assert opened["ok"] is True
+    assert opened["name"] == "Ada"
+
+
+def test_unlock_wrong_words_fails_liveness_even_with_everything_else_correct(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    api.new_challenge()
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
+    monkeypatch.setattr(app_module.challenge, "check", lambda *a, **k: False)
+    monkeypatch.setattr(app_module.lipsync, "is_live", lambda *a, **k: True)
+
+    rejected = api.unlock({"passphrase": "correct-horse"})
+    assert rejected["ok"] is False
+    assert rejected["error"] == "auth_liveness"
+
+
+def test_unlock_no_lip_sync_fails_liveness_even_with_everything_else_correct(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    api.new_challenge()
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
+    monkeypatch.setattr(app_module.challenge, "check", lambda *a, **k: True)
+    monkeypatch.setattr(app_module.lipsync, "is_live", lambda *a, **k: False)
+
+    rejected = api.unlock({"passphrase": "correct-horse"})
+    assert rejected["ok"] is False
+    assert rejected["error"] == "auth_liveness"
+
+
+def test_unlock_without_a_challenge_picked_fails_liveness_not_crash(tmp_path: Path) -> None:
+    """new_challenge() was never called -- fails closed, does not raise."""
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    assert api._current_challenge is None
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
+
+    rejected = api.unlock({"passphrase": "correct-horse"})
+    assert rejected["ok"] is False
+    assert rejected["error"] == "auth_liveness"
+
+
+def test_unlock_liveness_failure_does_not_leak_the_display_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    api.new_challenge()
+    cap.set(_fx("speakerA_live.wav"))
+    face.last_frame = _face_fx("personA_2.jpg")
+    monkeypatch.setattr(app_module.challenge, "check", lambda *a, **k: False)
+
+    rejected = api.unlock({"passphrase": "correct-horse"})
+    assert "name" not in rejected

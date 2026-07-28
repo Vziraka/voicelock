@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BUILDING — Task 3 DOING.**
+  Phase: **Task 3 REVIEW — build complete, awaiting verification.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -342,7 +342,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises further from Task 1's end)
 
 - [ ] **Task 3** — Booth bridge: AV-capture retention, liveness gate before `vault.unlock`, `auth_liveness` reject
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
   - notes: Apply decisions 5–9 verbatim. Before pinning
@@ -360,6 +360,35 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     body reshaped per decision 8 — the embeddings are computed once and
     reused for both the liveness gate (which never sees the vault) and the
     eventual `vault_unlock` call, so nothing is embedded twice.
+  - build notes (2026-07-28): `LIVENESS_CAPTURE_CEILING_SECONDS = 10.0` —
+    no live speaker available in this environment, so estimated (not
+    guessed) from Task 1's phrase-pool word count rather than a stopwatch
+    reading, disclosed as such in `app.py`'s own comment: longest entries
+    are 6 words; at a slow, deliberate 1.5 words/sec that is ~4.0 s of pure
+    speech, doubled to ~8.0 s for hesitation/lead-in margin, rounded up to
+    a comfortable 10.0 s. Replaces spec §2 Q2's provisional "~6–8 s".
+    **Real bug found and fixed by this task's own mutation-checked Gate
+    test** (`test_the_liveness_ceiling_auto_stop_releases_the_camera_too`):
+    the fixed-ceiling auto-stop path lives in `_pump_loop()` (it is what
+    *notices* a take self-ended via `capture.pump()`'s own internal
+    `stop()`), which calls `_stop_camera()` directly and bypasses
+    `stop_unlock_capture()` entirely — so the first implementation left
+    `_retain_landmarks` armed and `capture.max_seconds` at the liveness
+    ceiling forever after an auto-stopped take, silently capping the
+    user's NEXT enroll take too. Fixed by repeating the same two-line
+    reset inside `_pump_loop()`'s auto-stop branch (harmless no-op for a
+    plain `start_record()` take, since both fields are already at rest
+    there). Caught by writing the test FIRST from spec's own "every
+    exit path must release" language, not by the verifier — the
+    `project.md` acquisition/release guardrail doing its job pre-emptively.
+    Proactively mutation-checked the liveness gate itself before
+    submitting (collapsed `unlock()`'s `if not self._liveness_passes():`
+    to `if False:` — exactly the 5 liveness-specific tests failed, one
+    unrelated pre-existing timing flake in an F5 test reproduced as a
+    false positive and confirmed independent by re-running it alone;
+    reverted, `diff` against a pre-mutation backup showed zero
+    differences) — applying Task 2's own lesson (run the mutation check
+    before review, not only after a REJECT).
   - done-criteria:
     - §5 cmd 3 — verbatim, exit 0:
       ```

@@ -10,9 +10,9 @@ from typing import Any
 import numpy as np
 import webview
 
-from voicelock import facelock, faceprint, voiceprint
-from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, SAMPLE_RATE
-from voicelock.facedetect import FaceEngine, FaceStatus, FrameResult
+from voicelock import challenge, facelock, faceprint, lipsync, voiceprint
+from voicelock.capture import CaptureEngine, CaptureStatus, DTYPE, MAX_SECONDS, SAMPLE_RATE
+from voicelock.facedetect import FRAME_INTERVAL, FaceEngine, FaceStatus, FrameResult
 from voicelock.middlelock import ENROLLMENT_TAKES
 from voicelock.playback import PlaybackEngine
 from voicelock.vault import (
@@ -43,6 +43,40 @@ UI_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
 MIN_LOCK_SECONDS = 1.2
 LOCK_WINDOWS = 3
 LOCK_WINDOW_FRACTION = 0.7
+
+# --- F8: the single AV capture liveness (challenge + lip-sync) relies on -------
+# Estimated, not guessed (project.md's dry-run-before-pinning guardrail) --
+# but this environment has no live speaker to time, so the estimate is
+# word-count-based rather than a stopwatch reading, disclosed as such:
+# CHALLENGE_PHRASES' longest entries are 6 words; at a slow, deliberate
+# 1.5 words/sec that is ~4.0 s of pure speech, doubled to ~8.0 s for
+# hesitation/lead-in margin, rounded up to a comfortable 10.0 s. Replaces
+# spec §2 Q2's provisional "~6-8 s".
+LIVENESS_CAPTURE_CEILING_SECONDS = 10.0
+
+
+def _audio_envelope(audio: np.ndarray) -> np.ndarray:
+    """Fixed-hop RMS envelope, one value per video-frame interval.
+
+    Lands the audio on the same per-frame grid the retained mouth-aperture
+    series is built on (``facedetect.FRAME_INTERVAL``'s hop), so
+    ``lipsync.score()`` can compare the two index-for-index with no further
+    alignment (plan.md decision 5) — the same fixed-window-RMS technique
+    that already produces the Visualizer's levels, just re-run at a hop
+    chosen for this grid instead of PortAudio's own irregular per-callback
+    chunk boundaries.
+    """
+    hop = int(SAMPLE_RATE * FRAME_INTERVAL)
+    sig = np.asarray(audio, dtype=np.float64).reshape(-1)
+    frames = sig.size // hop
+    if frames == 0:
+        return np.zeros(0, dtype=np.float64)
+    return np.array(
+        [
+            float(np.sqrt(np.mean(np.square(sig[index * hop : (index + 1) * hop]))))
+            for index in range(frames)
+        ]
+    )
 
 
 def lock_voiceprint(audio: np.ndarray) -> np.ndarray:
@@ -106,6 +140,14 @@ class BoothApi:
         self._pump_thread: threading.Thread | None = None
         self._play_watch: threading.Thread | None = None
         self.face = face if face is not None else FaceEngine()
+        # F8 liveness: armed only during start_unlock_capture()..
+        # stop_unlock_capture(), never during enroll's start_record()/
+        # stop_record() — a wholly separate capture pair (plan.md decision 6).
+        self._retain_landmarks: bool = False
+        self._liveness_mouth_series: list[float] = []
+        # The phrase the Booth is currently displaying; None until
+        # new_challenge() is first called (plan.md decision 7).
+        self._current_challenge: str | None = None
 
     def bind_window(self, window: Any) -> None:
         self._window = window
@@ -242,12 +284,83 @@ class BoothApi:
         self._enroll_faceprints = []
         return {"ok": True, "name": name.strip(), "path": str(self.vault_path)}
 
-    def unlock(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Peel outer, middle, then inner; return the enrolled display name.
+    def new_challenge(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Pick a fresh random challenge phrase and store it for the next unlock.
 
-        The three REJECT reasons stay visibly distinct, per spec §3:
-        ``auth_outer`` for a wrong passphrase, ``auth_voice`` for a voice that
-        did not match, ``auth_face`` for a face that did not match. No
+        Called by the UI whenever the Unlock panel becomes active and again
+        after each completed attempt (plan.md decision 7), so the
+        no-immediate-repeat property (``challenge.pick_challenge``) holds
+        across real usage, not just within one bridge instance's lifetime.
+        Python is authoritative for the phrase shown — JS renders only.
+        """
+        phrase = challenge.pick_challenge(previous=self._current_challenge)
+        self._current_challenge = phrase
+        return {"ok": True, "phrase": phrase}
+
+    def start_unlock_capture(self) -> dict[str, Any]:
+        """Start the single AV capture liveness (and unlock) relies on.
+
+        Distinct from ``start_record()`` (enroll voice/face keep using that
+        pair unmodified) — mirrors its camera-then-pump ordering and
+        mic-failure-must-not-cost-the-take handling exactly, adding only:
+        arm landmark retention + clear the mouth-aperture series, and cap
+        this take at ``LIVENESS_CAPTURE_CEILING_SECONDS`` instead of the
+        30 s enroll/diagnostic soft cap. ``capture.max_seconds`` is set only
+        AFTER a mic failure is ruled out, so a failed attempt here can never
+        leave a later enroll take capped at the (shorter) liveness ceiling.
+        """
+        if self.playback.is_playing:
+            self.stop_playback()
+        if self.capture.is_recording:
+            return self.stop_unlock_capture()
+        self._liveness_mouth_series = []
+        self._retain_landmarks = True
+        self.capture.start()
+        if self.capture.status == CaptureStatus.ERROR:
+            self._retain_landmarks = False
+            error = self.capture.error_message or "No microphone available"
+            self._push_mic_error(error)
+            return {"ok": False, "error": error}
+        self.capture.max_seconds = LIVENESS_CAPTURE_CEILING_SECONDS
+        # Camera before pump, same reasoning as start_record(): the pump loop
+        # is what notices a take ending and tears the camera down.
+        self._start_camera()
+        self._start_pump()
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setRecording && "
+            "window.voicelockBooth.setRecording(true)"
+        )
+        return {"ok": True}
+
+    def stop_unlock_capture(self) -> dict[str, Any]:
+        """Stop the AV capture, release the camera, and restore the mic's
+        normal 30 s cap for whatever recording happens next."""
+        if self.playback.is_playing:
+            return self.stop_playback()
+        self._stop_pump()
+        self._stop_camera()
+        buf = self.capture.stop()
+        self.capture.max_seconds = MAX_SECONDS
+        self._retain_landmarks = False
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setRecording && "
+            "window.voicelockBooth.setRecording(false)"
+        )
+        self._eval(
+            "window.voicelockBooth && window.voicelockBooth.setLevel && "
+            "window.voicelockBooth.setLevel(0.11)"
+        )
+        return {"ok": True, "samples": int(buf.size)}
+
+    def unlock(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Peel outer, middle, then inner — but only once liveness passes.
+
+        Per spec Q6, the challenge-word-match and lip-sync checks run BEFORE
+        any call into the vault layer: a failed liveness attempt makes ZERO
+        calls to ``vault_unlock`` and learns nothing about whether the
+        underlying voice/face would have matched. The four REJECT reasons
+        stay visibly distinct: ``auth_liveness`` (new, this feature), then
+        the existing ``auth_outer``, ``auth_voice``, ``auth_face``. No
         failure path returns a ``name``.
         """
         data = payload or {}
@@ -269,6 +382,9 @@ class BoothApi:
         except faceprint.NoFaceError:
             return {"ok": False, "error": "no_face"}
 
+        if not self._liveness_passes():
+            return {"ok": False, "error": "auth_liveness"}
+
         try:
             name = vault_unlock(
                 passphrase, voiceprint_vector, faceprint_vector, path=self.vault_path
@@ -286,6 +402,23 @@ class BoothApi:
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": str(exc) or "Unlock failed"}
         return {"ok": True, "name": name}
+
+    def _liveness_passes(self) -> bool:
+        """Both the spoken-word challenge AND the lip-sync check must pass.
+
+        No challenge picked yet (``new_challenge()`` never called) fails
+        closed rather than raising — a real UI always calls it before the
+        Unlock panel is usable, but a bridge caller that skips it must not
+        crash the app.
+        """
+        if self._current_challenge is None:
+            return False
+        audio = self.capture.pcm_buffer()
+        if not challenge.check(audio, self._current_challenge):
+            return False
+        envelope = _audio_envelope(audio)
+        mouth_series = np.asarray(self._liveness_mouth_series, dtype=np.float64)
+        return lipsync.is_live(lipsync.score(mouth_series, envelope))
 
     def set_reference(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         """Consume the last captured take as one of the reference sentences.
@@ -488,9 +621,17 @@ class BoothApi:
             if not self.capture.is_recording:
                 self._pumping = False
                 # The take ended without anyone pressing Stop — F4.5's 30s soft
-                # cap. Release the camera here too, or the webcam light stays on
-                # and the preview keeps streaming after the recording is over.
+                # cap, or F8's shorter liveness ceiling. Release the camera here
+                # too, or the webcam light stays on and the preview keeps
+                # streaming after the recording is over. This path bypasses
+                # stop_record()/stop_unlock_capture() entirely (it is what
+                # notices the take ended, not something they call), so their
+                # own F8 bookkeeping is repeated here — harmless for a plain
+                # start_record() take, since both fields are already at their
+                # rest values in that case.
                 self._stop_camera()
+                self.capture.max_seconds = MAX_SECONDS
+                self._retain_landmarks = False
                 samples = int(self.capture.pcm_buffer().size)
                 self._eval(
                     "window.voicelockBooth && window.voicelockBooth.onCaptureEnded && "
@@ -546,6 +687,12 @@ class BoothApi:
         )
 
     def _push_face_frame(self, result: FrameResult) -> None:
+        # Additive only: zero change to the composite/evaluate_js path below,
+        # or to FaceEngine/facedetect.py (spec §4's F1-F7 engines constraint).
+        # A faceless frame (no landmarks) is skipped, not appended as 0 —
+        # lipsync.score() already tolerates a shorter mouth-aperture series.
+        if self._retain_landmarks and result.landmarks:
+            self._liveness_mouth_series.append(lipsync.mouth_aperture(result.landmarks))
         # The data URI is base64 — no quote or backslash can appear in it, so it
         # needs no escaping the way a free-text error message does.
         self._eval(
