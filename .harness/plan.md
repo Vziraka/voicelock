@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 2 REVIEW (retry 1) — fix built, awaiting re-verification.**
+  Phase: **Tasks 1-2 DONE. Task 3 (Booth bridge) next — ready to build.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -177,9 +177,9 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    `auth_liveness`, not a new code.
 
 ### Memory spine
-1. **Task 1 DONE** (2026-07-28, `rejects: 1`) — `challenge.py` +
-   `CHALLENGE_PHRASES` + vendored Vosk are landed and stable; Tasks 2-4
-   build on top, never revisit Task 1's shape.
+1. **Tasks 1-2 DONE** (2026-07-28, `rejects: 1` each) — `challenge.py` and
+   `lipsync.py` are landed and stable; Task 3 imports both, never revisits
+   their shape.
 2. Zero `vault.py` changes this feature (decision, item 3 above) — the
    `project.md` caller-grep guardrail is inherited-and-not-triggered, not
    inherited-and-applied.
@@ -187,6 +187,10 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    all new retention state lives in `app.py`, additive only, same shape as
    how F6 added `FaceEngine.last_frame` without touching the camera
    lifecycle.
+4. Task 3's audio-envelope construction (fixed hop = one video frame
+   interval, per decision 5) and `LIVENESS_CAPTURE_CEILING_SECONDS`
+   (dry-run-measured against Task 1's phrase pool, per decision 6) are
+   both plan-level calls already made — do not re-derive at Task 3.
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
@@ -271,8 +275,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed; count rises from F7's 186)
 
-- [ ] **Task 2** — `lipsync.py`: lag-windowed cross-correlation scorer
-  - state: REVIEW
+- [x] **Task 2** — `lipsync.py`: lag-windowed cross-correlation scorer
+  - state: DONE
   - rejects: 1
   - feedback log:
     - **REJECT 1 (2026-07-28, verifier subagent, base `bc91244`..head

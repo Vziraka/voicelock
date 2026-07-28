@@ -1,0 +1,27 @@
+{
+  "task": "F8-T2",
+  "spec": "spec.md@211f812",
+  "change": "bc91244..1e42625",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_lipsync.py -q",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "Retry 1 of 3. First build (6959dee): test_lipsync.py 8 passed, ruff clean, full suite 204 passed (up from Task 1's 196). Retry 1 (1e42625), after adding a lag-search-exercising test: test_lipsync.py 9 passed, ruff clean, full suite 205 passed. Scope check: git diff bc91244..1e42625 touches only src/voicelock/lipsync.py (new, unchanged across the retry — only added-then-reverted during the retry's own mutation check), tests/test_lipsync.py (new + one added test), plus .harness state files — exactly Task 2's declared files: line."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "APPROVE on retry 1 after one REJECT (rejects: 1 of 3). First review (build 6959dee) passed the Gate and APPROVED the Spec axis outright -- in-phase/shifted/flat scoring against a real audio envelope + synthetic mouth series, named+disclosed constants, mouth_aperture() geometry all covered -- but REJECTed on Standards: project.md's mutation-sensitivity guardrail was violated because no test exercised the lag-search loop itself (score()'s `for lag in range(-lag_window, lag_window+1)`) -- every existing test used shift=0 or a shift already below threshold at lag-0, so collapsing the loop to lag-0-only left all 8 tests green. Fixed same session: added a 4-frame in-window-shift test asserting is_live() is True, which can only pass if the lag search actually runs. Second review (build 1e42625) independently reproduced the mutation check rather than trusting the handoff's claim -- collapsed the loop, ran the suite, got exactly 1 failed / 8 passed with the new test's failure value (-0.058) matching the handoff's disclosed figure -- then confirmed the file was restored byte-identical.",
+    "history": "REJECT (6959dee) -> fix -> APPROVE (1e42625)"
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-28",
+  "rejects": 1,
+  "note": "This is the second confirmed firing of the existing mutation-sensitivity guardrail (project.md, added 2026-07-26 from F5 Task 5's drop-don't-queue defect) -- not a new pattern, and the fix used exactly the remedy the guardrail already prescribes ('delete or neuter X and confirm the test fails'). No new guardrail written. Self-critical note for future builder sessions (not encoded as a rule, since the existing guardrail text already addresses the builder, not just the verifier): the mutation check should be run by the implementor BEFORE submitting to review, not only reproduced by the verifier after a REJECT -- this task's build session did not self-apply it on the first pass, costing one full review round-trip that a 30-second local mutation check would have caught."
+}
