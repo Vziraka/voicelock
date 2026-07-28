@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BUILDING — Task 1 DOING (retry 1/3, fixing REJECT 1 feedback).**
+  Phase: **Task 1 REVIEW (retry 1) — fix built, awaiting re-verification.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -194,7 +194,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Vendor Vosk + `challenge.py`: phrase pool, grammar-constrained match
-  - state: DOING
+  - state: REVIEW
   - rejects: 1
   - feedback log:
     - **REJECT 1 (2026-07-28, verifier subagent, base `b3be5c6`..head `5e637e1`).**

@@ -69,10 +69,6 @@ _model: vosk.Model | None = None
 _PUNCTUATION_TABLE = str.maketrans("", "", string.punctuation)
 
 
-class ChallengeError(Exception):
-    """Base error for challenge-phrase failures."""
-
-
 def pick_challenge(
     previous: str | None = None, rng: Random | None = None
 ) -> str:
