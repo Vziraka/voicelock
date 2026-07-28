@@ -50,10 +50,10 @@ unattended until the feature-end checkpoint.
 
 ### Session commits
 
-Base → head: `49c3850` (prior HEAD, F8 spec session) → *(this session's
-state-file commit, hash recorded once created)*. Files this session:
-`spec.md` (box 2 checked — human approval), `plan.md` (new 4-task ledger),
-`handoff.md` (this file). Not pushed.
+Base → head: `49c3850` (prior HEAD, F8 spec session) → `211f812` (this
+session's state-file commit). Files this session: `spec.md` (box 2 checked
+— human approval), `plan.md` (new 4-task ledger), `handoff.md` (this file).
+Not pushed.
 
 ### Open items for whoever picks up Task 1
 
