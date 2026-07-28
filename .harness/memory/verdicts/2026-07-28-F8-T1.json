@@ -1,0 +1,27 @@
+{
+  "task": "F8-T1",
+  "spec": "spec.md@211f812",
+  "change": "b3be5c6..1b7635e",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_challenge.py -q",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "Retry 1 of 3. First build (5e637e1): test_challenge.py 10 passed, ruff clean, full suite 196 passed (up from F7's 186). Retry 1 (1b7635e), after deleting the unused ChallengeError class: same three commands, same results — 10 passed / clean / 196 passed. Scope check: git diff b3be5c6..1b7635e touches only pyproject.toml, uv.lock, src/voicelock/models/vosk/** (new vendored model + LICENSE + NOTICE), src/voicelock/challenge.py (new), tests/test_challenge.py (new), plus .harness state files — exactly Task 1's declared files: line, no vault.py/app.py/UI touched."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "APPROVE on retry 1 after one REJECT (rejects: 1 of 3). First review (build 5e637e1) passed the Gate and APPROVED the Spec axis outright — fixed non-empty CHALLENGE_PHRASES pool, no-immediate-repeat exercised over 200 draws, a real unmocked Vosk grammar-constrained reject-path run against speakerA_take1.wav with the Q5 disclosed-limitation docstring, and matches() unit-tested against an exact/case-punct/different-phrase table — but REJECTed on Standards: ChallengeError (challenge.py:72-73) had zero callers and zero test references anywhere in the repo, a direct hit on project.md's no-unexercised-surface guardrail (already evidenced by three prior F4 REJECTs). Neither plan.md's Task 1 decisions nor spec Sec5 cmd 1 call for a custom exception type; check()/matches() both return plain bool and never raise. Fixed same session: the unused class deleted, nothing else touched. Second review (build 1b7635e) confirmed the diff is exactly the 4-line removal the feedback called for, re-confirmed the Spec axis findings still hold, and grepped the whole repo for ChallengeError to confirm zero remaining references outside state-bookkeeping files.",
+    "history": "REJECT (5e637e1) -> fix -> APPROVE (1b7635e)"
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-28",
+  "rejects": 1,
+  "note": "The REJECT is the FOURTH occurrence of an already-guardrailed pattern (project.md's no-unexercised-surface rule, added 2026-07-26 on three F4 REJECTs of the identical shape: a helper/class/branch with zero callers and zero tests). No new guardrail written — this is not a new pattern, the existing warn-severity rule is what the verifier applied to catch it, and the system worked as designed (review caught what the build missed). Considered whether this could be mechanically enforced (a ruff/vulture-style unused-class lint) rather than relying on review; not proposed here because adopting a new lint tool is a TECH-PICK-scope decision, not something learn should apply mid-wrap-up. Left as an open idea for a future curate pass rather than escalated now, since one recurrence at warn severity does not by itself justify a new dependency."
+}

@@ -1,49 +1,64 @@
 # Handoff
 
-## F8 Task 1 — Vendor Vosk + `challenge.py` · REVIEW (retry 1), awaiting re-verification
+## F8 Task 1 — Vendor Vosk + `challenge.py` · DONE
 
-**2026-07-28.** First verifier run: GATE PASS, REVIEW REJECT (Standards axis
-only — Spec axis APPROVED). Finding: `ChallengeError` at
-`src/voicelock/challenge.py` had zero callers and zero test references,
-violating `project.md`'s earned no-unexercised-surface guardrail. Fixed this
-session by deleting the class; `check()`/`matches()` already return plain
-`bool` and never raise, so no exception type is needed for this task's scope.
-Task 1 moved `REVIEW → TODO → DOING → REVIEW` (retry 1 of the 3-attempt
-budget, `rejects: 1` in `plan.md`).
+**2026-07-28.** Verified and wrapped up. `rejects: 1` (one Standards-axis
+REJECT — an unused `ChallengeError` class, fixed same session — see
+`memory/verdicts/2026-07-28-F8-T1.json` for the full history).
 
-### Changed this retry
+### Changed (final state)
 
-- `src/voicelock/challenge.py` — deleted the unused `ChallengeError` class.
-  Nothing else touched.
+- `pyproject.toml` / `uv.lock` — `vosk>=0.3.45` added, resolved cleanly, no
+  other pinned package moved.
+- `src/voicelock/models/vosk/vosk-model-small-en-us-0.15/` (new) — vendored
+  offline, `LICENSE` (Apache-2.0) + `NOTICE` (per-asset evidence) beside it.
+- `src/voicelock/challenge.py` (new) — `CHALLENGE_PHRASES` (12 hand-authored
+  phrases), `pick_challenge()`, `matches()`, `check()`.
+- `tests/test_challenge.py` (new) — 10 tests.
 
-### Verification run this session (build-time only, not the Gate)
+### Failed + lesson
 
-- `uv run ruff check .` → clean
-- `uv run pytest` → 196 passed (unchanged from the pre-retry run — the fix
-  removed dead code only, no test depended on it)
+REJECT 1: unused `ChallengeError` class (no callers, no tests) — the fourth
+occurrence of `project.md`'s existing no-unexercised-surface guardrail
+(added 2026-07-26 on three F4 REJECTs of the same shape). No new guardrail
+written this task — not a new pattern, the existing rule caught it as
+designed. Full reasoning in the verdict file's `note` field.
 
 ### next_action
 
-**Verifier**: spawn the clean-context verifier again
-(`formats/VERIFIER-PROMPT.md`, used verbatim; task id `Task 1 (retry 1)`,
-base `1d4b261`, head `1b7635e` — this retry's DOING→build commits; the
-prior REJECT's full-task diff `b3be5c6`..`5e637e1` is also in history if the
-verifier wants the whole task's context). Mode 3 build↔verify cycles run
-unattended, no human input needed.
+**Task 2 — `lipsync.py`** (independent of Task 1, ordered second only
+because Task 1 carried the dependency work — see `plan.md`'s "Named
+architecture decisions" section, decision 4, for the exact call shapes).
+Mode 3's standing approval covers task-to-task progression inside this
+feature — this wrap-up completing is the precondition; the next `/implement`
+session starts Task 2 itself. Open items carried forward, unchanged:
+
+- Confirm the exact upper/lower inner-lip landmark indices against
+  MediaPipe's published topology before hard-coding them in `lipsync.py`
+  (same care F7 took confirming SFace's embedding width before importing
+  it).
+- `SYNC_THRESHOLD` and the lag-window width are measured-not-guessed
+  constants (Task 2's own `plan.md` notes say what to measure them
+  against), per `project.md`'s dry-run-before-pinning guardrail.
+
+### Where the rest lives
+
+Full task history, decisions, and the licence-evidence trail: `plan.md`
+Task 1 (notes + build notes + feedback log), `memory/verdicts/2026-07-28-
+F8-T1.json`, `src/voicelock/models/vosk/NOTICE`.
 
 ### Session commits
 
-This retry's DOING → build: `1d4b261` → `1b7635e`. Full Task 1 history:
-`b3be5c6` (DOING) → `5e637e1` (build 1) → `d99cea2` (handoff 1) → `796fad3`
-(REJECT 1 recorded) → `1d4b261` (DOING retry 1) → `1b7635e` (build 2, this
-retry) → next commit is this file (bookkeeping 2).
+Task 1 full history: `b3be5c6` (DOING) → `5e637e1` (build 1) → `d99cea2`
+(handoff 1) → `796fad3` (REJECT 1 recorded) → `1d4b261` (DOING retry 1) →
+`1b7635e` (build 2) → `6ac0a59` (handoff 2) → next commit is this
+wrap-up's state-file checkpoint (plan.md DONE + verdict + this handoff).
 
-### Open items for whoever picks up Task 2 (unchanged from before this retry)
+### Pending guardrail
 
-- `lipsync.py` is next (independent of Task 1, per `plan.md`'s ordering
-  rationale) — confirm the exact upper/lower inner-lip landmark indices
-  against MediaPipe's published topology before hard-coding them.
-- `SYNC_THRESHOLD` and the lag-window width (Task 2) remain
-  measured-not-guessed constants per `project.md`'s dry-run-before-pinning
-  guardrail — Task 2's own `plan.md` notes say what to measure them
-  against.
+None.
+
+### Curate due
+
+12 tasks since the last curate pass (2026-07-26, verdicts then: 29; now 41).
+A reminder only — curate stays human-invoked, nothing blocks on it.

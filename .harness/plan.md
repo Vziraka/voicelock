@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 1 REVIEW (retry 1) — fix built, awaiting re-verification.**
+  Phase: **Task 1 DONE. Task 2 (`lipsync.py`) next — ready to build.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -177,7 +177,9 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    `auth_liveness`, not a new code.
 
 ### Memory spine
-1. **Not started.** All four tasks `TODO`.
+1. **Task 1 DONE** (2026-07-28, `rejects: 1`) — `challenge.py` +
+   `CHALLENGE_PHRASES` + vendored Vosk are landed and stable; Tasks 2-4
+   build on top, never revisit Task 1's shape.
 2. Zero `vault.py` changes this feature (decision, item 3 above) — the
    `project.md` caller-grep guardrail is inherited-and-not-triggered, not
    inherited-and-applied.
@@ -193,8 +195,8 @@ Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [ ] **Task 1** — Vendor Vosk + `challenge.py`: phrase pool, grammar-constrained match
-  - state: REVIEW
+- [x] **Task 1** — Vendor Vosk + `challenge.py`: phrase pool, grammar-constrained match
+  - state: DONE
   - rejects: 1
   - feedback log:
     - **REJECT 1 (2026-07-28, verifier subagent, base `b3be5c6`..head `5e637e1`).**
