@@ -1,63 +1,69 @@
 # Handoff
 
-## F8 — Lip-sync liveness (challenge-response) · SPEC DRAFTED, at approval gate
+## F8 — Lip-sync liveness (challenge-response) · PLANNED, ready to build
 
-**2026-07-28.** `spec.md` fully drafted and grilled interactively with the
-human. Grilling record: `Status: CLEAR`, zero `NEEDS-CLARIFICATION` hits.
-Box 1 (Grilling CLEAR) is checked. **Box 2 (human approval) is open —
-this is what remains before `/plan` can start.**
+**2026-07-28.** `spec.md` approved (both boxes checked, Mode 3) and
+`/plan` broke it into a 4-task ledger in `plan.md`. All tasks `TODO`.
 
-### What got resolved this session
+### Task order and why
+1. **Task 1** — vendor `vosk-model-small-en-us-0.15` + `challenge.py`
+   (phrase pool, grammar-constrained match). New-dependency TECH-PICK
+   integration lands first, mirroring F5/F6/F7's own vendor-first pattern.
+2. **Task 2** — `lipsync.py` (lag-windowed cross-correlation scorer).
+   Independent of Task 1; ordered second only because Task 1 carries the
+   dependency work.
+3. **Task 3** — Booth bridge (`app.py`): AV-capture retention (all new
+   state lives here — `facedetect.py`/`capture.py` stay untouched), the
+   liveness gate wired **before** `vault.unlock` is ever called (Q6), new
+   `auth_liveness` reject. Depends on both Task 1 and Task 2.
+4. **Task 4** (LAST) — Booth UI: challenge display + capture UX + fifth
+   reject chip. Full spec Verification is this task's done-criteria,
+   including the required manual 5-outcome check.
 
-- **Q1 (TECH-PICK, new dependency):** `vosk` for offline, grammar-constrained
-  challenge-phrase matching — human-approved, explicitly waiving the
-  disclosed stale-PyPI-wheel signal (repo itself is active; the published
-  wheel isn't). Research: `memory/research/2026-07-28-f8-offline-stt-challenge-match.md`.
-  Decision: `memory/decisions.md` (2026-07-28, F8 TECH-PICK entry).
-- **Q2:** AV capture = existing Record/Stop transport, fixed ceiling
-  (~6–8 s provisional, to be confirmed at `/plan` against the actual phrase
-  pool).
-- **Q3:** Challenge phrase pool = small hand-authored constant (~10–20
-  phrases), random pick, no-immediate-repeat.
-- **Q4:** Lip-sync = lag-windowed normalized cross-correlation, mouth
-  aperture (F5's lip contour) vs audio envelope (F1's), pure numpy.
-- **Q5:** Gate fixture strategy = synthetic unit tests for both scoring
-  functions, plus a real (unmocked) Vosk reject-path exercise against an
-  existing voice fixture — no new AV fixtures sourced or committed. The
-  accept-path proof for both signals lives only in the required manual
-  check (§5 cmd 4) — disclosed explicitly in §5 and §6, not smoothed over.
-- **Q6:** Liveness gates **before** any of the three crypto lock layers are
-  attempted — a liveness failure never calls `vault.unlock()`.
-- **Mode: Mode 3** (same as F4–F7). Recorded: `memory/decisions.md`.
-- **Blind-spot question (§6):** accepted as drafted — the Gate can't prove
-  either new signal's ACCEPT path or real replay-resistance; only the
-  required live manual check does. Same shape as F4/F7's own disclosed
-  generalization gaps.
+### Key decisions already made at `/plan` (full detail in `plan.md`'s
+"Named architecture decisions" section — do not re-derive):
+- **No `vault.py` changes this feature** — liveness gates in front of the
+  existing three nested locks entirely from `app.py`; the vault-signature
+  caller-grep guardrail doesn't trigger.
+- **`facedetect.py`/`capture.py` stay byte-for-byte unchanged** — retention
+  (a per-frame mouth-aperture list) lives in new `BoothApi` state, filled
+  additively from the existing `_push_face_frame` callback.
+- **Audio envelope for lip-sync is recomputed post-capture** from the full
+  retained PCM buffer at a fixed hop equal to one video frame interval, so
+  it naturally lands on the same per-frame grid as the mouth-aperture
+  series — not the live, irregularly-chunked Visualizer levels list.
+- **New `start_unlock_capture()`/`stop_unlock_capture()` bridge pair**,
+  separate from the existing `start_record()`/`stop_record()` (which enroll
+  flows keep using unmodified), so the new fixed AV-capture ceiling never
+  shortens an enroll take.
+- **`LIVENESS_CAPTURE_CEILING_SECONDS` must be dry-run-measured** at Task 3
+  against the real authored phrase pool (Task 1's output) before being
+  pinned — replaces spec §2 Q2's provisional "~6–8 s".
 
 ### next_action
 
-**Human**: open `spec.md`, read §1 (Outcome) and §5 (Verification), confirm
-the Mode line still reads right, and check box 2. Then, in a fresh session,
-run `/plan` to break this into tasks — Vosk vendoring (mirrors F5/F6's
-model-vendoring pattern) is a natural first task since `challenge.py` and
-the Booth bridge both depend on it landing first, the same shape F7's
-`facelock.py` had relative to its own Task 2.
+**Human**: on "go" (Mode 3's standing approval covers task-to-task
+progression inside this feature), a fresh `/implement` session starts
+Task 1 — vendoring Vosk's small English model and building `challenge.py`.
+No further human input needed to start; Mode 3 build↔verify cycles run
+unattended until the feature-end checkpoint.
 
 ### Session commits
 
-Base → head: `ad9c4a1` (F7 wrap-up, prior HEAD) → `49c3850` (this session's
-state-file commit: `spec.md`, `handoff.md`, `memory/decisions.md`,
-`memory/research/2026-07-28-f8-offline-stt-challenge-match.md`). Not pushed.
+Base → head: `49c3850` (prior HEAD, F8 spec session) → *(this session's
+state-file commit, hash recorded once created)*. Files this session:
+`spec.md` (box 2 checked — human approval), `plan.md` (new 4-task ledger),
+`handoff.md` (this file). Not pushed.
 
-### Open items for whoever picks up `/plan`
+### Open items for whoever picks up Task 1
 
-- The exact AV-capture ceiling duration (~6–8 s provisional) should be
-  confirmed against the actual authored phrase pool's real speaking time
-  before being pinned as a constant — per `project.md`'s
-  dry-run-before-pinning guardrail.
-- `SYNC_THRESHOLD` and the lag-window width (Q4) are Gate-test constants
-  derived from synthetic separation, not real human data — the module
-  docstring must say so, mirroring `facelock.py`'s Q2 disclosure pattern.
-- The exact Booth copy for the fifth reject chip (`chip-liveness-failed`,
-  proposed text in `spec.md` §1) may be refined at `/plan`, same as F7's
-  chip wording was.
+- Author `CHALLENGE_PHRASES` in own words (own-authored sentences, not
+  sourced text) — ~10–20 short, phonetically varied.
+- Confirm the exact upper/lower inner-lip landmark indices against
+  MediaPipe's published topology before hard-coding them in `lipsync.py`
+  (Task 2) — same care F7 took confirming SFace's embedding width before
+  importing it.
+- `SYNC_THRESHOLD` and the lag-window width (Task 2) and
+  `LIVENESS_CAPTURE_CEILING_SECONDS` (Task 3) are all measured-not-guessed
+  constants per `project.md`'s dry-run-before-pinning guardrail — each
+  task's own notes in `plan.md` say what to measure them against.

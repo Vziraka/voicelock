@@ -1,99 +1,190 @@
-# Plan — F7 — Face as the inner lock (innermost)
+# Plan — F8 — Lip-sync liveness (challenge-response)
 
 ## Active context
-- Updated: 2026-07-27
-- Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **FEATURE COMPLETE.** All three tasks `DONE`. Human attested §5
-  cmd 4 live ("everything worked perfect"), verifier APPROVE. At the
-  feature-end checkpoint — awaiting the human's commit/push approval.
-- Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
+- Updated: 2026-07-28
+- Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
+  Phase: **PLANNED — ready to build Task 1.**
+- Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
-  set 2026-07-27 by the human.
+  set 2026-07-28 by the human.
 
 ### Why this feature exists, in one line
-F4's construction (fuzzy commitment → stable key → nested AEAD layer), one
-layer deeper, for the face instead of the voice — the vault becomes three
-nested locks (passphrase outer, voice middle, face inner) instead of two.
+A single AV capture is pulled apart into four checks (challenge words, voice,
+face, lip-sync); the first two new signals get their own modules, and the
+liveness gate (challenge-match + lip-sync) sits **in front of** the existing
+three nested locks — a wrong-liveness attempt never calls `vault.unlock()` at
+all (Q6), so `vault.py` itself is untouched this feature.
 
 ### The dependency that fixes the task order
-No new model or fixture vendoring this time (unlike F5/F6) — F7 only touches
-code, so the chain is a straight line: **Task 1** (`facelock.py`, the
-construction itself) has no dependency on the rest and must land first — Task
-2 imports it to seal the vault. **Task 2** (`vault.py` v3 **+** the Booth
-bridge) must precede **Task 3** (the UI calls the bridge's new methods and
-renders the third reject). WIP=1 makes this the actual build sequence.
+Two brand-new, mutually independent signal modules (`challenge.py`,
+`lipsync.py` — spec names both, neither imports the other), then one bridge
+task that imports both, then the UI. WIP=1 makes the actual order: **Task 1**
+(Vosk vendoring + `challenge.py`) and **Task 2** (`lipsync.py`) could run in
+either order since neither depends on the other; Task 1 goes first because it
+carries the new-dependency TECH-PICK integration (mirrors F5/F6/F7's pattern
+of landing the heavier, dependency-carrying module first). **Task 3** (Booth
+bridge: AV-capture retention + the liveness gate wired before
+`vault.unlock`) needs both Task 1 and Task 2 landed — it imports both
+modules. **Task 4** (Booth UI: challenge display + capture UX + fifth reject
+chip) needs Task 3's bridge methods to call.
 
-**2026-07-27 amendment:** Task 2 originally covered only `vault.py`, with the
-Booth bridge as a separate Task 3. Building Task 2 as declared broke
-`app.py`'s two existing callers (it adds a required `faceprints`/`faceprint`
-parameter) and, through them, the full test suite — the identical shape F4
-Task 3 hit. Stopped per the universal `[Modes]` rule, presented options, and
-the human chose to merge the vault work and the bridge work into one Task 2
-(`memory/deviations.md`, task F7-T2). The former standalone bridge task is
-absorbed; the former Task 4 (UI) is renumbered **Task 3**, scope unchanged.
+**No `vault.py` touch this feature** — per Q6 and spec §3 non-goals, the
+liveness gate wraps `vault.unlock()` from the outside in `app.py`; the three
+nested AEAD layers stay exactly as F7 left them. This also means the
+`project.md` guardrail about grepping every caller before splitting a vault
+signature change **does not apply** here — no vault signature changes at all.
 
 ### Named architecture decisions carried into this ledger
 These fill the "exact call shape" gaps the spec deliberately left to `/plan`
-(same role F6's memory-spine item 1 played) — do not re-derive them mid-build.
+(same role F7's memory-spine item 1 played) — do not re-derive them mid-build.
 
-1. **`facelock.commit()` takes a variable-length list of embeddings (≥1), not
-   a fixed exact count.** `middlelock.commit()` hard-asserts
-   `len(embeddings) == ENROLLMENT_TAKES` (5) via `_stack_embeddings`. Q1
-   requires `facelock.commit()` to work both with **one** fixture take (the
-   Gate test, A1 alone) and **three** live frames (production) — a fixed-count
-   assert would make one of those two callers impossible. Dropping the exact-
-   count check is safe and requires no other code change: `_reliability_mask`'s
-   cross-take-unanimity filter is already vacuously true at n=1 (nothing to
-   disagree with), which *is* the documented "degrades to pure margin ranking"
-   fallback — porting that function unchanged already does the right thing at
-   both n=1 and n=3. Only the minimum (≥1, non-empty) is asserted.
-2. **New constant `facelock.ENROLLMENT_TAKES = 3`** — the live-production take
-   count (Q1: reuse F6's `REFERENCE_TAKES = 3` burst pattern), consumed by
-   Task 2's new bridge capture step. Deliberately a **separate** constant from
-   `faceprint.REFERENCE_TAKES` (also 3, coincidentally) — they gate two
-   independent flows (Q4) and must not be import-aliased into one just because
-   the numbers currently match.
-3. **New bridge methods, distinctly named from F6's diagnostic ones** (which
-   already own `set_face_reference`/`compare_face`/`reset_face_reference`):
-   `enroll_face_take()` and `reset_enroll_face_takes()`, mirroring the voice
-   pair `enroll_take()`/`reset_enroll_takes()` exactly. These feed only
-   `facelock.commit` via `vault.enroll`; they never read or write
-   `faceprint.ref`.
-4. **`vault.py` signatures gain a face parameter**, mirroring exactly how F4
-   added `voiceprints`: `enroll(name, passphrase, voiceprints, faceprints,
-   path=None)` and `unlock(passphrase, voiceprint, faceprint, path=None) ->
-   str`. New `FaceAuthError` (peer of `VoiceAuthError`) for the inner REJECT.
-5. **Vault v3 layout and key names — copied verbatim from spec §2 Q3**, not
-   re-decided here: innermost profile JSON → sealed with the face-derived
-   inner key → `inner_ciphertext`; middle plaintext becomes
-   `{"helper_data_face", "inner_ciphertext"}` → sealed with the voice-derived
-   middle key → `middle_ciphertext`; outer plaintext becomes
-   `{"helper_data_voice", "middle_ciphertext"}` (renamed from today's bare
-   `"helper_data"`, since v3 refuses v2 outright — no format needs to read both
-   spellings) → sealed with the passphrase key → `outer_ciphertext`. Version
-   bytes: `_PREVOICE_FORMAT_VERSION = 1`, `_PREFACE_FORMAT_VERSION = 2`,
-   `FORMAT_VERSION = 3`. Both legacy versions raise `LegacyVaultError`, message
-   naming the specific missing layer ("predates voice" for v1, "predates face"
-   for v2).
-6. **Peel order stays outer → middle → inner.** `unlock()` only reaches the
-   face check after the passphrase AND the voice have both already verified —
-   a wrong-face impostor never learns whether the passphrase or voice would
-   have passed either, and vice versa (already true for outer→middle; F7 just
-   extends the chain one layer).
+1. **`challenge.py`'s phrase pool is a module-level constant
+   `CHALLENGE_PHRASES: tuple[str, ...]`**, ~10–20 hand-authored, phonetically
+   varied short sentences (Q3) — authored in Task 1, not before, since the
+   AV-capture ceiling (decision 6) must be measured against the real pool
+   the way `project.md`'s dry-run-before-pinning guardrail requires.
+   `pick_challenge(previous: str | None = None, rng: random.Random | None =
+   None) -> str` picks uniformly at random from the pool, excluding
+   `previous` from the draw (no-immediate-repeat) unless the pool has only
+   one entry. `rng` is injectable (mirrors this repo's standing
+   injectable-dependency pattern — `open_camera`, `clock`, `landmarker`
+   elsewhere) so the no-repeat property is deterministically testable over
+   many draws instead of relying on statistical luck.
+2. **Vosk model vendored at `src/voicelock/models/vosk/vosk-model-small-en-us-0.15/`**,
+   mirroring the existing `models/<name>/` + `LICENSE` + `NOTICE` pattern
+   (`models/ecapa/`, `models/face_landmarker/`, `models/sface/`). `LICENSE`
+   reuses the same pristine Apache-2.0 text already vendored twice in this
+   repo (consistent with the `face_landmarker` precedent); `NOTICE` names
+   `vosk-model-small-en-us-0.15` specifically and cites
+   `alphacephei.com/vosk/models` as the source establishing *that asset's*
+   licence, per `project.md`'s per-asset-licence guardrail. `vosk` (the
+   Python package, per the TECH-PICK) is added to `pyproject.toml`
+   `dependencies`.
+3. **`challenge.py` owns three independent, separately-testable pieces**,
+   matching spec §5 cmd 1's three coverage bullets exactly:
+   - `matches(recognized: str, challenge: str) -> bool` — pure text
+     comparison (normalize case/punctuation, then exact match), **no** Vosk
+     involved, so the synthetic table test (exact / case-punct-only /
+     different) needs no model load.
+   - `_ensure_model()` / a module-level cached loader — mirrors
+     `facedetect.load_landmarker()`'s and `faceprint.py`'s lazy
+     module-cached pattern, loading `vosk.Model(str(MODEL_PATH))` once, plus
+     `vosk.SetLogLevel(-1)` at import or first load (Kaldi logs to stderr by
+     default and would spam every Gate run and every live unlock attempt
+     otherwise — a real, disclosed gotcha, not architecture).
+   - `check(audio: np.ndarray, challenge: str, decoys: Sequence[str] =
+     CHALLENGE_PHRASES) -> bool` — builds a `KaldiRecognizer` grammar JSON
+     from `challenge` plus `decoys` (Q3's "rest of the pool as decoys"),
+     runs `AcceptWaveform`/`FinalResult` against the audio (converted from
+     this repo's standard float32 mono PCM to the int16 bytes Vosk's API
+     expects — a straightforward `np.clip(...).astype(np.int16).tobytes()`
+     conversion, no resampling needed since capture is already 16 kHz mono,
+     the rate Vosk's small model expects), and returns `matches(recognized,
+     challenge)`. This is the function the Gate's real-Vosk reject-path test
+     exercises against `speakerA_take1.wav`.
+4. **`lipsync.py` owns two pieces**, matching spec §5 cmd 2:
+   - `mouth_aperture(landmarks: list) -> float` — one scalar per frame from
+     F5's inner-lip landmark pair (upper/lower inner-lip centre points),
+     normalized by a stable face-scale reference (e.g. inter-eye distance)
+     from the same landmark set, so aperture does not confound with the
+     subject's distance from the camera. Pure numpy, no new dependency,
+     consistent with spec §4.
+   - `score(mouth_series: np.ndarray, audio_envelope: np.ndarray) -> float`
+     — lag-windowed normalized cross-correlation; both inputs are assumed
+     **already on the same sample grid, same length** (index *i* in both is
+     the same instant) — this matches exactly how spec §5's synthetic Gate
+     test constructs its fixtures ("an in-phase mouth-aperture series
+     derived directly from the real audio envelope"), so aligning the two
+     series onto a common grid is the caller's job (Task 3), not
+     `lipsync.py`'s. If the two arrays arrive at slightly different lengths
+     (a real capture's frame count is not perfectly deterministic — drop-
+     don't-queue pacing under load), `score()` compares over the shorter
+     array's length rather than raising. `is_live(score: float) -> bool` —
+     `score >= SYNC_THRESHOLD`. `SYNC_THRESHOLD` and the lag-window width
+     are named constants, pinned from the synthetic separation this task's
+     own Gate test measures — module docstring discloses this explicitly
+     (spec §5 item 2's own requirement), mirroring `facelock.py`'s Q2
+     disclosure pattern for `CORRECTION_RADIUS`.
+5. **No changes to `facedetect.py` or `capture.py`.** Per spec §4's
+   constraint that F1–F7 engines are "reused, not modified in their core
+   constructions," the AV-capture retention Q2 asks for lives entirely in
+   `app.py` (`BoothApi`), which already receives every frame's landmarks
+   (`_push_face_frame`, called from `FaceEngine`'s existing callback) and
+   already owns the full audio PCM buffer (`capture.pcm_buffer()`) after a
+   take. Concretely:
+   - `BoothApi._retain_landmarks: bool` (default `False`) and
+     `BoothApi._liveness_mouth_series: list[float]` (cleared on each unlock
+     capture start). `_push_face_frame` gains one **additive** line: when
+     `_retain_landmarks` is set, append
+     `lipsync.mouth_aperture(result.landmarks)` to the series — zero change
+     to its existing `evaluate_js` call or to `FaceEngine`/`facedetect.py`.
+   - The audio envelope is **recomputed post-capture** from the full
+     retained `capture.pcm_buffer()` using a fixed hop equal to one video
+     frame interval (`int(SAMPLE_RATE * facedetect.FRAME_INTERVAL)`
+     samples per envelope value, reusing `facedetect`'s own constant rather
+     than duplicating it) — the same fixed-window-RMS technique that already
+     produces the Visualizer's levels (spec Q4 calls this "the audio
+     envelope already computed for the Visualizer"), just re-run with a hop
+     chosen to land naturally on the same per-frame grid as the
+     mouth-aperture series, instead of depending on PortAudio's own
+     irregular per-callback chunk boundaries. This is a plan-level call
+     (spec left the exact construction to `/plan`), disclosed here so
+     Task 3 does not re-derive it.
+6. **New bridge methods `start_unlock_capture()` / `stop_unlock_capture()`**,
+   distinct from the existing `start_record()`/`stop_record()` (which stay
+   exactly as-is for enroll voice/enroll face). The unlock pair does what
+   the existing pair does (capture + camera start/pump/stop, in the same
+   order, releasing on every exit path — inherited for free from the
+   existing `_pump_loop` auto-stop-then-release path, since the new pair
+   only changes which cap value is armed and arms/disarms
+   `_retain_landmarks`) plus: temporarily sets
+   `self.capture.max_seconds = LIVENESS_CAPTURE_CEILING_SECONDS` for the
+   duration of the capture (restored to `capture.MAX_SECONDS` on stop), so
+   the fixed ceiling (Q2) applies **only** to the liveness capture and never
+   shortens an enroll take. `LIVENESS_CAPTURE_CEILING_SECONDS` is a new
+   constant in `app.py`, **measured, not guessed**: Task 3 dry-runs reading
+   the longest phrase in the Task-1-authored pool aloud (or a documented
+   words-per-second estimate against its word count) before pinning the
+   final value, replacing spec §2 Q2's provisional "~6–8 s" — per
+   `project.md`'s dry-run-before-pinning guardrail.
+7. **New bridge method `new_challenge()`** returns `{"ok": True, "phrase":
+   ...}`, calling `challenge.pick_challenge(previous=self._current_challenge)`
+   and storing the result in `self._current_challenge` (Python is
+   authoritative for the phrase shown, not JS — consistent with "Python
+   owns state; JS renders only"). Called by the UI whenever the Unlock
+   panel becomes active and again after each completed attempt, so the
+   no-immediate-repeat property (decision 1) holds across real usage, not
+   just within one bridge instance's lifetime.
+8. **`unlock()`'s new shape** (only method whose body changes; its
+   signature and the vault-layer calls inside it are unchanged from F7):
+   after the existing `no_vault` check, compute the voice and face
+   embeddings exactly as today (`lock_voiceprint`, `faceprint.embed_frame`
+   — unchanged, still needed either way once liveness passes), THEN run the
+   liveness gate — `challenge.check(capture.pcm_buffer(), self._current_challenge)`
+   and `lipsync.is_live(lipsync.score(mouth_series, audio_envelope))`
+   (decision 5's construction) — BEFORE any call to `vault_unlock` (Q6). A
+   failed liveness check on **either** signal returns `{"ok": False, "error":
+   "auth_liveness"}` and makes **zero** calls into `vault_unlock` — the
+   assertion spec §5 cmd 3 names explicitly. Only when both liveness checks
+   pass does `vault_unlock(passphrase, voiceprint_vector, faceprint_vector,
+   path=...)` run, with the existing `auth_outer`/`auth_voice`/`auth_face`
+   exception mapping completely unchanged.
+9. **No new error codes beyond `auth_liveness`.** Spec §4's "no face/no
+   speech detected" and "too-short or silent capture" edge cases are already
+   covered by the existing `no_face` (missing/faceless frame) and
+   `need_more_audio` (`lock_voiceprint`'s existing floor) paths — a silent
+   or wordless capture simply fails `challenge.check` and surfaces as
+   `auth_liveness`, not a new code.
 
 ### Memory spine
-1. **All three tasks DONE — Feature 7 complete.** `facelock.py` (Task 1),
-   `vault.py` v3 + Booth bridge merged with the former standalone bridge
-   task (Task 2, `memory/deviations.md` F7-T2), Booth UI (Task 3). 186
-   pytest passed, ruff clean, human-attested live 4-outcome demo
-   ("everything worked perfect").
-2. One BLOCKED-then-UNBLOCKED cycle (Task 2, identical shape to F4 Task 3)
-   produced a human-approved `project.md` guardrail — see that file's
-   newest `[Forbidden]` entry. One REJECT/fix cycle (Task 2, missing
-   `no_face`-edge test coverage) — the existing no-unexercised-surface
-   guardrail caught it as designed.
-3. `roadmap.md`'s F7 box is checked; `memory/codebase-map.md` refreshed to
-   show the face inner lock as solid (was planned).
+1. **Not started.** All four tasks `TODO`.
+2. Zero `vault.py` changes this feature (decision, item 3 above) — the
+   `project.md` caller-grep guardrail is inherited-and-not-triggered, not
+   inherited-and-applied.
+3. `facedetect.py`/`capture.py` stay byte-for-byte unchanged (decision 5) —
+   all new retention state lives in `app.py`, additive only, same shape as
+   how F6 added `FaceEngine.last_frame` without touching the camera
+   lifecycle.
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
@@ -102,204 +193,166 @@ Reviewer approved, **and** a matching verdict file exists in `memory/verdicts/`.
 The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
-- [x] **Task 1** — `facelock.py`: face fuzzy commitment (commit/reconcile/derive_key), measured `CORRECTION_RADIUS`
-  - state: DONE
+- [ ] **Task 1** — Vendor Vosk + `challenge.py`: phrase pool, grammar-constrained match
+  - state: TODO
   - rejects: 0
-  - files: `src/voicelock/facelock.py` (new), `tests/test_facelock.py` (new)
-  - notes: Port `middlelock.py`'s shape (decision 1 changes only the
-    enrollment-count check — everything else, including
-    `_projection_matrix`/`_reliability_mask`/`_soft_decode`/the helper-data
-    JSON shape/the commitment-tag pattern, carries over unchanged in spirit,
-    reparameterized for `faceprint.EMBEDDING_DIM`-equivalent — SFace emits a
-    128-dim feature vector, confirm the exact constant name/value in
-    `faceprint.py` before importing it, since `faceprint.py` may not export an
-    `EMBEDDING_DIM` the way `voiceprint.py` does; if it doesn't, add one there
-    only if truly needed, otherwise inline `128` with a comment citing SFace's
-    published output width).
-    `CANDIDATE_BITS`/`RELIABLE_BITS`/`KEY_BITS`/`REPETITION` are the literal
-    values `4096`/`512`/`32`/`16` (decision: reused unchanged from
-    `middlelock`, per spec Q2 — do NOT scale by embedding width). Reuse the
-    same Argon2id `_stretch`/`_tag` pattern and `INTERACTIVE` cost (same
-    reasoning as `middlelock`: this is the innermost layer, only reached after
-    both outer locks already fell). `ENROLLMENT_TAKES = 3` per decision 2.
-    **Measuring `CORRECTION_RADIUS`:** in the test module (or a fixture),
-    `commit()` on `[embed_file(personA_1.jpg)]`, then `residual_bits()` against
-    `embed_file(personA_2.jpg)` (the genuine residual) and against
-    `embed_file(personB.jpg)` (one impostor residual); repeat enrolling on A2
-    alone and measuring residual against B (the second impostor residual, per
-    Q2's n=2). Pick `CORRECTION_RADIUS` as the midpoint of the genuine residual
-    and the LOWER of the two impostor residuals (same method F4 used for 110).
-    Disclose in the module docstring: n=1 genuine / n=2 impostor, thinner than
-    `middlelock`'s 200-commit measurement (spec Q2, §7).
+  - files: `pyproject.toml`, `src/voicelock/models/vosk/` (new, vendored
+    `vosk-model-small-en-us-0.15` + `LICENSE` + `NOTICE`),
+    `src/voicelock/challenge.py` (new), `tests/test_challenge.py` (new)
+  - notes: Apply decisions 1–3 verbatim. Author `CHALLENGE_PHRASES` as
+    ~10–20 short, phonetically varied sentences (own words — this is a
+    hand-authored constant per Q3, not sourced from copyrighted text, same
+    spirit as F4/F7's own hand-picked literal constants). Download and
+    vendor `vosk-model-small-en-us-0.15` from `alphacephei.com/vosk/models`
+    (Apache-2.0, ~40 MB) offline beside the other three `models/<name>/`
+    dirs; write `LICENSE` (reuse the pristine Apache-2.0 text already in
+    this repo) and `NOTICE` naming the exact model file/version and its
+    distribution-page source, per the per-asset-licence guardrail. Add
+    `vosk` to `pyproject.toml` `dependencies` (per the TECH-PICK — no
+    version pin stricter than what `memory/decisions.md` already recorded
+    as live). Call `vosk.SetLogLevel(-1)` before/at first model load to
+    silence Kaldi's default stderr chatter. `matches()` normalizes by
+    lowercasing and stripping punctuation only (no stemming/fuzzy edit
+    distance — Q3/Q4 both describe exact-pool matching, and spec §5's own
+    synthetic table only requires case/punctuation tolerance).
   - done-criteria:
     - §5 cmd 1 — verbatim, exit 0:
       ```
-      uv run pytest tests/test_facelock.py -q
+      uv run pytest tests/test_challenge.py -q
       ```
-      Must cover (per spec §5 item 1): `commit` binds an inner key + emits
-      helper data (LSH seed, reliability mask, XOR offset, commitment tag)
-      from an enrollment embedding set — A1 alone in this test; same-person
-      reconcile (enroll A1, reconcile A2) recovers the secret; different-
-      person reconcile (enroll A1 or A2, reconcile B) raises a
-      `ReconcileError`-equivalent, no secret/plaintext returned;
-      `CANDIDATE_BITS == 4096`, `RELIABLE_BITS == 512`, `KEY_BITS == 32`,
-      `REPETITION == 16`; and `CORRECTION_RADIUS` sits strictly between the
-      measured genuine residual and the measured impostor floor — assert the
-      actual measured gap (per memory spine item 2), not just that the
-      constant exists.
+      Must cover (per spec §5 item 1, decision 3): the phrase pool is a
+      fixed, non-empty constant, and `pick_challenge` never repeats the
+      immediately-previous phrase across enough consecutive draws to make a
+      false failure statistically negligible; a real (unmocked) Vosk
+      grammar-constrained recognition run against
+      `tests/fixtures/voiceprint/speakerA_take1.wav` (or another existing
+      voice fixture) constrained to a specific challenge phrase's grammar
+      asserts **reject**, with the test's docstring stating explicitly that
+      this fixture cannot prove an accept (Q5's disclosed limitation); the
+      `matches()` function unit-tested against a synthetic table covering
+      an exact match, a case/punctuation-only difference (must still
+      accept), and a genuinely different phrase (must reject) — no model
+      load required for this part.
     - `uv run ruff check .` → exit 0
-    - `uv run pytest` → exit 0 (0 failed; count rises from F6's 145)
+    - `uv run pytest` → exit 0 (0 failed; count rises from F7's 186)
 
-- [x] **Task 2** — `vault.py` v3 **+** Booth bridge: nest the face inner lock, enroll-face capture step, distinct `auth_face` *(merged with the former standalone bridge task, human decision 2026-07-27 — see `memory/deviations.md` F7-T2)*
-  - state: DONE
-  - rejects: 1
-  - feedback (newest first):
-    - **2026-07-27 · REJECT 1 of 3** (verifier subagent; GATE PASSed first —
-      181 passed, ruff 0 — so this is a Standards+Spec-axis reject on missing
-      test coverage, no crypto or peel-order defect found):
-      1. `unlock()`'s new face-check `no_face` edge (both `face.last_frame is
-         None` and a faceless/blank frame) was never exercised by any test.
-      2. `enroll_face_take()`'s `no_face` edge (both cases) was likewise
-         never exercised — it was called exactly once in the whole test
-         file, always with a valid frame.
-      3. `reset_enroll_face_takes()` had **zero callers and zero tests** —
-         a direct hit on `project.md`'s earned no-unexercised-surface
-         guardrail (evidenced there by three prior F4 REJECTs, one of them
-         `reset_enroll_takes()` itself).
-      **Fix applied, same session:** added
-      `test_bridge_enroll_face_take_rejects_a_faceless_frame`,
-      `test_bridge_enroll_face_take_no_camera_frame_yet`,
-      `test_reset_enroll_face_takes_discards_an_abandoned_run` (mirroring
-      the voice-side tests exactly), `test_bridge_unlock_no_camera_frame_yet`,
-      `test_bridge_unlock_no_face_in_current_frame` to
-      `tests/test_booth_api.py`. Chose "add tests" over "delete
-      `reset_enroll_face_takes()`" (the F4 precedent's other valid fix)
-      because decision 3 explicitly commits to building this method in this
-      task, mirroring the voice pair exactly — deferring it to Task 3 would
-      just recreate the same gap when the UI needs it. Re-ran: 186 passed
-      (up from 181), ruff exit 0.
-  - files: `src/voicelock/vault.py`, `tests/test_vault.py`,
-    `src/voicelock/app.py`, `tests/test_booth_api.py` (plus
-    `tests/test_outer_lock.py` and `tests/test_middlelock.py`'s nested-vault
-    section — unavoidably coupled callers of the changed `vault` signature,
-    already updated and green: 52 passed)
-  - notes: **Vault half (decisions 4–6, already built and green):** Apply
-    decisions 4–6 verbatim. `enroll()` gains a `faceprints: list[np.ndarray]`
-    parameter (after `voiceprints`, before `path`) and calls `facelock.commit`
-    the same way it already calls `middlelock.commit`; `unlock()` gains a
-    `faceprint: np.ndarray` parameter (after `voiceprint`, before `path`)
-    and, only after the middle box opens, calls `facelock.reconcile` against
-    `helper_data_face` and decrypts `inner_ciphertext` with the derived inner
-    key — any `FaceLockError`-family exception or `CryptoError` there raises
-    `FaceAuthError("Face didn't match")`, mirroring exactly how
-    `VoiceAuthError` wraps `middlelock.MiddleLockError`/`CryptoError` today.
-    Renamed the outer plaintext's `"helper_data"` key to `"helper_data_voice"`
-    — safe because v3 refuses v2 outright, so no code path ever needs to read
-    the old key name. `_parse_outer`/`_parse_middle`/`_parse_profile` parsing
-    extends one layer deeper; kept the "corrupt payload" `VaultError` for
-    malformed JSON at any layer, same as before.
-    **Bridge half (decision 3, absorbed from the former Task 3 — still
-    TODO):** Add `self._enroll_faceprints: list[np.ndarray] = []` beside
-    `self._enroll_voiceprints` in `__init__`. `enroll_face_take()` mirrors
-    `enroll_take()`'s shape exactly but reads `self.face.last_frame` and
-    calls `faceprint.embed_frame` to validate (mirrors
-    `set_face_reference`'s validate-before-accept pattern) — a frame with no
-    face is `{"ok": False, "error": "no_face", "progress": ...}` and does NOT
-    advance; on the `facelock.ENROLLMENT_TAKES`-th take, banks and reports
-    `done: True`. `reset_enroll_face_takes()` mirrors `reset_enroll_takes()`.
-    `enroll()` gains the same `need_face_takes` guard `need_voice_takes`
-    already has, and passes
-    `self._enroll_faceprints[:facelock.ENROLLMENT_TAKES]` to `vault_enroll`,
-    clearing both lists only after a successful seal. `unlock()` embeds
-    `self.face.last_frame` via `faceprint.embed_frame` (a missing/faceless
-    frame is a new `{"ok": False, "error": "no_face"}` edge — same shape as
-    `need_more_audio`'s role for voice) and passes it to `vault_unlock`;
-    catch `FaceAuthError` → `{"ok": False, "error": "auth_face"}`, added
-    alongside the existing `auth_outer`/`auth_voice` branches, before the
-    generic exception fallback.
+- [ ] **Task 2** — `lipsync.py`: lag-windowed cross-correlation scorer
+  - state: TODO
+  - rejects: 0
+  - files: `src/voicelock/lipsync.py` (new), `tests/test_lipsync.py` (new)
+  - notes: Apply decision 4 verbatim. `mouth_aperture()` reads two inner-lip
+    landmark indices from `facedetect.LIP_POINTS`'s index space (confirm
+    the exact upper/lower inner-lip indices against MediaPipe's published
+    topology before hard-coding them — same care F7 took confirming
+    `faceprint.py`'s embedding width before importing it) and normalizes by
+    a stable reference distance from the same frame's landmarks. Pin
+    `SYNC_THRESHOLD` and the lag-window width from THIS task's own
+    synthetic separation (mirrors how `facelock.py` measured
+    `CORRECTION_RADIUS` from real fixture residuals) — pick the threshold
+    as the midpoint between the in-phase synthetic score and the
+    shifted/flat synthetic score's ceiling, and say so in the module
+    docstring, plus the explicit disclosure that neither constant is
+    measured against real human lip-sync data (spec §5 item 2's own
+    requirement).
   - done-criteria:
     - §5 cmd 2 — verbatim, exit 0:
       ```
-      uv run pytest tests/test_vault.py -q
+      uv run pytest tests/test_lipsync.py -q
       ```
-      Must cover (per spec §5 item 2): enroll seals a v3 vault
-      (`FORMAT_VERSION == 3`, `VLCK` magic); unlock with the right passphrase +
-      voice + face returns the display name; a wrong passphrase raises before
-      voice or face is consulted (outer REJECT, unchanged shape); right
-      passphrase + wrong voice raises before face is consulted (middle
-      REJECT, unchanged from F4); right passphrase + right voice + wrong face
-      raises the new `FaceAuthError` (inner REJECT); a v1 **or** v2 vault is
-      refused via `LegacyVaultError`, each message naming its own missing
-      layer; no reject path returns the name or any plaintext.
-      — **DONE this session, 52 passed** (see files: line above).
+      Must cover (per spec §5 item 2): a real audio envelope from an
+      existing voice fixture paired with a synthetic in-phase
+      mouth-aperture series (a monotonic function of that same envelope)
+      scores **above** `SYNC_THRESHOLD`; the same series shifted outside
+      the lag window, and a flat (non-moving) series, both score **below**
+      `SYNC_THRESHOLD` (the flat case is the direct analog of a still photo
+      or a muted video in production); `SYNC_THRESHOLD` and the lag-window
+      width are named constants, and the module docstring discloses the
+      synthetic-only provenance.
+    - `uv run ruff check .` → exit 0
+    - `uv run pytest` → exit 0 (0 failed; count rises further from Task 1's end)
+
+- [ ] **Task 3** — Booth bridge: AV-capture retention, liveness gate before `vault.unlock`, `auth_liveness` reject
+  - state: TODO
+  - rejects: 0
+  - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
+  - notes: Apply decisions 5–9 verbatim. Before pinning
+    `LIVENESS_CAPTURE_CEILING_SECONDS`, dry-run: read Task 1's longest
+    authored phrase aloud (or estimate from its word count at a
+    conservative words-per-second rate) and pick a ceiling with real
+    margin — record the measurement (or the estimate and its basis) in this
+    task's notes when done, replacing spec §2 Q2's provisional "~6–8 s".
+    `start_unlock_capture()`/`stop_unlock_capture()` mirror
+    `start_record()`/`stop_record()`'s existing camera-then-pump /
+    pump-then-camera ordering and mic-failure-must-not-cost-the-take
+    behavior exactly, adding only: arm/disarm `_retain_landmarks` + clear
+    `_liveness_mouth_series`, and temporarily override/restore
+    `capture.max_seconds`. `new_challenge()` per decision 7. `unlock()`'s
+    body reshaped per decision 8 — the embeddings are computed once and
+    reused for both the liveness gate (which never sees the vault) and the
+    eventual `vault_unlock` call, so nothing is embedded twice.
+  - done-criteria:
     - §5 cmd 3 — verbatim, exit 0:
       ```
       uv run pytest tests/test_booth_api.py -q
       ```
-      Must cover (per spec §5 item 3): the enroll-face capture step banking
-      takes via a fake `FaceEngine` (mirroring the existing voice/face-
-      diagnostic bridge test fakes, no real camera); unlock returning a
-      distinct reason per layer (`auth_outer`/`auth_voice`/`auth_face`), none
-      leaking the name; the `no_face` edge during enroll-face capture and
-      during unlock. — **DONE this session, 41 passed** (36 + 5 added on the
-      REJECT-1 retry, see feedback log above).
-    - `uv run ruff check .` → exit 0 — **DONE, All checks passed!**
-    - `uv run pytest` → exit 0 (0 failed, count rises) — **DONE, 186 passed
-      (up from 173 at Task 1's end).**
+      Must cover (per spec §5 item 3): the new AV-capture flow (start/stop,
+      retention, release-on-every-exit-path including the fixed-ceiling
+      auto-stop) via the existing fake `FaceEngine`/fake capture stream
+      patterns (no real camera or mic); the liveness gate running before
+      `vault.unlock` is ever called — assert a failed-liveness attempt
+      makes **zero** calls into the vault layer (e.g. inject a spy/fake
+      `vault_unlock` and assert it was never invoked on a liveness-fail
+      case); the fifth reject reason (`auth_liveness`) alongside the
+      existing `auth_outer`/`auth_voice`/`auth_face`, none leaking the
+      display name.
+    - `uv run ruff check .` → exit 0
+    - `uv run pytest` → exit 0 (0 failed; count rises further from Task 2's end)
 
-- [x] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*
-  - state: DONE
+- [ ] **Task 4** — Booth UI: challenge display + AV capture UX + fifth reject chip *(LAST task — full spec Verification)*
+  - state: TODO
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
-  - notes: Mirror the existing `#enroll-voice-step` block (Q4) almost
-    verbatim as a new `#enroll-face-step` block, placed directly after it
-    inside `#enroll-panel`: a take-progress row (3 dots, per decision 2's
-    `facelock.ENROLLMENT_TAKES`), a hint line, a "Bank this frame" button
-    wired to `call('enroll_face_take')`. `btnEnrollCancel`/`btnEnrollOpen`
-    must also reset this step's takes (mirrors `resetEnrollVoiceStep`'s
-    await-first pattern — decision: call `reset_enroll_face_takes` alongside
-    `reset_enroll_takes`, same awaited-before-focus ordering, so an abandoned
-    run's face takes cannot leak into the next enrollment either). `btnEnroll`
-    click handler's `need_voice_takes` branch gains a sibling `need_face_takes`
-    branch with the same shape. Add `<span class="chip mono hidden"
-    id="chip-wrong-face">Face didn't match</span>` to `#result-chips`, and a
-    `showWrongFace()` function mirroring `showWrongVoice()` exactly (status
-    text "REJECT · FACE DIDN'T MATCH", sub-text naming voice+passphrase both
-    already having passed); `hideResultChips()`'s chip list gains this chip;
-    `btnUnlock`'s handler gains an `auth_face` branch calling it, alongside
-    the existing `auth_outer`/`auth_voice` branches. **Per the earned
-    guardrail on Booth layout changes** (`project.md`): this adds a new
-    take-progress block inside `.enroll-panel`, which is a **different**
-    column from `.booth`/`.window` (the guardrail's specific clipping hazard
-    was `main`/`.booth`) — still smoke-test the enroll panel open/scroll
-    manually before calling this task done, since any visible addition to a
-    fixed-height flex column deserves the same caution.
+  - notes: Challenge phrase shown on the Unlock panel BEFORE Record is
+    pressed and stays visible through the capture (Q2/Q3) — call
+    `new_challenge()` when the Unlock panel becomes active and again after
+    each completed attempt (decision 7). Wire the Unlock panel's Record/Stop
+    to the new `start_unlock_capture()`/`stop_unlock_capture()` bridge pair
+    (decision 6) instead of the plain `start_record()`/`stop_record()` the
+    enroll panels keep using — same visual button, same Record/Stop
+    interaction (Q2 — "no new interaction pattern"), different bridge call
+    underneath, gated on which panel is active (mirrors the existing
+    per-panel branching already in `btnRecord`'s handler). Add
+    `<span class="chip mono hidden" id="chip-liveness-failed">Didn't look or
+    sound live</span>` to `#result-chips`; a `showLivenessFailed()` function
+    mirroring `showWrongFace()` exactly (status text
+    `"REJECT · LIVENESS CHECK FAILED"`, sub-text naming that passphrase,
+    voice, and face all already passed — per spec §1); `hideResultChips()`'s
+    chip list gains this chip; `btnUnlock`'s handler gains an
+    `auth_liveness` branch calling it, alongside the existing
+    `auth_outer`/`auth_voice`/`auth_face` branches. Per the earned Booth-
+    layout guardrail (`project.md`): the challenge-phrase display is new
+    visible content in the `main`/`.booth` column (the guardrail's specific
+    clipping hazard) — smoke-test it manually (open the Unlock panel, watch
+    the phrase render without clipping) before calling this task done, same
+    caution F6/F7 already had to apply there.
   - done-criteria: **the FULL list from `spec.md`'s Verification section**, namely —
-    - `uv run ruff check .` → exit 0 — **DONE, All checks passed!**
-    - `uv run pytest` → exit 0 (0 failed, ≥145 passing, count risen by Tasks 1–2's new tests) — **DONE, 186 passed** (Task 3 is UI-only, no new Python tests)
-    - §5 cmd 1 — `uv run pytest tests/test_facelock.py -q` → exit 0 — **DONE** (part of the full-suite run)
-    - §5 cmd 2 — `uv run pytest tests/test_vault.py -q` (or wherever vault
-      tests live) → exit 0 — **DONE** (part of the full-suite run)
-    - §5 cmd 3 — `uv run pytest tests/test_booth_api.py -q` → exit 0 — **DONE** (part of the full-suite run)
+    - `uv run ruff check .` → exit 0
+    - `uv run pytest` → exit 0 (0 failed, ≥186 passing, count risen by Tasks 1–3's new tests — Task 4 is UI-only, no new Python tests)
+    - §5 cmd 1 — `uv run pytest tests/test_challenge.py -q` → exit 0 (part of the full-suite run)
+    - §5 cmd 2 — `uv run pytest tests/test_lipsync.py -q` → exit 0 (part of the full-suite run)
+    - §5 cmd 3 — `uv run pytest tests/test_booth_api.py -q` → exit 0 (part of the full-suite run)
     - §5 cmd 4 — **manual check, required.** Human runs `uv run voicelock`:
-      enroll (name + passphrase + voice + face) → unlock with all three
-      correct → **unlocked** (name shown); **wrong passphrase** → outer
-      REJECT; right passphrase + **wrong voice** → middle REJECT; right
-      passphrase + right voice + **a different face** → **inner REJECT**.
-      Each reject names its distinct cause. Attested by the human at the
-      feature-end checkpoint. **PENDING — this is what remains.**
-    - **CSS smoke-test disclosure (per the Booth-layout guardrail):** the new
-      `#enroll-face-step` block sits inside `.enroll-panel`, itself inside
-      `.profiles`, which is `overflow-y: auto` with default (top-anchored)
-      flex alignment — NOT `justify-content: center`, so it cannot reproduce
-      F6 Task 5's specific clipping bug (that bug required center-alignment
-      on an overflowing container). This is reasoning from the CSS, not a
-      substitute for the mandatory manual smoke-test the guardrail requires
-      — the agent has no headless-browser tooling in this repo (by design,
-      per that guardrail's own "enforcement rejected for now" note) and
-      cannot visually verify pixels. Opening the enroll panel is a required
-      step of cmd 4's own live walkthrough, so the human's cmd 4 attestation
-      covers this smoke-test too — not a separate ask.
+      enroll (name + passphrase + voice + face) → unlock with all four
+      correct (passphrase, voice, face, live spoken challenge) →
+      **unlocked** (name shown); **wrong passphrase** → outer REJECT; right
+      passphrase + **wrong voice** → middle REJECT; right passphrase +
+      right voice + **wrong face** → inner REJECT; right passphrase + right
+      voice + right face but **liveness fails** — tried at least two ways
+      per §1 (e.g. speaking the wrong words, and one of: holding up a
+      photo, playing a silent/muted video, or replaying a separate
+      audio-only recording) → **liveness REJECT**. Each reject names its
+      distinct cause. Attested by the human at the feature-end checkpoint.
+      **PENDING — this is what remains after Task 4.**
 
 **Out-of-scope default (Mode 3):** anything discovered during the build that
 is not in spec §1 gets recorded in `.out-of-scope/` and is never built.

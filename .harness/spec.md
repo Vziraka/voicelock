@@ -7,7 +7,7 @@ Feature: Feature 8 from `roadmap.md`
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [ ] Approved by human
+- [x] Approved by human
 
 - **Mode: Mode 3 — Spec-to-done.** Set by the human 2026-07-28. Build↔verify
 cycles and the feature-end wrap-up run unattended within this feature; the
