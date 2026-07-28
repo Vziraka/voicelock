@@ -1,69 +1,77 @@
 # Handoff
 
-## F8 — Lip-sync liveness (challenge-response) · PLANNED, ready to build
+## F8 Task 1 — Vendor Vosk + `challenge.py` · REVIEW, awaiting verification
 
-**2026-07-28.** `spec.md` approved (both boxes checked, Mode 3) and
-`/plan` broke it into a 4-task ledger in `plan.md`. All tasks `TODO`.
+**2026-07-28.** Built and committed. Task 1 moved `DOING → REVIEW`.
 
-### Task order and why
-1. **Task 1** — vendor `vosk-model-small-en-us-0.15` + `challenge.py`
-   (phrase pool, grammar-constrained match). New-dependency TECH-PICK
-   integration lands first, mirroring F5/F6/F7's own vendor-first pattern.
-2. **Task 2** — `lipsync.py` (lag-windowed cross-correlation scorer).
-   Independent of Task 1; ordered second only because Task 1 carries the
-   dependency work.
-3. **Task 3** — Booth bridge (`app.py`): AV-capture retention (all new
-   state lives here — `facedetect.py`/`capture.py` stay untouched), the
-   liveness gate wired **before** `vault.unlock` is ever called (Q6), new
-   `auth_liveness` reject. Depends on both Task 1 and Task 2.
-4. **Task 4** (LAST) — Booth UI: challenge display + capture UX + fifth
-   reject chip. Full spec Verification is this task's done-criteria,
-   including the required manual 5-outcome check.
+### Changed
 
-### Key decisions already made at `/plan` (full detail in `plan.md`'s
-"Named architecture decisions" section — do not re-derive):
-- **No `vault.py` changes this feature** — liveness gates in front of the
-  existing three nested locks entirely from `app.py`; the vault-signature
-  caller-grep guardrail doesn't trigger.
-- **`facedetect.py`/`capture.py` stay byte-for-byte unchanged** — retention
-  (a per-frame mouth-aperture list) lives in new `BoothApi` state, filled
-  additively from the existing `_push_face_frame` callback.
-- **Audio envelope for lip-sync is recomputed post-capture** from the full
-  retained PCM buffer at a fixed hop equal to one video frame interval, so
-  it naturally lands on the same per-frame grid as the mouth-aperture
-  series — not the live, irregularly-chunked Visualizer levels list.
-- **New `start_unlock_capture()`/`stop_unlock_capture()` bridge pair**,
-  separate from the existing `start_record()`/`stop_record()` (which enroll
-  flows keep using unmodified), so the new fixed AV-capture ceiling never
-  shortens an enroll take.
-- **`LIVENESS_CAPTURE_CEILING_SECONDS` must be dry-run-measured** at Task 3
-  against the real authored phrase pool (Task 1's output) before being
-  pinned — replaces spec §2 Q2's provisional "~6–8 s".
+- `pyproject.toml` — added `vosk>=0.3.45` to `dependencies`.
+- `uv.lock` — resolved `vosk==0.3.45` (+ its transitives `cffi`/`requests`/
+  `tqdm`/`srt`/`websockets`); diff is additions only, no other pinned
+  package moved.
+- `src/voicelock/models/vosk/vosk-model-small-en-us-0.15/` (new) — the
+  vendored model, downloaded fresh from `alphacephei.com/vosk/models/
+  vosk-model-small-en-us-0.15.zip`, `LICENSE` (Apache-2.0, reused pristine
+  text) and `NOTICE` (source, size, sha256, and the per-asset licence
+  evidence — the distribution page's own table, since the archive's
+  bundled README carries no licence text itself).
+- `src/voicelock/challenge.py` (new) — `CHALLENGE_PHRASES` (12 own-authored
+  short sentences), `pick_challenge()`, `matches()`, `check()`.
+- `tests/test_challenge.py` (new) — 10 tests: pool/no-repeat, `matches()`
+  synthetic table, one real (unmocked) Vosk reject-path run against
+  `speakerA_take1.wav`.
+
+### Measured/decided during build (not guessed)
+
+- Vosk's real constructor signature was confirmed by reading the installed
+  package's own source (`vosk.KaldiRecognizer(model, sample_rate,
+  grammar_json_str)`), not assumed from the spec-time research.
+- The reject-path Gate test was dry-run before being written into the test
+  file, per the dry-run-before-pinning guardrail: against the full
+  12-phrase grammar, `speakerA_take1.wav` recognizes as `"the [unk]"`,
+  which does not match any challenge phrase — a real reject.
+- Model licence: the vendored archive's own bundled `README` states only
+  "Copyright 2020 Alpha Cephei Inc" with no licence text — checked first,
+  per the metadata-first clause. The distribution page's own per-model
+  table (`alphacephei.com/vosk/models`) names `vosk-model-small-en-us-0.15`
+  specifically with `License: Apache 2.0` — that is the source of record,
+  recorded in the model's `NOTICE`.
+
+### Verification run this session (build-time only, not the Gate)
+
+- `uv run pytest tests/test_challenge.py -q` → 10 passed
+- `uv run ruff check .` → clean
+- `uv run pytest` → 196 passed (F7 baseline was 186; +10 from this task,
+  nothing else regressed)
+
+None of the above substitutes for the fresh-context Gate — recorded here
+per the implement skill's step 5 disclosure requirement, not as a
+self-verification.
 
 ### next_action
 
-**Human**: on "go" (Mode 3's standing approval covers task-to-task
-progression inside this feature), a fresh `/implement` session starts
-Task 1 — vendoring Vosk's small English model and building `challenge.py`.
-No further human input needed to start; Mode 3 build↔verify cycles run
-unattended until the feature-end checkpoint.
+**Verifier**: spawn the clean-context verifier now
+(`formats/VERIFIER-PROMPT.md`, used verbatim; task id `Task 1`, base
+`b3be5c6`, head `5e637e1`) — Mode 3 build↔verify cycles run unattended, no
+human input needed to proceed.
 
 ### Session commits
 
-Base → head: `49c3850` (prior HEAD, F8 spec session) → `211f812` (this
-session's state-file commit). Files this session: `spec.md` (box 2 checked
-— human approval), `plan.md` (new 4-task ledger), `handoff.md` (this file).
-Not pushed.
+Base (DOING committed) → head (build committed): `b3be5c6` → `5e637e1`.
+Files this session: `pyproject.toml`, `uv.lock`,
+`src/voicelock/models/vosk/**` (new), `src/voicelock/challenge.py` (new),
+`tests/test_challenge.py` (new), `.harness/plan.md` (DOING → REVIEW +
+build notes), `.harness/handoff.md` (this file, committed separately as
+bookkeeping — HEAD after this commit is one ahead of what this file
+names as "head").
 
-### Open items for whoever picks up Task 1
+### Open items for whoever picks up Task 2
 
-- Author `CHALLENGE_PHRASES` in own words (own-authored sentences, not
-  sourced text) — ~10–20 short, phonetically varied.
-- Confirm the exact upper/lower inner-lip landmark indices against
-  MediaPipe's published topology before hard-coding them in `lipsync.py`
-  (Task 2) — same care F7 took confirming SFace's embedding width before
-  importing it.
-- `SYNC_THRESHOLD` and the lag-window width (Task 2) and
-  `LIVENESS_CAPTURE_CEILING_SECONDS` (Task 3) are all measured-not-guessed
-  constants per `project.md`'s dry-run-before-pinning guardrail — each
-  task's own notes in `plan.md` say what to measure them against.
+- `lipsync.py` is next (independent of Task 1, per `plan.md`'s ordering
+  rationale) — confirm the exact upper/lower inner-lip landmark indices
+  against MediaPipe's published topology before hard-coding them.
+- `SYNC_THRESHOLD` and the lag-window width (Task 2) remain
+  measured-not-guessed constants per `project.md`'s dry-run-before-pinning
+  guardrail — Task 2's own `plan.md` notes say what to measure them
+  against.
