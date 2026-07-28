@@ -1,0 +1,51 @@
+Vendored model: Vosk small English speech-recognition model
+==============================================================
+
+This directory contains a redistributed copy of Alpha Cephei's
+vosk-model-small-en-us-0.15, vendored so VoiceLock can run offline,
+grammar-constrained challenge-phrase recognition (no runtime network).
+
+Source
+------
+- Distribution page: https://alphacephei.com/vosk/models
+- Download URL:      https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+- Model id:           vosk-model-small-en-us-0.15
+- Retrieved:          2026-07-28
+- Size:               41,205,931 bytes (zip)
+- SHA-256 (zip):      30F26242C4EB449F948E42CB302DD7A686CB29A3423A8367F99FF41780942498
+
+License
+-------
+Apache License 2.0. The full license text is in the sibling LICENSE file.
+
+Established from the model's own distribution table at
+https://alphacephei.com/vosk/models — the row for
+"vosk-model-small-en-us-0.15" lists License: "Apache 2.0", naming this
+exact asset (not inherited from the vosk PyPI package or the alphacep/
+vosk-api GitHub repo's own licensing, per the per-asset-licence rule).
+The model's own bundled README states only "Copyright 2020 Alpha Cephei
+Inc" with no licence text embedded in the archive itself, so the
+distribution page is the source of record here, read after checking the
+archive contents first and finding nothing there.
+
+Vendored files
+--------------
+- vosk-model-small-en-us-0.15/   the model directory, unmodified:
+    am/            acoustic model (final.mdl)
+    conf/          MFCC + model config
+    graph/         decoding graph (Gr.fst, HCLr.fst, disambig_tid.int, phones/)
+    ivector/       iVector extractor for speaker/channel normalization
+    README         the model's own copyright note (Alpha Cephei, 2020)
+- LICENSE          Apache License 2.0 (unmodified upstream text, reused
+                    from the same pristine copy already vendored in this
+                    repo under models/ecapa/ and models/face_landmarker/)
+
+VoiceLock (F8) loads this model via ``vosk.Model(str(MODEL_PATH))`` and
+uses Vosk's grammar-constrained ``KaldiRecognizer`` to check whether a
+spoken attempt matches one of a small, known challenge-phrase pool — not
+open-vocabulary transcription.
+
+Attribution
+-----------
+Vosk, by Alpha Cephei Inc. See https://alphacephei.com/vosk/ and
+https://github.com/alphacep/vosk-api.

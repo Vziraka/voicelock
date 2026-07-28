@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BUILDING — Task 1 DOING.**
+  Phase: **Task 1 REVIEW — build complete, awaiting verification.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -194,7 +194,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Vendor Vosk + `challenge.py`: phrase pool, grammar-constrained match
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `pyproject.toml`, `src/voicelock/models/vosk/` (new, vendored
     `vosk-model-small-en-us-0.15` + `LICENSE` + `NOTICE`),
@@ -215,6 +215,26 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     lowercasing and stripping punctuation only (no stemming/fuzzy edit
     distance — Q3/Q4 both describe exact-pool matching, and spec §5's own
     synthetic table only requires case/punctuation tolerance).
+  - build notes (2026-07-28): downloaded `vosk-model-small-en-us-0.15.zip`
+    directly from `alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip`
+    (41,205,931 bytes, sha256 `30f26242c4eb449f948e42cb302dd7a686cb29a
+    3423a8367f99ff41780942498`), matching the `Content-Length` the
+    distribution page served — verified before vendoring. The archive's own
+    bundled `README` carries no licence text (only "Copyright 2020 Alpha
+    Cephei Inc"), so per the metadata-first clause of the per-asset-licence
+    guardrail, the distribution page's own table was read next: the row for
+    `vosk-model-small-en-us-0.15` states `License: Apache 2.0`, naming this
+    exact asset. `uv sync` resolved `vosk==0.3.45` (matching the TECH-PICK)
+    with zero changes to any other pinned package (numpy/torch/mediapipe
+    etc. all unmoved — `uv.lock` diff is additions only). Vosk's real API
+    was confirmed by reading its installed source (no published
+    type-stub/docs beyond the GitHub issue already cited at spec time):
+    `vosk.KaldiRecognizer(model, sample_rate, grammar_json_str)` for the
+    grammar-constrained constructor, `AcceptWaveform`/`FinalResult` return a
+    JSON `{"text": ...}` string. `check()`'s reject-path test was dry-run
+    against `speakerA_take1.wav` before being pinned (recognized text was
+    `"the [unk]"` against the full 12-phrase grammar — genuinely does not
+    match any challenge phrase), per the dry-run-before-pinning guardrail.
   - done-criteria:
     - §5 cmd 1 — verbatim, exit 0:
       ```
