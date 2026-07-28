@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 2 REVIEW — build complete, awaiting verification.**
+  Phase: **Task 2 REJECTED (1/3) — budgeted retry in progress, same session.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -272,8 +272,24 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises from F7's 186)
 
 - [ ] **Task 2** — `lipsync.py`: lag-windowed cross-correlation scorer
-  - state: REVIEW
-  - rejects: 0
+  - state: TODO
+  - rejects: 1
+  - feedback log:
+    - **REJECT 1 (2026-07-28, verifier subagent, base `bc91244`..head
+      `6959dee`).** Gate: PASS (all three commands exit 0, scope check
+      clean). Review: Spec axis APPROVE, Standards axis REJECT. Finding:
+      `project.md`'s mutation-sensitivity guardrail is violated — no test
+      exercises the lag-search loop itself (`lipsync.py:110`,
+      `for lag in range(-lag_window, lag_window + 1)`), the module's whole
+      reason for being lag-windowed rather than fixed-lag (spec Q4). Every
+      existing test uses shift=0 or shift=15 (already scores below
+      threshold at lag 0 too), so collapsing the loop to lag-0-only leaves
+      all 8 tests passing — verified empirically by the verifier (shift 3/4/5
+      at lag-0-only score 0.221/-0.058/-0.228, all below `SYNC_THRESHOLD`,
+      while the real windowed `score()` correctly returns 1.0 via the
+      search). Feedback: add a test with a small shift (2-5 frames, inside
+      `LAG_WINDOW`) asserting `is_live() is True`, and confirm by mutating
+      (collapse the loop to lag=0, watch the new test fail, revert).
   - files: `src/voicelock/lipsync.py` (new), `tests/test_lipsync.py` (new)
   - notes: Apply decision 4 verbatim. `mouth_aperture()` reads two inner-lip
     landmark indices from `facedetect.LIP_POINTS`'s index space (confirm
