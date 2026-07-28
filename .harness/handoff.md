@@ -1,64 +1,91 @@
 # Handoff
 
-## F8 Task 2 — `lipsync.py` · DONE
+## F8 Task 3 — Booth bridge: liveness gate before `vault.unlock` · REVIEW, awaiting verification
 
-**2026-07-28.** Verified and wrapped up. `rejects: 1` (one Standards-axis
-REJECT — an untested lag-search loop, fixed same session — see
-`memory/verdicts/2026-07-28-F8-T2.json` for the full history).
+**2026-07-28.** Built and committed. Task 3 moved `TODO → DOING → REVIEW`.
 
-### Changed (final state)
+### Changed
 
-- `src/voicelock/lipsync.py` (new) — `mouth_aperture()`, `score()`/
-  `is_live()`, constants `LAG_WINDOW = 5`, `SYNC_THRESHOLD = 0.5` (dry-run
-  measured on `speakerA_live.wav`).
-- `tests/test_lipsync.py` (new) — 9 tests, including the retry's
-  lag-search-exercising in-window-shift test.
+- `src/voicelock/app.py` — `LIVENESS_CAPTURE_CEILING_SECONDS = 10.0` (dry-run
+  estimated), `_audio_envelope()` (fixed-hop RMS at `facedetect.FRAME_INTERVAL`),
+  new `BoothApi` state (`_retain_landmarks`, `_liveness_mouth_series`,
+  `_current_challenge`), `new_challenge()`, `start_unlock_capture()`/
+  `stop_unlock_capture()`, `unlock()` reshaped to gate on `_liveness_passes()`
+  before any `vault_unlock` call, `_push_face_frame()` retains mouth-aperture
+  when armed, and a fix inside `_pump_loop()`'s auto-stop branch (see below).
+- `tests/test_booth_api.py` — 8 existing unlock tests updated to bypass the
+  new liveness gate via a `_force_liveness_pass()` helper (monkeypatches
+  `challenge.check`/`lipsync.is_live`) since they test what happens AFTER
+  liveness, not liveness itself; `_StubRecordingCapture` gained a
+  `max_seconds` attribute; 17 new tests covering the AV-capture lifecycle,
+  retention wiring, `new_challenge()`, and the liveness gate itself.
 
-### Failed + lesson
+### A real bug found and fixed during build (not by the verifier)
 
-REJECT 1: no test exercised the lag-search loop itself (every case used
-shift=0 or a shift already below threshold at lag-0 too) — a hit on
-`project.md`'s existing mutation-sensitivity guardrail (second confirmed
-firing, first was F5 Task 5). No new guardrail written — not a new
-pattern. Full reasoning, including a self-critical note about running the
-mutation check proactively during build rather than only after a REJECT,
-is in the verdict file's `note` field.
+Writing `test_the_liveness_ceiling_auto_stop_releases_the_camera_too` (spec
+§5 cmd 3's "release on every exit path including the fixed-ceiling
+auto-stop") found that the fixed-ceiling auto-stop path lives in
+`_pump_loop()` — it is what *notices* a take self-ended (via
+`capture.pump()`'s own internal `stop()`), and calls `_stop_camera()`
+directly, bypassing `stop_unlock_capture()` entirely. The first cut of
+`start_unlock_capture()`/`stop_unlock_capture()` only reset
+`_retain_landmarks`/`capture.max_seconds` inside the explicit-stop method,
+so an auto-stopped liveness take left both fields permanently set —
+silently capping the user's *next* enroll take at the shorter liveness
+ceiling too. Fixed by repeating the same two-line reset inside
+`_pump_loop()`'s auto-stop branch (a no-op for a plain `start_record()`
+take, since neither field is ever touched there).
+
+### Measured/decided during build (not guessed)
+
+- `LIVENESS_CAPTURE_CEILING_SECONDS = 10.0`: no live speaker available in
+  this environment, so estimated from Task 1's phrase pool's word count
+  (6-word longest entries, 1.5 words/sec conservative rate ≈ 4.0 s, doubled
+  for hesitation/lead-in margin ≈ 8.0 s, rounded up to 10.0 s), disclosed
+  as an estimate (not a stopwatch reading) in both `app.py`'s comment and
+  `plan.md`'s build notes. Replaces spec §2 Q2's provisional "~6-8 s".
+- Proactively mutation-checked `unlock()`'s liveness gate before
+  submitting (applying Task 2's own lesson): collapsed
+  `if not self._liveness_passes():` to `if False:`, ran
+  `tests/test_booth_api.py`, confirmed exactly the 5 liveness-specific
+  tests fail (one unrelated pre-existing timing flake in an F5 test
+  reproduced as a false positive under the mutated run and was confirmed
+  independent by re-running it alone, standalone, passing), reverted —
+  `diff` against a pre-mutation backup showed zero differences.
+
+### Verification run this session (build-time only, not the Gate)
+
+- `uv run pytest tests/test_booth_api.py -q` → 58 passed
+- `uv run ruff check .` → clean
+- `uv run pytest` → 222 passed (Task 2's end was 205; +17, nothing regressed)
+
+None of the above substitutes for the fresh-context Gate — recorded here
+per the implement skill's step 5 disclosure requirement.
 
 ### next_action
 
-**Task 3 — Booth bridge** (`app.py`): AV-capture retention, the liveness
-gate wired before `vault.unlock`, `auth_liveness` reject. Needs both Task 1
-and Task 2 landed (now true) — imports `challenge.py` and `lipsync.py`.
-Mode 3's standing approval covers task-to-task progression — this wrap-up
-completing is the precondition; the next `/implement` session starts
-Task 3 itself. Carried-forward open items (`plan.md`'s Task 3 notes have
-the full detail):
-
-- `LIVENESS_CAPTURE_CEILING_SECONDS` must be dry-run-measured against
-  Task 1's authored phrase pool before being pinned (read the longest
-  phrase aloud, or a documented words-per-second estimate), replacing
-  spec §2 Q2's provisional "~6-8 s".
-- The audio envelope for the real unlock flow must use the same
-  fixed-hop-at-`FRAME_INTERVAL` construction `test_lipsync.py`'s local
-  `_envelope()` helper mirrors — Task 3 writes its own copy in `app.py`,
-  not an import (that helper is test-local, not part of `lipsync.py`'s
-  public surface).
-- `start_unlock_capture()`/`stop_unlock_capture()` mirror the existing
-  `start_record()`/`stop_record()` pair's ordering and mic-failure
-  handling exactly (plan.md decision 6) — do not improvise a new shape.
-
-### Where the rest lives
-
-Full task history, decisions, and the measurement trail: `plan.md` Task 2
-(notes + build notes + feedback log), `memory/verdicts/2026-07-28-F8-T2.json`.
+**Verifier**: spawn the clean-context verifier now
+(`formats/VERIFIER-PROMPT.md`, used verbatim; task id `Task 3`, base
+`08676fa`, head `e571695`) — Mode 3 build↔verify cycles run unattended.
 
 ### Session commits
 
-Task 2 full history: `bc91244` (DOING) → `6959dee` (build 1) → `c81a34e`
-(handoff 1) → `16d6769` (REJECT 1 recorded) → `0f21cdd` (DOING retry 1) →
-`1e42625` (build 2) → `9230111` (handoff 2) → next commit is this
-wrap-up's state-file checkpoint (plan.md DONE + verdict + this handoff).
+Base (DOING) → head (build): `08676fa` → `e571695`. Files this session:
+`src/voicelock/app.py`, `tests/test_booth_api.py`, `.harness/plan.md`
+(DOING → REVIEW + build notes), `.harness/handoff.md` (this file,
+committed separately as bookkeeping).
 
-### Pending guardrail
+### Open items for whoever picks up Task 4 (the LAST task)
 
-None.
+- Task 4 (Booth UI) needs Task 3's bridge methods:
+  `start_unlock_capture()`/`stop_unlock_capture()` (wired to the Unlock
+  panel's Record/Stop instead of the plain pair), `new_challenge()`
+  (called when the Unlock panel activates and after each attempt), and the
+  `auth_liveness` error code for the fifth reject chip.
+- Task 4's done-criteria is the FULL spec Verification list, including the
+  required manual 5-outcome check — attested by the human at the
+  feature-end checkpoint, not automatable.
+- Per the earned Booth-layout guardrail: the challenge-phrase display is
+  new visible content in the `main`/`.booth` column — smoke-test it
+  manually (open the Unlock panel, watch the phrase render without
+  clipping) before calling Task 4 done.
