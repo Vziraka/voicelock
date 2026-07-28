@@ -1,92 +1,135 @@
-# F7 — Task 3 (LAST task) · BUILT, IN REVIEW
+# F7 — Face as the inner lock (innermost) · COMPLETION REPORT
 
-**Base:** `6ea3d9c` (Task 3 set `DOING`, before any code touched).
-**Build commit:** `30f4add` — `src/voicelock/ui/index.html` + `plan.md`
-(Task 3 → `REVIEW`).
+**Feature complete 2026-07-28 (Mode 3).** All three tasks `DONE`, verdicts in
+`memory/verdicts/2026-07-27-F7-T1.json`, `2026-07-27-F7-T2.json`,
+`2026-07-28-F7-T3.json`. Awaiting the human's commit/push approval below —
+the feature-end checkpoint.
 
-## What this session did
-Built Task 3 exactly as `plan.md` scoped it: a new `#enroll-face-step` block
-in the enroll panel (3-dot take progress, hint line, "Bank this frame"
-button wired to `enroll_face_take`), mirroring `#enroll-voice-step`
-verbatim in structure. A third result chip (`chip-wrong-face` /
-`showWrongFace()`) mirrors `showWrongVoice()` exactly. Added
-`showUnlockNoFace()` for unlock's `no_face` edge — not explicitly named in
-`plan.md`'s notes, but required by spec §4's edge-case list ("no face
-detected during enroll/unlock capture → F6's `NoFaceError` surfaced as
-Booth copy, not a crash"). `refreshEnrollButton()` now gates the Enroll
-button on BOTH steps being done (previously voice-only) — a necessary
-consequence of adding the parallel face step, not spelled out verbatim in
-the plan but implied by it. `btnEnrollOpen`/`btnEnrollCancel` now await
-both `resetEnrollVoiceStep()` and `resetEnrollFaceStep()`, same ordering
-rule as the existing voice reset.
+## Outcome vs spec.md §1
 
-## Gate commands run this session
-- `node --check` on the extracted inline `<script>` block → syntax OK
-  (mirrors F6's precedent for inline-script changes; not itself a spec
-  Verification command, an extra local check)
-- `uv run ruff check .` → exit 0
-- `uv run pytest` → exit 0, **186 passed** (Task 3 is UI-only — HTML/CSS/JS,
-  no Python changed, so the count is unchanged from Task 2's end)
+Spec's Outcome: make the faceprint a real cryptographic lock — fuzzy-
+reconcile it into a stable key, seal a third, innermost AEAD layer wrapping
+F4's voice middle lock, itself wrapping F2's passphrase outer lock. Unlock
+requires passphrase **and** voice **and** face, with four visibly distinct
+outcomes.
 
-Since this is the feature's LAST task, its done-criteria are the FULL list
-from spec.md's Verification section. Automatable items (ruff, full pytest,
-§5 cmds 1–3 — all part of the same pytest run) all pass. **§5 cmd 4 — the
-live 3-way manual check — is REQUIRED and still PENDING.** Only the human
-can attest it, and per Mode 3 that happens at the feature-end checkpoint,
-not mid-build.
+**Delivered exactly that.** `vault.py` is now `FORMAT_VERSION = 3`:
+passphrase outer → voice middle → face inner, peel order load-bearing (each
+layer only reached after the previous one verified). All four demo
+outcomes confirmed live by the human (verbatim: **"everything worked
+perfect"**):
+- right passphrase + enrolled voice + enrolled face → **unlocked**, name shown
+- wrong passphrase → **outer REJECT**
+- right passphrase, wrong voice → **middle REJECT**
+- right passphrase, right voice, wrong face → **inner REJECT**
 
-## What the verifier should know
-- **Scope:** only `src/voicelock/ui/index.html` changed (plus `plan.md`
-  bookkeeping). No Python file touched — `vault.py`, `app.py`, `facelock.py`
-  etc. are all exactly as Task 2 left them.
-- **§5 cmd 4 cannot be run by an automated Gate** — it is a live webcam+mic
-  walkthrough. Score the Gate on the automatable items; cmd 4's PENDING
-  status is expected at this point in the pipeline, not a defect. It gates
-  the feature-end checkpoint, not this task's REVIEW.
-- **CSS/layout risk, disclosed honestly (per `project.md`'s Booth-layout
-  guardrail):** the new take-progress block sits inside `.enroll-panel` →
-  `.profiles`, which uses `overflow-y: auto` with default top-anchored flex
-  alignment (no `justify-content: center`) — the specific CSS property that
-  caused F6 Task 5's clipping bug is absent here, so by reasoning this
-  should NOT reproduce that failure mode. This is reasoning from the CSS
-  source, not a substitute for the guardrail's mandatory manual smoke-test
-  — this repo has no headless-browser tooling (deliberately, per that
-  guardrail's own text) and the agent cannot render pixels to verify. Since
-  opening the enroll panel is a required step of cmd 4's own live
-  walkthrough, the human's cmd 4 attestation covers this smoke-test too.
-- `enroll_face_take`'s `no_face` progress-preserving behavior, the
-  `need_face_takes` guard, and the `auth_face` reject were all already
-  covered by Task 2's bridge tests (`test_booth_api.py`) — this task only
-  wires the UI to bridge methods that already exist and are tested.
+F7's two non-goals held: F6's diagnostic faceprint panel (and
+`faceprint.ref`) are untouched — still an independent, non-lock meter,
+exactly as F3's voiceprint panel survived F4; no liveness/challenge/lip-sync
+(F8's job) and no enrollment-quality gate or tolerance UI (F9's job) were
+added.
 
-## Manual check — ATTESTED by the human (2026-07-28)
+## Full final-Gate evidence (command → exit code)
 
-The human ran `uv run voicelock` and walked the full spec §5 cmd 4 script:
-enroll (name + passphrase + 5 voice sentences + 3 face frames) → unlock
-with all three correct → unlocked, name shown; unlock with a wrong
-passphrase → outer REJECT; unlock with the right passphrase but a wrong
-voice → middle REJECT; unlock with the right passphrase and voice but a
-different face → inner REJECT. Also asked to flag anything visually
-clipped, especially the new face-enrollment step added to the side panel
-this task (the CSS-reasoning disclosure in `plan.md`'s Task 3 entry).
+- `uv run pytest tests/test_facelock.py -q` → exit 0, 28 passed
+- `uv run pytest tests/test_vault.py -q` → exit 0, 13 passed
+- `uv run pytest tests/test_booth_api.py -q` → exit 0, 41 passed
+- `uv run ruff check .` → exit 0 ("All checks passed!")
+- `uv run pytest` → exit 0, **186 passed** (0 failed; 145 at F6's end → 173
+  after Task 1 → 186 after Task 2's retry; Task 3 added no Python tests)
+- spec §5 cmd 4 (manual, required) → **ATTESTED** by the human 2026-07-28,
+  same protocol as `2026-07-23-F3-T5.json`/`2026-07-26-F5-T7.json`/
+  `2026-07-27-F6-T5.json`: ran `uv run voicelock`, walked enroll (name +
+  passphrase + 5 voice sentences + 3 face frames) then all four unlock
+  outcomes above, explicitly checked for layout clipping in the new
+  enroll-face-step block. Verbatim: "everything worked perfect."
 
-Verbatim: **"everything worked perfect"** — no layout clipping, no visual
-defect, all four outcomes matched spec §1's demo script exactly. This is
-the required §5 cmd 4 manual attestation, the same shape and authority as
-`memory/verdicts/2026-07-23-F3-T5.json`, `memory/verdicts/2026-07-26-F5-T7.json`,
-and `memory/verdicts/2026-07-27-F6-T5.json`'s human attestations that
-closed those tasks' Gates.
+## Retry counts per task
+
+- Task 1 (`facelock.py`): `rejects: 0`
+- Task 2 (`vault.py` v3 + Booth bridge, merged): `rejects: 1` — one REJECT
+  for missing test coverage on new bridge surfaces (`enroll_face_take`'s and
+  `unlock`'s `no_face` edges, an unexercised `reset_enroll_face_takes()`),
+  fixed same session, APPROVE on retry 1 of 3
+- Task 3 (Booth UI): `rejects: 0`
+
+## `memory/deviations.md` entries made during this feature
+
+One entry, task `F7-T2` (2026-07-27): Task 2's declared `files:` line
+(`vault.py`, `test_vault.py`) excluded `app.py`, but its done-criteria
+demanded a green full test suite, and the required `faceprints`/`faceprint`
+parameter broke `app.py`'s only calls to it — the plan had assigned that
+fix to a separate Task 3. Identical shape to `memory/deviations.md`'s
+existing `F4-T3` entry (2026-07-26). Stopped per the universal `[Modes]`
+rule (Mode 3 forbids unsupervised interpretation) rather than improvising;
+presented three resolution options; the human chose to merge Task 2 with
+the former standalone bridge task. Unlike F4's precedent, no "minimal, no
+new bridge behaviour" framing was available or attempted — the bridge
+collected zero face material before this task, so the merge named the real
+scope up front.
+
+## Anything escalation-worthy that resolved itself
+
+The manual-attestation sequencing: the first verifier pass on Task 3 (build
+`30f4add`) scored spec §5 cmd 4 as "PENDING, not a failure" under this
+session's explicit framing and returned APPROVE. On reflection this
+diverged from the repo's own established protocol for an unattested manual
+check (`F3-T5`/`F5-T7`/`F6-T5`: score `ESCALATE_HUMAN`, ask the human
+directly, then re-verify with the attestation quoted in). Self-corrected
+before wrap-up: asked the human for the live attestation, recorded it in
+this file, then re-spawned a second clean-context verifier with the
+attestation quoted into its prompt — that second pass is what
+`2026-07-28-F7-T3.json` records as authoritative. No rework was lost (the
+UI code itself needed no changes), and no human correction was required —
+caught by re-reading this repo's own precedent files before finalizing.
+
+## Guardrail earned this feature
+
+Human-approved, written to `project.md` during Task 2's wrap-up (see that
+file's newest `[Forbidden]` entry, dated 2026-07-27): *"When `/plan` splits
+a signature change to a shared function across two tasks, it must grep for
+every in-repo caller of that function BEFORE assigning `files:` lines."*
+Evidence: this exact failure shape recurred verbatim across two features
+(F4 Task 3, then F7 Task 2) — F4's own `learn` scan proposed the identical
+guardrail once already and it was never adopted; re-proposed and approved
+this time.
+
+## State files refreshed this wrap-up
+
+- `roadmap.md` — F7's box checked, built summary added, architecture
+  diagram's `planned` class corrected (was stale since before F7 — several
+  already-shipped F3–F6 nodes were still marked dashed/planned; now only
+  `Liveness`/F8 is planned)
+- `memory/codebase-map.md` — refreshed for F7: `facelock.py` documented,
+  `vault.py`'s entry updated to v3/three-layer, `app.py`/`index.html`
+  entries updated for the bridge + UI additions, architecture diagram's
+  `FuzzyF`/`Inner` moved from planned to solid
+- `plan.md` — Active context, memory spine, all three task lines → `DONE`
+
+## Curate status
+
+**Curate is due** — 40 verdict files vs `project.md`'s `Last curated:
+2026-07-26 (second pass) · verdicts then: 29` = 11 tasks since the last
+pass (was 10 at Task 2's wrap-up, now 11 after Task 3's verdict). Not
+blocking; worth running soon given the sustained backlog.
 
 ## next_action
-Mode 3 is the standing "go". Spawn the clean-context verifier now, with
-this attestation quoted into its prompt so its Gate step can score §5
-cmd 4 as satisfied (`formats/VERIFIER-PROMPT.md`, verbatim, task id
-`Task 3`, base `6ea3d9c`, head `30f4add`) — this session proceeds
-immediately. On APPROVE, `wrap-up` runs — since this is the feature's last
-task, that means the **feature-end checkpoint**: review the final verdict
-summary and approve commit/push. On REJECT, Task 3 returns to `TODO` with
-feedback appended to `plan.md`, `rejects:` increments (cap 3).
 
-## Pending guardrail
-None — the guardrail earned this feature (signature-change/caller-coupling
-planning rule) was already written to `project.md` during Task 2's wrap-up.
+**Feature-end checkpoint — awaiting the human.** Proposed commit message
+below covers all state-file writes from this wrap-up (verdict, roadmap,
+codebase-map, plan.md). On approval: commit, then push if requested (no
+push without explicit ask, per standing instructions). After that, F8
+(Lip-sync liveness) is the next roadmap item — not started, no draft
+parked (Mode 3, not Mode 4 — unattended next-feature drafting is a Mode 4
+behavior only).
+
+**Proposed commit message:**
+```
+F7 wrap-up: feature complete -- roadmap/codebase-map refreshed, Task 3 verdict recorded
+
+All three tasks DONE. Human attested the live 4-outcome demo (Sec5 cmd 4),
+verbatim "everything worked perfect". Full Gate: 186 passed, ruff clean.
+roadmap.md F7 box checked + built summary; memory/codebase-map.md refreshed
+for the face inner lock (was planned, now solid) and its stale pre-F7
+planned/solid markers corrected. plan.md: all three tasks -> DONE.
+```

@@ -3,10 +3,9 @@
 ## Active context
 - Updated: 2026-07-27
 - Feature: Feature 7 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 3 (LAST task) built, awaiting fresh-eyes verification.**
-  Task 3 is `REVIEW` (WIP=1). All automatable done-criteria pass; §5 cmd 4
-  (the live 3-way manual check) is REQUIRED and still PENDING — only the
-  human can attest it, at the feature-end checkpoint.
+  Phase: **FEATURE COMPLETE.** All three tasks `DONE`. Human attested §5
+  cmd 4 live ("everything worked perfect"), verifier APPROVE. At the
+  feature-end checkpoint — awaiting the human's commit/push approval.
 - Spec: `spec.md` holds F7's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-27 by the human.
@@ -83,24 +82,18 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    extends the chain one layer).
 
 ### Memory spine
-1. **Task 1 DONE** — `facelock.py` built, `CORRECTION_RADIUS = 95` measured
-   (n=1 genuine ≤ 20 residual, n=2 impostor ≥ 170, over 100 fresh-LSH-seed
-   trials against the real A1/A2/B fixtures; see
-   `memory/verdicts/2026-07-27-F7-T1.json`). Decisions 1–6 above still govern
-   the rest; nothing else is open.
-2. **Task 2 DONE** (merged with the former standalone bridge task, human
-   decision 2026-07-27, `memory/deviations.md` F7-T2) — `vault.py` v3 +
-   Booth bridge, 186 passed, one REJECT/fix cycle (missing `no_face`-edge +
-   `reset_enroll_face_takes()` coverage, fixed same session). The recurrence
-   (identical shape to F4 Task 3) is now a `project.md` guardrail. The
-   former Task 4 (UI) is renumbered **Task 3**, scope unchanged, and is the
-   only task left.
-3. `middlelock.py`, `voiceprint.py`, `faceprint.py`, `facedetect.py`,
-   `facelock.py`, `vault.py` are all done for this feature — Task 3 touches
-   only `ui/index.html` (spec §3 non-goals).
-4. F7 is the last task's full-Verification feature — cmd 4 (the live 3-way
-   manual check) is REQUIRED and only the human can attest it, at the
-   feature-end checkpoint.
+1. **All three tasks DONE — Feature 7 complete.** `facelock.py` (Task 1),
+   `vault.py` v3 + Booth bridge merged with the former standalone bridge
+   task (Task 2, `memory/deviations.md` F7-T2), Booth UI (Task 3). 186
+   pytest passed, ruff clean, human-attested live 4-outcome demo
+   ("everything worked perfect").
+2. One BLOCKED-then-UNBLOCKED cycle (Task 2, identical shape to F4 Task 3)
+   produced a human-approved `project.md` guardrail — see that file's
+   newest `[Forbidden]` entry. One REJECT/fix cycle (Task 2, missing
+   `no_face`-edge test coverage) — the existing no-unexercised-surface
+   guardrail caught it as designed.
+3. `roadmap.md`'s F7 box is checked; `memory/codebase-map.md` refreshed to
+   show the face inner lock as solid (was planned).
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
@@ -255,7 +248,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       (up from 173 at Task 1's end).**
 
 - [x] **Task 3** — Booth UI: enroll-face capture step + third reject chip *(renumbered from the former Task 4; LAST task — full spec Verification)*
-  - state: REVIEW
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: Mirror the existing `#enroll-voice-step` block (Q4) almost

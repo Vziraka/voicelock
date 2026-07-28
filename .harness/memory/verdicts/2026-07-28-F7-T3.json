@@ -1,0 +1,30 @@
+{
+  "task": "F7-T3",
+  "spec": "spec.md@967cc66",
+  "change": "6ea3d9c..30f4add",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_facelock.py -q",
+      "uv run pytest tests/test_vault.py -q",
+      "uv run pytest tests/test_booth_api.py -q",
+      "uv run ruff check .",
+      "uv run pytest",
+      "spec.md Sec5 cmd 4 (MANUAL, human-attested live 3-way check)"
+    ],
+    "exit": 0,
+    "note": "LAST task of F7 — FULL spec.md Verification list run. 28 passed (facelock), 13 passed (vault), 41 passed (booth_api), ruff 'All checks passed!', full suite 186 passed (unchanged from Task 2's end — Task 3 is UI-only, no new Python tests). cmd 4 ATTESTED, not run by the verifier: human ran `uv run voicelock`, walked enroll (name+passphrase+5 voice sentences+3 face frames) then all four unlock outcomes (all-correct -> unlocked with name; wrong passphrase -> outer REJECT; right passphrase+wrong voice -> middle REJECT; right passphrase+right voice+different face -> inner REJECT), explicitly checked for layout clipping in the new enroll-face-step block. Verbatim: 'everything worked perfect'. Judged sufficient per this repo's own precedent (2026-07-23-F3-T5.json, 2026-07-26-F5-T7.json, 2026-07-27-F6-T5.json — same attestation shape). Scope: git diff 6ea3d9c..30f4add touches only src/voicelock/ui/index.html and .harness/plan.md — matches Task 3's declared file, no Python file touched."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "Confirmed #enroll-face-step mirrors #enroll-voice-step's structure (3-dot progress, hint, bank button wired to enroll_face_take, a real bridge method already tested in Task 2). Confirmed the third reject (chip-wrong-face / showWrongFace, wired on auth_face) stays visually distinct from the other two rejects and names both passphrase and voice as already-passed, matching spec S1's four-outcome demo. Confirmed showUnlockNoFace (not itemized verbatim in plan.md's notes but required by spec S4's edge-case list) is a legitimate, disclosed, in-scope addition. Confirmed refreshEnrollButton() correctly AND-gates on both voice and face steps being done, and btnEnrollOpen/Cancel await both resets in the documented order (no local-state-mirror violation — renders the bridge's own returned progress). Confirmed the CSS-layout guardrail disclosure (.profiles has overflow-y:auto with no justify-content:center, structurally distinct from F6 Task 5's clipping cause) and that the human's attestation explicitly confirmed no clipping was observed.",
+    "history": "First pass (build 30f4add): GATE PASS on automatable items, cmd 4 scored PENDING (not a failure) per the implementor's explicit framing, REVIEW APPROVE. On reflection this diverged from the repo's own established attestation protocol (F3-T5/F5-T7/F6-T5: an unattested manual check should be ESCALATE_HUMAN, not a pass-with-caveat) — the implementor asked the human directly for the live attestation before treating the task as verified, recorded it in handoff.md, then re-spawned a second clean-context verifier with the attestation quoted in. This second pass is the one recorded as authoritative above."
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-28",
+  "rejects": 0,
+  "note": "Feature 7 complete. Full feature retry tally: T1 0, T2 1 (test-coverage REJECT, fixed same session — see 2026-07-27-F7-T2.json), T3 0. One BLOCKED-then-UNBLOCKED cycle on T2 (plan contradiction, human merged T2 with the former standalone bridge task; memory/deviations.md F7-T2) produced a human-approved project.md guardrail during T2's wrap-up. No new lesson from T3 itself — the manual-attestation protocol deviation was a same-task self-correction against an already-documented precedent, not a gap in project.md's guardrails."
+}

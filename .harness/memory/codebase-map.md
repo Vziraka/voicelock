@@ -4,26 +4,36 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Updated: 2026-07-27 after **F6**. Solid = built (F1 booth + F2 outer lock + F3
-  voiceprint diagnostic + F4 voice middle lock + F5 camera booth + **F6
-  faceprint diagnostic**); dashed = planned (F7–F9). F4 made the voiceprint a
-  real lock: a hand-rolled numpy code-offset fuzzy commitment turns it into a
-  stable key, the vault is now **two nested AEAD layers** (passphrase outer
-  around voice middle), and the Booth shows two visibly distinct rejects. F3's
-  match meter survives untouched as an independent diagnostic. F4.5 added no
-  components — it fixed the capture callback's self-deadlock and gave the
-  callback path real test coverage. **F5 gave the Booth an eye:**
-  `facedetect.py` opens the webcam, runs the vendored MediaPipe Face
-  Landmarker, composites an ellipse + landmarks onto each frame and pushes it
-  to the page as a data URI, so **FaceView and FaceDetect are solid**. It
-  computed no identity — that is F6. **F5.5 added no components** — it
-  deleted unreachable surface from `voiceprint.py` and made `load_wav` refuse
-  bad audio instead of converting it. **F6 gives the Booth a face identity:**
-  `faceprint.py` computes an SFace embedding via a hand-built MediaPipe→YuNet
-  alignment and shows a live match meter beside the voiceprint one — **the
-  visual analog of F3, and now Faceprint is solid too.** Not wired into any
-  lock (F7). Deliberately diverges from `voiceprint.py`'s refuse-on-mismatch
-  pattern: camera frames vary legitimately, so `faceprint.py` converts.
+- Updated: 2026-07-28 after **F7**. Solid = built (F1 booth + F2 outer lock +
+  F3 voiceprint diagnostic + F4 voice middle lock + F5 camera booth + F6
+  faceprint diagnostic + **F7 face inner lock**); dashed = planned (F8–F9).
+  F4 made the voiceprint a real lock: a hand-rolled numpy code-offset fuzzy
+  commitment turns it into a stable key, the vault became **two nested AEAD
+  layers** (passphrase outer around voice middle), and the Booth showed two
+  visibly distinct rejects. F3's match meter survives untouched as an
+  independent diagnostic. F4.5 added no components — it fixed the capture
+  callback's self-deadlock and gave the callback path real test coverage.
+  **F5 gave the Booth an eye:** `facedetect.py` opens the webcam, runs the
+  vendored MediaPipe Face Landmarker, composites an ellipse + landmarks onto
+  each frame and pushes it to the page as a data URI, so **FaceView and
+  FaceDetect are solid**. It computed no identity — that was F6. **F5.5
+  added no components** — it deleted unreachable surface from
+  `voiceprint.py` and made `load_wav` refuse bad audio instead of converting
+  it. **F6 gave the Booth a face identity:** `faceprint.py` computes an
+  SFace embedding via a hand-built MediaPipe→YuNet alignment and shows a
+  live match meter beside the voiceprint one — the visual analog of F3. Not
+  wired into any lock yet. **F7 makes the face a real lock, one layer
+  deeper than F4:** `facelock.py` (new) ports `middlelock.py`'s fuzzy
+  commitment for SFace's 128-dim embedding — variable-length enrollment
+  (≥1 embedding, not a fixed count, so the same code path serves both a
+  single-fixture Gate test and a 3-frame live burst) and a measured
+  `CORRECTION_RADIUS = 95`. `vault.py` is now **three nested AEAD layers**
+  (passphrase outer → voice middle → face inner), `FORMAT_VERSION = 3`,
+  both v1 and v2 vaults refused by name. The Booth shows three visibly
+  distinct rejects. **`faceprint.py` itself is untouched** — F7 only
+  consumes `embed_frame`/`embed_file`; F6's diagnostic panel stays an
+  independent, non-lock meter exactly as F3's voiceprint panel did after
+  F4.
 
 ## Architecture (data flow)
 
@@ -78,7 +88,7 @@ flowchart TB
     Liveness -- "gate before unlock" --> Inner
 
     classDef planned stroke-dasharray:6 4
-    class FuzzyF,Inner,Liveness planned
+    class Liveness planned
 ```
 
 ## Shape
@@ -115,17 +125,37 @@ flowchart TB
   callback returns); `pump()`'s cap check does the teardown, and `app.py` polls it
   every 50 ms
 - `src/voicelock/playback.py` — play / stop PCM buffers
-- `src/voicelock/vault.py` — **v2 nested vault** (F4): profile JSON sealed with the
-  voice-derived middle key, wrapped in `{helper_data, middle_ciphertext}` sealed
-  with F2's passphrase key; `VLCK` + version byte 2. Peel order outer→middle, so a
-  wrong passphrase raises `AuthError` before the voice is consulted; `VoiceAuthError`
-  is the middle REJECT and `LegacyVaultError` refuses a v1 vault (re-enroll, no
-  passphrase-only bypass)
+- `src/voicelock/vault.py` — **v3 nested vault** (F7, one layer deeper than F4's
+  v2): innermost profile JSON sealed with the face-derived **inner** key →
+  `inner_ciphertext`; middle plaintext `{helper_data_face, inner_ciphertext}`
+  sealed with the voice-derived **middle** key → `middle_ciphertext`; outer
+  plaintext `{helper_data_voice, middle_ciphertext}` sealed with F2's
+  passphrase key; `VLCK` + version byte 3. Peel order outer→middle→inner, so
+  a wrong passphrase raises `AuthError` before the voice is consulted, and a
+  wrong voice raises `VoiceAuthError` before the face is consulted;
+  `FaceAuthError` is the new inner REJECT. `LegacyVaultError` refuses **both**
+  a v1 vault ("predates voice") and a v2 vault ("predates face") — re-enroll,
+  no bypass
 - `src/voicelock/middlelock.py` — middle lock (F4): hand-rolled code-offset fuzzy
   commitment in pure numpy, no new dependency. `commit` / `reconcile` /
   `derive_key` / `residual_bits`; 4096-bit LSH pool masked to 512 reliable bits by
   cross-take unanimity, 32-bit secret repeated 16x, soft-decision decoding,
   `CORRECTION_RADIUS = 110` pinned from 200 measured commits
+- `src/voicelock/facelock.py` — inner lock (F7): the same code-offset fuzzy
+  commitment construction as `middlelock.py`, reparameterized for SFace's
+  128-dim embedding (`EMBEDDING_DIM = 128`, pinned locally since
+  `faceprint.py` exports no such constant). `CANDIDATE_BITS`/`RELIABLE_BITS`/
+  `KEY_BITS`/`REPETITION` reused **unchanged** from `middlelock` (they size
+  the ECC bit budget, not the embedding width). Two deliberate departures
+  from `middlelock`: `commit()` takes a **variable-length**, non-empty
+  embedding list (not a fixed count) — the reliability mask's cross-take-
+  unanimity filter is vacuously true at n=1, its own documented fallback to
+  pure margin ranking, so the same code serves both the Gate test's single
+  fixture take and production's `ENROLLMENT_TAKES = 3` live burst; and
+  `CORRECTION_RADIUS = 95` rests on thinner evidence (n=1 genuine/n=2
+  impostor over 100 fresh-LSH-seed trials against the real A1/A2/B fixtures,
+  disclosed in the module docstring) than `middlelock`'s 200-commit
+  measurement
 - `src/voicelock/voiceprint.py` — offline ECAPA speaker embedding (F3): `embed`,
   `set_reference` (3-take L2-avg, injectable path), `cosine_distance`, `compare`
   → (distance, band) with pinned `ACCEPT/REJECT_CUTOFF`. **F5.5:** everything
@@ -191,7 +221,12 @@ flowchart TB
   reading `face.last_frame`. `compare_face` checks the stored reference
   first (cheap, mirrors `voiceprint.compare`'s ordering) before embedding
   the live frame; called on a low fixed interval from JS, never from inside
-  the 30 fps preview loop.
+  the 30 fps preview loop. **F7 added:** `enroll_face_take`/
+  `reset_enroll_face_takes` (mirroring the F4 voice pair exactly, feeding
+  only `facelock.commit` via `vault.enroll` — never `faceprint.ref`), a
+  `need_face_takes` guard in `enroll()` after `need_voice_takes`, and
+  `unlock()` now embeds `self.face.last_frame` and passes it through;
+  `FaceAuthError` maps to `auth_face` alongside `auth_outer`/`auth_voice`.
 - `src/voicelock/ui/index.html` — Booth chrome + Record/Stop/Play + Enroll/Unlock
   + F3 voiceprint panel (3-band meter, Set reference, Reset) + F4 enroll voice
   step (5 sentences, per-take dots) and two distinct reject chips
@@ -208,12 +243,21 @@ flowchart TB
   `.booth` via `justify-content: center` (which silently clips overflowing
   content past both edges, with `overflow-y: auto` unable to reach it) —
   `.booth` centers itself via `margin: auto 0` instead, which degrades to
-  top-anchored + scrollable when content doesn't fit.
+  top-anchored + scrollable when content doesn't fit. **F7 added:**
+  `#enroll-face-step` mirroring `#enroll-voice-step` (3-dot progress, hint,
+  "Bank this frame" wired to `enroll_face_take`) inside `#enroll-panel`,
+  gated by a new `refreshEnrollButton()` that requires BOTH the voice and
+  face steps done before Enroll is clickable; a third reject chip
+  (`chip-wrong-face` / `showWrongFace()`) wired on `auth_face`, alongside
+  `showUnlockNoFace()` for the `no_face` edge at unlock. `.enroll-panel`
+  sits inside `.profiles`, which is `overflow-y: auto` with default
+  top-anchored flex (no `justify-content: center`) — structurally distinct
+  from the `main`/`.booth` clipping hazard above.
 - `src/voicelock/__main__.py` — `python -m voicelock`
 
 ## Where things live
 - Entry point(s): `uv run voicelock`
-- Vault path: `~/.voicelock/vault.vl` (format **v2** since F4; v1 vaults are refused with a re-enroll prompt)
+- Vault path: `~/.voicelock/vault.vl` (format **v3** since F7; v1 and v2 vaults are both refused with a re-enroll prompt naming the missing layer)
 - Voiceprint reference: `~/.voicelock/voiceprint.ref` (F3, plaintext sibling, not the vault)
 - Faceprint reference: `~/.voicelock/faceprint.ref` (F6, plaintext sibling, not the vault)
 - Tests: `tests/` via `uv run pytest`

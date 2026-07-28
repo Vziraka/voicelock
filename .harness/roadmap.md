@@ -122,7 +122,7 @@ flowchart TB
     Liveness -- "gate before unlock" --> Inner
 
     classDef planned stroke-dasharray:6 4
-    class FaceView,FaceDetect,Voiceprint,FuzzyV,FuzzyF,Middle,Inner,Liveness planned
+    class Liveness planned
 ```
 
 ## Features (vertical slices, in build order)
@@ -257,10 +257,37 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   (different photographer, negative, and custodial chain — not a derived
   probe) plus the MET daguerreotype carried over from F5.
 
-- [ ] **F7 — Face as the inner lock (innermost)** · blocked-by: F4, F6
+- [x] **F7 — Face as the inner lock (innermost)** · blocked-by: F4, F6 · **DONE 2026-07-28 (Mode 3)**
   Fuzzy-reconcile the faceprint into a stable key; wrap the voice-sealed box
   inside the face lock. Unlock now peels passphrase → voice → face.
   *Demo:* wrong passphrase / wrong voice / **wrong face** each REJECT distinctly.
+  Built: `facelock.py` (new) — the same code-offset fuzzy commitment as F4's
+  `middlelock.py`, reparameterized for SFace's 128-dim embedding;
+  variable-length enrollment (≥1 embedding, so one Gate-test fixture and a
+  live 3-frame burst share the same code path) and a measured
+  `CORRECTION_RADIUS = 95` (n=1 genuine/n=2 impostor, disclosed as thinner
+  evidence than F4's 200-commit measurement). `vault.py` bumped to **v3**,
+  three nested AEAD layers (passphrase outer → voice middle → face inner),
+  both v1 and v2 vaults refused by name. Booth bridge gained
+  `enroll_face_take`/`reset_enroll_face_takes` (mirroring the F4 voice
+  pair) and unlock's third layer (`auth_face`). Booth UI gained the
+  enroll-face capture step and a third, visibly distinct reject chip. F6's
+  diagnostic faceprint panel stayed completely untouched, exactly as F3's
+  voiceprint panel survived F4. 3 tasks, `rejects: 1` on Task 2 (missing
+  test coverage on new bridge surfaces — `no_face` edges and an
+  unexercised `reset_enroll_face_takes()` — fixed same session), 0 on
+  Tasks 1 and 3. Human attested the live 4-outcome demo, verbatim
+  "everything worked perfect".
+  **One plan-contradiction BLOCKED stop, same shape as F4 Task 3's
+  precedent:** Task 2's declared `files:` line excluded `app.py`, but its
+  done-criteria demanded a green full suite, and the vault signature
+  change broke `app.py`'s only calls to it. Stopped per the universal
+  `[Modes]` rule, human chose to merge Task 2 with the former standalone
+  bridge task (former Task 4 renumbered Task 3; `memory/deviations.md`
+  F7-T2). **This recurrence (F4 Task 3, now F7 Task 2) is now a
+  `project.md` guardrail** — human-approved: `/plan` must grep for every
+  in-repo caller of a function before splitting a signature change across
+  two tasks.
 
 - [ ] **F8 — Lip-sync liveness (challenge-response)** · blocked-by: F7
   Each unlock shows a fresh random phrase; in one webcam+mic capture the user
