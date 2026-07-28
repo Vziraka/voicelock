@@ -453,6 +453,28 @@
     gap: 10px;
     width: 100%;
   }
+  /* F8 — the random challenge phrase, shown before Record and kept visible
+     through the capture (spec Q2/Q3). */
+  .challenge-display {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 13px;
+    border-radius: 12px;
+    border: 1px solid rgba(120, 170, 255, 0.25);
+    background: rgba(120, 170, 255, 0.06);
+  }
+  .challenge-label {
+    font-size: 9.5px;
+    color: #6f7681;
+    letter-spacing: 0.12em;
+  }
+  .challenge-text {
+    font-size: 14px;
+    color: #dfe6f5;
+    letter-spacing: 0.01em;
+  }
   .voiceprint {
     width: 100%;
     margin-top: 4px;
@@ -738,11 +760,15 @@
             <button type="button" class="btn btn-secondary" id="btn-stop" disabled>Stop</button>
             <button type="button" class="btn btn-secondary" id="btn-play" disabled>Play</button>
           </div>
+          <div class="challenge-display" id="challenge-display">
+            <span class="challenge-label mono">CHALLENGE PHRASE</span>
+            <span class="challenge-text mono" id="challenge-text">—</span>
+          </div>
           <div class="unlock-row">
             <input class="pass-input mono" id="pass-input" type="password" placeholder="Enter passphrase" autocomplete="current-password">
             <button type="button" class="btn" id="btn-unlock">Unlock</button>
           </div>
-          <div class="voice-hint mono" id="unlock-voice-hint">Then record a full sentence in your normal speaking voice and press Unlock.</div>
+          <div class="voice-hint mono" id="unlock-voice-hint">Then record a full sentence in your normal speaking voice, SAY the challenge phrase above, and press Unlock.</div>
         </div>
 
         <div class="chips" id="result-chips" aria-live="polite">
@@ -750,6 +776,7 @@
           <span class="chip mono hidden" id="chip-wrong-pass">Wrong passphrase</span>
           <span class="chip mono hidden" id="chip-wrong-voice">Voice didn't match</span>
           <span class="chip mono hidden" id="chip-wrong-face">Face didn't match</span>
+          <span class="chip mono hidden" id="chip-liveness-failed">Didn't look or sound live</span>
           <span class="chip mono hidden" id="chip-no-vault">No vault yet — enroll first</span>
           <span class="chip mono hidden" id="chip-legacy-vault">This vault predates voice — re-enroll to add the voice lock</span>
         </div>
@@ -838,8 +865,10 @@
     const chipWrongPass = document.getElementById("chip-wrong-pass");
     const chipWrongVoice = document.getElementById("chip-wrong-voice");
     const chipWrongFace = document.getElementById("chip-wrong-face");
+    const chipLivenessFailed = document.getElementById("chip-liveness-failed");
     const chipNoVault = document.getElementById("chip-no-vault");
     const chipLegacyVault = document.getElementById("chip-legacy-vault");
+    const challengeText = document.getElementById("challenge-text");
     const btnEnrollTake = document.getElementById("btn-enroll-take");
     const enrollTakeDots = document.getElementById("enroll-take-dots");
     const enrollSentence = document.getElementById("enroll-sentence");
@@ -899,6 +928,26 @@
     let hasFaceReference = false;
     let faceCompareTimer = null;
     let pendingOverwrite = false;
+
+    /* F8 — which Record/Stop bridge pair a take should use. There is no
+       separate "Unlock panel" to open/close in this Booth (unlike Enroll,
+       which slides out its own aside panel) -- the passphrase + Record
+       controls are always the same persistent view. So "the Unlock panel
+       is active" is read from the signal that actually exists: the
+       passphrase field has been focused (the natural first step of an
+       unlock attempt), and the enroll panel is NOT currently open (enroll's
+       voice-take recordings must keep using the plain start_record()/
+       stop_record() pair, per spec's "F1 Record/Stop/Play unchanged"
+       constraint -- this overrides a stale passphrase focus). Captured
+       once at Record-press time into activeCaptureIsUnlock and reused at
+       Stop, so a mid-take state change can never mismatch the start/stop
+       pair Python sees. */
+    let unlockContext = false;
+    let activeCaptureIsUnlock = false;
+
+    function isUnlockCapture() {
+      return unlockContext && !enrollPanel.classList.contains("visible");
+    }
 
     function drawBars() {
       const dpr = window.devicePixelRatio || 1;
@@ -1032,6 +1081,7 @@
         chipWrongPass,
         chipWrongVoice,
         chipWrongFace,
+        chipLivenessFailed,
         chipNoVault,
         chipLegacyVault,
       ];
@@ -1223,6 +1273,26 @@
       sub.textContent = "no face detected — centre your face in view, then Unlock";
     }
 
+    function showLivenessFailed() {
+      hideResultChips();
+      chipLivenessFailed.classList.remove("hidden");
+      chipLivenessFailed.classList.add("reject-visible");
+      status.textContent = "REJECT · LIVENESS CHECK FAILED";
+      prompt.textContent = "Unlock rejected";
+      sub.textContent = "Didn't look or sound live — passphrase, voice, and face all already passed";
+    }
+
+    /* F8 — Python owns which phrase is current (challenge.pick_challenge's
+       no-immediate-repeat property); JS only renders it. Called once at
+       Booth init (so the phrase is visible before Record is ever pressed,
+       per spec Q2/Q3) and again after every completed unlock attempt. */
+    async function refreshChallenge() {
+      const result = await call("new_challenge");
+      if (result && result.ok && result.phrase) {
+        challengeText.textContent = result.phrase;
+      }
+    }
+
     function showValidation(message) {
       hideResultChips();
       status.textContent = "ENROLL REFUSED";
@@ -1322,7 +1392,12 @@
       return window.pywebview.api[name](payload);
     }
 
+    passInput.addEventListener("focus", function () {
+      unlockContext = true;
+    });
+
     btnEnrollOpen.addEventListener("click", async function () {
+      unlockContext = false;
       showEnrollPanel(true);
       /* Awaited: the bridge must have dropped any abandoned takes before the
          user can bank a new one, or the two counts race. */
@@ -1451,11 +1526,19 @@
     btnUnlock.addEventListener("click", async function () {
       const passphrase = passInput.value || "";
       const result = await call("unlock", { passphrase: passphrase });
+      // A fresh phrase for the NEXT attempt either way (success or any
+      // reject) -- the no-immediate-repeat property must hold across real
+      // usage, not just within one bridge call (plan.md decision 7).
+      await refreshChallenge();
       if (!result || !result.ok) {
         /* Each reject reason renders as its own visibly distinct outcome — the
-           two impostor classes must never collapse into one message. */
+           impostor classes must never collapse into one message. */
         if (result && result.error === "no_vault") {
           showNoVault();
+          return;
+        }
+        if (result && result.error === "auth_liveness") {
+          showLivenessFailed();
           return;
         }
         if (result && result.error === "auth_outer") {
@@ -1495,6 +1578,7 @@
       setProfileName(result.name || "");
       showStatusSuccess("UNLOCKED");
       passInput.value = "";
+      unlockContext = false;
     });
 
     btnSetReference.addEventListener("click", async function () {
@@ -1611,7 +1695,11 @@
     });
 
     btnRecord.addEventListener("click", async function () {
-      const result = await call("start_record");
+      /* Decided once per press, not re-read at Stop -- see isUnlockCapture's
+         own comment for why a live re-read would risk a mismatched
+         start/stop pair on the Python side. */
+      activeCaptureIsUnlock = isUnlockCapture();
+      const result = await call(activeCaptureIsUnlock ? "start_unlock_capture" : "start_record");
       if (!result || !result.ok) {
         if (result && result.error) showMicError(result.error);
         return;
@@ -1630,10 +1718,12 @@
         setPlaying(false);
         return;
       }
-      const result = await call("stop_record");
+      const result = await call(activeCaptureIsUnlock ? "stop_unlock_capture" : "stop_record");
       hasTake = !!(result && result.ok && result.samples > 0);
       setRecording(false);
       if (hasTake) {
+        // Harmless either way -- the faceprint meter already updates on a
+        // timer during ANY recording without distinguishing capture source.
         updateVoiceprintMeter();  // reflect the take on the meter (or prompt to set a reference)
       }
     });
@@ -1701,6 +1791,7 @@
 
     resetEnrollVoiceStep();
     resetEnrollFaceStep();
+    refreshChallenge();
 
     function onBridgeReady() {
       call("ready").then(function (result) {

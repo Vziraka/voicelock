@@ -3,7 +3,8 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BUILDING — Task 4 DOING (LAST task).**
+  Phase: **Task 4 REVIEW (LAST task) — automated checks done, required
+  manual demo still pending human attestation.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -412,7 +413,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises further from Task 2's end)
 
 - [ ] **Task 4** — Booth UI: challenge display + AV capture UX + fifth reject chip *(LAST task — full spec Verification)*
-  - state: DOING
+  - state: REVIEW
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: Challenge phrase shown on the Unlock panel BEFORE Record is
@@ -438,6 +439,39 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     clipping hazard) — smoke-test it manually (open the Unlock panel, watch
     the phrase render without clipping) before calling this task done, same
     caution F6/F7 already had to apply there.
+  - build notes (2026-07-28): **plan-vs-reality correction, not a BLOCKED
+    stop.** This task's own notes said Record/Stop's routing to the new
+    bridge pair should be "gated on which panel is active (mirrors the
+    existing per-panel branching already in `btnRecord`'s handler)" — on
+    inspection, `btnRecord`'s handler carries NO such branching (it
+    unconditionally calls `start_record()`), and there is no separate
+    "Unlock panel" to toggle in this Booth's DOM at all: Enroll has its own
+    slide-out `aside` panel, but the passphrase/Record/Unlock controls in
+    `main` are one persistent view, not a panel that opens/closes. Read
+    against universal.md's "a rule you cannot follow literally" clause: the
+    INSTRUCTION ("gate the new pair on which panel is active") is still
+    followable, only the parenthetical's claimed precedent doesn't hold —
+    not a blocking contradiction, so implemented with a sound design
+    instead of stopping the feature's last task over an inaccurate note.
+    Design: `unlockContext` (sticky, set true on the passphrase field's
+    `focus` — the natural first step of an unlock attempt) AND-ed with
+    "the enroll panel is not open" (so enroll's voice-take recordings,
+    which share the same Record/Stop buttons, always keep the plain
+    `start_record()`/`stop_record()` pair, honoring spec §4's "F1
+    Record/Stop/Play unchanged" constraint). Decided ONCE per Record press
+    into `activeCaptureIsUnlock` and reused at Stop, so a mid-take state
+    change can never send Python a mismatched start/stop pair (which would
+    matter: `stop_record()` does not reset `_retain_landmarks`/
+    `capture.max_seconds` the way `stop_unlock_capture()` does).
+    **Manual smoke test performed** (Booth-layout guardrail): headless-
+    Chromium screenshots of `index.html` at the app's real 1100x740 window
+    size, in three states — default (challenge box + unlock row visible,
+    no clipping), scrolled to the bottom (voiceprint/faceprint/inert panels
+    all reachable, confirming the F6-era margin:auto fix still holds), and
+    a simulated liveness-reject (status/prompt/sub-text/chip all render
+    correctly, chip text doesn't wrap awkwardly). No clipping in any state.
+    The REQUIRED live 5-outcome demo (real mic/camera) is separate and
+    still pending human attestation at the feature-end checkpoint.
   - done-criteria: **the FULL list from `spec.md`'s Verification section**, namely —
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed, ≥186 passing, count risen by Tasks 1–3's new tests — Task 4 is UI-only, no new Python tests)
