@@ -1,0 +1,27 @@
+{
+  "task": "F8-T3",
+  "spec": "spec.md@211f812",
+  "change": "08676fa..e571695",
+  "gate": {
+    "commands": [
+      "uv run pytest tests/test_booth_api.py -q",
+      "uv run ruff check .",
+      "uv run pytest"
+    ],
+    "exit": 0,
+    "note": "First and only build (e571695): test_booth_api.py 58 passed, ruff clean, full suite 222 passed (up from Task 2's 205). Scope check: git diff 08676fa..e571695 touches only src/voicelock/app.py, tests/test_booth_api.py, plus .harness state files -- exactly Task 3's declared files: line, no vault.py/facedetect.py/capture.py/UI touched (plan.md decisions 3 and 5 honored)."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "APPROVE, zero rejects -- the first F8 task to pass on the first review. Spec axis: liveness gate confirmed at app.py before the vault_unlock call, with test_unlock_fails_liveness_before_touching_the_vault asserting zero calls into a spy vault_unlock on a liveness-fail case (spec Sec5 cmd 3's core assertion); auth_liveness alongside the existing auth_outer/auth_voice/auth_face, no display-name leak on any reject path; AV-capture retention/ceiling/release-on-every-exit-path (explicit stop, ceiling auto-stop, shutdown) all covered, including the real _pump_loop() auto-stop bug the build itself caught and fixed. Standards axis: no unexercised surface, mutation-sensitivity honored (both the auto-stop reset AND a proactive whole-gate mutation check were verified before submission), acquisition/release guardrail satisfied on all three exit paths, no new dependency.",
+    "history": "APPROVE on first review (e571695) -- no REJECT this task"
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-28",
+  "rejects": 0,
+  "note": "The _pump_loop() auto-stop bug this task found and fixed is the THIRD confirmed occurrence of project.md's acquisition/release guardrail's predicted failure shape (F4.5's self-deadlock, F5 Task 7's un-released camera, now F8 Task 3's un-reset liveness state) -- and that guardrail's own evidence text already named this exact scenario in advance ('F6 adds a second vendored model and F7/F8 add more device-holding flows'). No new or updated guardrail: this is the existing rule working as designed, and notably caught at BUILD time by the implementor's own Gate test rather than needing a verifier REJECT to surface it -- the guardrail's predictive value compounding rather than a gap in it. Wrote adr/0005-liveness-gates-in-front-of-the-vault.md this wrap-up: the Q6 gate-ordering decision (liveness wraps vault.unlock() from outside app.py, zero vault.py touch) passes the 3-condition ADR gate (hard to reverse once live traffic depends on the ordering; surprising without spec context; a real trade-off against interleaving the check between lock peels, which would leak partial match information to a replay attacker) and mirrors the precedent of ADR 0002/0004 being written at the task that implements a spec-time architectural decision, not only at the spec session itself."
+}

@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 3 REVIEW — build complete, awaiting verification.**
+  Phase: **Tasks 1-3 DONE. Task 4 (Booth UI, LAST task) next.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -177,20 +177,24 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    `auth_liveness`, not a new code.
 
 ### Memory spine
-1. **Tasks 1-2 DONE** (2026-07-28, `rejects: 1` each) — `challenge.py` and
-   `lipsync.py` are landed and stable; Task 3 imports both, never revisits
-   their shape.
-2. Zero `vault.py` changes this feature (decision, item 3 above) — the
-   `project.md` caller-grep guardrail is inherited-and-not-triggered, not
-   inherited-and-applied.
-3. `facedetect.py`/`capture.py` stay byte-for-byte unchanged (decision 5) —
-   all new retention state lives in `app.py`, additive only, same shape as
-   how F6 added `FaceEngine.last_frame` without touching the camera
-   lifecycle.
-4. Task 3's audio-envelope construction (fixed hop = one video frame
-   interval, per decision 5) and `LIVENESS_CAPTURE_CEILING_SECONDS`
-   (dry-run-measured against Task 1's phrase pool, per decision 6) are
-   both plan-level calls already made — do not re-derive at Task 3.
+1. **Tasks 1-3 DONE** (2026-07-28; `rejects` 1/1/0) — `challenge.py`,
+   `lipsync.py`, and the Booth bridge (`new_challenge()`,
+   `start_unlock_capture()`/`stop_unlock_capture()`, the liveness gate in
+   `unlock()`) are landed and stable. Task 4 (UI-only) calls these bridge
+   methods; it does not revisit their shape or `app.py`'s Python logic.
+2. Zero `vault.py` changes this feature (decision, item 3 above; confirmed
+   at Task 3) — the `project.md` caller-grep guardrail is
+   inherited-and-not-triggered, not inherited-and-applied.
+3. `facedetect.py`/`capture.py` stay byte-for-byte unchanged (decision 5,
+   confirmed at Task 3) — all new retention state lives in `app.py`,
+   additive only.
+4. Task 4 wires the Unlock panel's Record/Stop to
+   `start_unlock_capture()`/`stop_unlock_capture()` (NOT the plain
+   `start_record()`/`stop_record()` pair enroll keeps using), calls
+   `new_challenge()` when the panel activates and after each attempt, and
+   adds the `auth_liveness` branch + `chip-liveness-failed` per plan.md's
+   Task 4 notes — the bridge surface it needs already exists and is
+   stable.
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
@@ -341,8 +345,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed; count rises further from Task 1's end)
 
-- [ ] **Task 3** — Booth bridge: AV-capture retention, liveness gate before `vault.unlock`, `auth_liveness` reject
-  - state: REVIEW
+- [x] **Task 3** — Booth bridge: AV-capture retention, liveness gate before `vault.unlock`, `auth_liveness` reject
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
   - notes: Apply decisions 5–9 verbatim. Before pinning
