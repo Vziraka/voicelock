@@ -1,135 +1,62 @@
-# F7 — Face as the inner lock (innermost) · COMPLETION REPORT
+# Handoff
 
-**Feature complete 2026-07-28 (Mode 3).** All three tasks `DONE`, verdicts in
-`memory/verdicts/2026-07-27-F7-T1.json`, `2026-07-27-F7-T2.json`,
-`2026-07-28-F7-T3.json`. Awaiting the human's commit/push approval below —
-the feature-end checkpoint.
+## F8 — Lip-sync liveness (challenge-response) · SPEC DRAFTED, at approval gate
 
-## Outcome vs spec.md §1
+**2026-07-28.** `spec.md` fully drafted and grilled interactively with the
+human. Grilling record: `Status: CLEAR`, zero `NEEDS-CLARIFICATION` hits.
+Box 1 (Grilling CLEAR) is checked. **Box 2 (human approval) is open —
+this is what remains before `/plan` can start.**
 
-Spec's Outcome: make the faceprint a real cryptographic lock — fuzzy-
-reconcile it into a stable key, seal a third, innermost AEAD layer wrapping
-F4's voice middle lock, itself wrapping F2's passphrase outer lock. Unlock
-requires passphrase **and** voice **and** face, with four visibly distinct
-outcomes.
+### What got resolved this session
 
-**Delivered exactly that.** `vault.py` is now `FORMAT_VERSION = 3`:
-passphrase outer → voice middle → face inner, peel order load-bearing (each
-layer only reached after the previous one verified). All four demo
-outcomes confirmed live by the human (verbatim: **"everything worked
-perfect"**):
-- right passphrase + enrolled voice + enrolled face → **unlocked**, name shown
-- wrong passphrase → **outer REJECT**
-- right passphrase, wrong voice → **middle REJECT**
-- right passphrase, right voice, wrong face → **inner REJECT**
+- **Q1 (TECH-PICK, new dependency):** `vosk` for offline, grammar-constrained
+  challenge-phrase matching — human-approved, explicitly waiving the
+  disclosed stale-PyPI-wheel signal (repo itself is active; the published
+  wheel isn't). Research: `memory/research/2026-07-28-f8-offline-stt-challenge-match.md`.
+  Decision: `memory/decisions.md` (2026-07-28, F8 TECH-PICK entry).
+- **Q2:** AV capture = existing Record/Stop transport, fixed ceiling
+  (~6–8 s provisional, to be confirmed at `/plan` against the actual phrase
+  pool).
+- **Q3:** Challenge phrase pool = small hand-authored constant (~10–20
+  phrases), random pick, no-immediate-repeat.
+- **Q4:** Lip-sync = lag-windowed normalized cross-correlation, mouth
+  aperture (F5's lip contour) vs audio envelope (F1's), pure numpy.
+- **Q5:** Gate fixture strategy = synthetic unit tests for both scoring
+  functions, plus a real (unmocked) Vosk reject-path exercise against an
+  existing voice fixture — no new AV fixtures sourced or committed. The
+  accept-path proof for both signals lives only in the required manual
+  check (§5 cmd 4) — disclosed explicitly in §5 and §6, not smoothed over.
+- **Q6:** Liveness gates **before** any of the three crypto lock layers are
+  attempted — a liveness failure never calls `vault.unlock()`.
+- **Mode: Mode 3** (same as F4–F7). Recorded: `memory/decisions.md`.
+- **Blind-spot question (§6):** accepted as drafted — the Gate can't prove
+  either new signal's ACCEPT path or real replay-resistance; only the
+  required live manual check does. Same shape as F4/F7's own disclosed
+  generalization gaps.
 
-F7's two non-goals held: F6's diagnostic faceprint panel (and
-`faceprint.ref`) are untouched — still an independent, non-lock meter,
-exactly as F3's voiceprint panel survived F4; no liveness/challenge/lip-sync
-(F8's job) and no enrollment-quality gate or tolerance UI (F9's job) were
-added.
+### next_action
 
-## Full final-Gate evidence (command → exit code)
+**Human**: open `spec.md`, read §1 (Outcome) and §5 (Verification), confirm
+the Mode line still reads right, and check box 2. Then, in a fresh session,
+run `/plan` to break this into tasks — Vosk vendoring (mirrors F5/F6's
+model-vendoring pattern) is a natural first task since `challenge.py` and
+the Booth bridge both depend on it landing first, the same shape F7's
+`facelock.py` had relative to its own Task 2.
 
-- `uv run pytest tests/test_facelock.py -q` → exit 0, 28 passed
-- `uv run pytest tests/test_vault.py -q` → exit 0, 13 passed
-- `uv run pytest tests/test_booth_api.py -q` → exit 0, 41 passed
-- `uv run ruff check .` → exit 0 ("All checks passed!")
-- `uv run pytest` → exit 0, **186 passed** (0 failed; 145 at F6's end → 173
-  after Task 1 → 186 after Task 2's retry; Task 3 added no Python tests)
-- spec §5 cmd 4 (manual, required) → **ATTESTED** by the human 2026-07-28,
-  same protocol as `2026-07-23-F3-T5.json`/`2026-07-26-F5-T7.json`/
-  `2026-07-27-F6-T5.json`: ran `uv run voicelock`, walked enroll (name +
-  passphrase + 5 voice sentences + 3 face frames) then all four unlock
-  outcomes above, explicitly checked for layout clipping in the new
-  enroll-face-step block. Verbatim: "everything worked perfect."
+### Session commits
 
-## Retry counts per task
+Base → head: see the commit this session makes at its close (state-file
+commit checkpoint, proposed to the human before running).
 
-- Task 1 (`facelock.py`): `rejects: 0`
-- Task 2 (`vault.py` v3 + Booth bridge, merged): `rejects: 1` — one REJECT
-  for missing test coverage on new bridge surfaces (`enroll_face_take`'s and
-  `unlock`'s `no_face` edges, an unexercised `reset_enroll_face_takes()`),
-  fixed same session, APPROVE on retry 1 of 3
-- Task 3 (Booth UI): `rejects: 0`
+### Open items for whoever picks up `/plan`
 
-## `memory/deviations.md` entries made during this feature
-
-One entry, task `F7-T2` (2026-07-27): Task 2's declared `files:` line
-(`vault.py`, `test_vault.py`) excluded `app.py`, but its done-criteria
-demanded a green full test suite, and the required `faceprints`/`faceprint`
-parameter broke `app.py`'s only calls to it — the plan had assigned that
-fix to a separate Task 3. Identical shape to `memory/deviations.md`'s
-existing `F4-T3` entry (2026-07-26). Stopped per the universal `[Modes]`
-rule (Mode 3 forbids unsupervised interpretation) rather than improvising;
-presented three resolution options; the human chose to merge Task 2 with
-the former standalone bridge task. Unlike F4's precedent, no "minimal, no
-new bridge behaviour" framing was available or attempted — the bridge
-collected zero face material before this task, so the merge named the real
-scope up front.
-
-## Anything escalation-worthy that resolved itself
-
-The manual-attestation sequencing: the first verifier pass on Task 3 (build
-`30f4add`) scored spec §5 cmd 4 as "PENDING, not a failure" under this
-session's explicit framing and returned APPROVE. On reflection this
-diverged from the repo's own established protocol for an unattested manual
-check (`F3-T5`/`F5-T7`/`F6-T5`: score `ESCALATE_HUMAN`, ask the human
-directly, then re-verify with the attestation quoted in). Self-corrected
-before wrap-up: asked the human for the live attestation, recorded it in
-this file, then re-spawned a second clean-context verifier with the
-attestation quoted into its prompt — that second pass is what
-`2026-07-28-F7-T3.json` records as authoritative. No rework was lost (the
-UI code itself needed no changes), and no human correction was required —
-caught by re-reading this repo's own precedent files before finalizing.
-
-## Guardrail earned this feature
-
-Human-approved, written to `project.md` during Task 2's wrap-up (see that
-file's newest `[Forbidden]` entry, dated 2026-07-27): *"When `/plan` splits
-a signature change to a shared function across two tasks, it must grep for
-every in-repo caller of that function BEFORE assigning `files:` lines."*
-Evidence: this exact failure shape recurred verbatim across two features
-(F4 Task 3, then F7 Task 2) — F4's own `learn` scan proposed the identical
-guardrail once already and it was never adopted; re-proposed and approved
-this time.
-
-## State files refreshed this wrap-up
-
-- `roadmap.md` — F7's box checked, built summary added, architecture
-  diagram's `planned` class corrected (was stale since before F7 — several
-  already-shipped F3–F6 nodes were still marked dashed/planned; now only
-  `Liveness`/F8 is planned)
-- `memory/codebase-map.md` — refreshed for F7: `facelock.py` documented,
-  `vault.py`'s entry updated to v3/three-layer, `app.py`/`index.html`
-  entries updated for the bridge + UI additions, architecture diagram's
-  `FuzzyF`/`Inner` moved from planned to solid
-- `plan.md` — Active context, memory spine, all three task lines → `DONE`
-
-## Curate status
-
-**Curate is due** — 40 verdict files vs `project.md`'s `Last curated:
-2026-07-26 (second pass) · verdicts then: 29` = 11 tasks since the last
-pass (was 10 at Task 2's wrap-up, now 11 after Task 3's verdict). Not
-blocking; worth running soon given the sustained backlog.
-
-## next_action
-
-**Feature-end checkpoint — awaiting the human.** Proposed commit message
-below covers all state-file writes from this wrap-up (verdict, roadmap,
-codebase-map, plan.md). On approval: commit, then push if requested (no
-push without explicit ask, per standing instructions). After that, F8
-(Lip-sync liveness) is the next roadmap item — not started, no draft
-parked (Mode 3, not Mode 4 — unattended next-feature drafting is a Mode 4
-behavior only).
-
-**Proposed commit message:**
-```
-F7 wrap-up: feature complete -- roadmap/codebase-map refreshed, Task 3 verdict recorded
-
-All three tasks DONE. Human attested the live 4-outcome demo (Sec5 cmd 4),
-verbatim "everything worked perfect". Full Gate: 186 passed, ruff clean.
-roadmap.md F7 box checked + built summary; memory/codebase-map.md refreshed
-for the face inner lock (was planned, now solid) and its stale pre-F7
-planned/solid markers corrected. plan.md: all three tasks -> DONE.
-```
+- The exact AV-capture ceiling duration (~6–8 s provisional) should be
+  confirmed against the actual authored phrase pool's real speaking time
+  before being pinned as a constant — per `project.md`'s
+  dry-run-before-pinning guardrail.
+- `SYNC_THRESHOLD` and the lag-window width (Q4) are Gate-test constants
+  derived from synthetic separation, not real human data — the module
+  docstring must say so, mirroring `facelock.py`'s Q2 disclosure pattern.
+- The exact Booth copy for the fifth reject chip (`chip-liveness-failed`,
+  proposed text in `spec.md` §1) may be refined at `/plan`, same as F7's
+  chip wording was.
