@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Tasks 1-2 DONE. Task 3 (Booth bridge) next — ready to build.**
+  Phase: **BUILDING — Task 3 DOING.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -342,7 +342,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises further from Task 1's end)
 
 - [ ] **Task 3** — Booth bridge: AV-capture retention, liveness gate before `vault.unlock`, `auth_liveness` reject
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `src/voicelock/app.py`, `tests/test_booth_api.py`
   - notes: Apply decisions 5–9 verbatim. Before pinning
