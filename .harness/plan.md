@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **BUILDING — Task 2 DOING (retry 1/3, fixing REJECT 1 feedback).**
+  Phase: **Task 2 REVIEW (retry 1) — fix built, awaiting re-verification.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -272,7 +272,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run pytest` → exit 0 (0 failed; count rises from F7's 186)
 
 - [ ] **Task 2** — `lipsync.py`: lag-windowed cross-correlation scorer
-  - state: DOING
+  - state: REVIEW
   - rejects: 1
   - feedback log:
     - **REJECT 1 (2026-07-28, verifier subagent, base `bc91244`..head

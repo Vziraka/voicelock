@@ -63,6 +63,26 @@ def test_in_phase_series_scores_above_threshold(real_envelope: np.ndarray) -> No
     assert is_live(result) is True
 
 
+# --- case: a shift INSIDE the lag window still scores above SYNC_THRESHOLD --
+def test_shift_inside_lag_window_still_scores_above_threshold(
+    real_envelope: np.ndarray,
+) -> None:
+    """Exercises the lag-search itself, not just the shift=0 case.
+
+    A 4-frame shift is well inside ``LAG_WINDOW = 5``: the true (windowed)
+    score finds the aligning lag and scores ~1.0, but a lag-0-only
+    correlation on this same pair scores ~-0.06 (below threshold) — so this
+    assertion can only pass if the search over lags actually runs, unlike
+    the shift=0 in-phase case above, which passes even with the loop
+    collapsed to lag=0.
+    """
+    in_phase = real_envelope * 2.0 + 0.1
+    shifted = _shift_no_wrap(in_phase, shift=4)
+    result = score(shifted, real_envelope)
+    assert result > SYNC_THRESHOLD
+    assert is_live(result) is True
+
+
 # --- case: shifted outside the lag window scores below SYNC_THRESHOLD --------
 def test_shifted_series_scores_below_threshold(real_envelope: np.ndarray) -> None:
     """Shifted 15 frames — 3x past LAG_WINDOW=5 — the direct analog of a
