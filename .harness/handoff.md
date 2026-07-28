@@ -1,64 +1,81 @@
 # Handoff
 
-## F8 Task 3 — Booth bridge: liveness gate before `vault.unlock` · DONE
+## F8 Task 4 — Booth UI: challenge display + AV capture UX + fifth reject chip · REVIEW, awaiting verification
 
-**2026-07-28.** Verified and wrapped up. `rejects: 0` — the first F8 task to
-pass on the first review (see `memory/verdicts/2026-07-28-F8-T3.json`).
+**2026-07-28.** Built and committed. Task 4 (LAST task) moved `TODO → DOING → REVIEW`.
 
-### Changed (final state)
+### Changed
 
-- `src/voicelock/app.py` — `LIVENESS_CAPTURE_CEILING_SECONDS = 10.0`,
-  `_audio_envelope()`, new `BoothApi` state (`_retain_landmarks`,
-  `_liveness_mouth_series`, `_current_challenge`), `new_challenge()`,
-  `start_unlock_capture()`/`stop_unlock_capture()`, `unlock()` reshaped to
-  gate on `_liveness_passes()` before `vault_unlock`, `_push_face_frame()`
-  retention, and a fix inside `_pump_loop()`'s auto-stop branch.
-- `tests/test_booth_api.py` — 8 existing unlock tests updated to bypass the
-  liveness gate via `_force_liveness_pass()`; 17 new tests.
+- `src/voicelock/ui/index.html` — challenge-phrase display (`.challenge-display`,
+  shown before Record and kept visible through the capture), `refreshChallenge()`
+  (calls `new_challenge()` at Booth init and after every completed unlock
+  attempt), Record/Stop routed to `start_unlock_capture()`/
+  `stop_unlock_capture()` during an unlock attempt vs. the plain
+  `start_record()`/`stop_record()` pair enroll keeps unmodified,
+  `chip-liveness-failed` + `showLivenessFailed()` for the `auth_liveness`
+  reject (status `"REJECT · LIVENESS CHECK FAILED"`, sub-text naming that
+  passphrase/voice/face already passed).
 
-### A real bug found and fixed during build
+### A plan-note correction made during build (not a BLOCKED stop)
 
-The fixed-ceiling auto-stop path lives in `_pump_loop()` (it notices a take
-self-ended, bypassing `stop_unlock_capture()` entirely), so the first cut
-left `_retain_landmarks`/`capture.max_seconds` permanently set after an
-auto-stopped liveness take — silently capping the next enroll take too.
-Caught by the task's own exit-path Gate test, fixed by repeating the reset
-inside `_pump_loop()`. Third confirmed occurrence of `project.md`'s
-acquisition/release guardrail's predicted failure shape (after F4.5 and F5
-Task 7) — full reasoning in the verdict file, no new guardrail needed.
+Task 4's own `plan.md` notes said the new bridge pair's routing should be
+"gated on which panel is active (mirrors the existing per-panel branching
+already in `btnRecord`'s handler)" — on inspection, no such branching exists
+(`btnRecord` unconditionally called `start_record()`), and there is no
+separate "Unlock panel" toggle in this Booth's DOM at all (Enroll has its
+own slide-out `aside` panel; the passphrase/Record/Unlock controls in
+`main` are one persistent view). Read against universal.md's "rule you
+cannot follow literally" clause: the core instruction (gate the routing on
+context) was still followable, only the parenthetical's claimed precedent
+didn't hold — so implemented a sound design instead of stopping the
+feature's last task. Full reasoning and the design (passphrase-focus +
+"enroll panel not open", decided once per Record press): `plan.md` Task 4's
+build notes.
 
-### ADR written
+### Manual smoke test performed (Booth-layout guardrail)
 
-`adr/0005-liveness-gates-in-front-of-the-vault.md` — the Q6 gate-ordering
-decision (liveness wraps `vault.unlock()` from outside `app.py`, zero
-`vault.py` touch) passes the 3-condition gate; mirrors ADR 0002/0004's
-precedent of recording at the implementing task, not only the spec session.
+Headless-Chromium screenshots of `index.html` at the app's real 1100×740
+window size, three states: default (challenge box + unlock row visible, no
+clipping), scrolled to the bottom (voiceprint/faceprint/inert panels all
+reachable — the F6-era `margin: auto` fix still holds), and a simulated
+liveness-reject (status/prompt/sub-text/chip all render correctly). No
+clipping in any state.
+
+### Verification run this session (build-time only, not the Gate)
+
+- `node --check` on the extracted inline `<script>` → syntax OK
+- `uv run ruff check .` → clean
+- `uv run pytest` → 222 passed (unchanged — UI-only, no new Python tests)
+
+None of the above substitutes for the fresh-context Gate.
+
+### The required manual check is SEPARATE and still pending
+
+Spec §5 cmd 4 — the live 5-outcome demo (enroll, then unlock with all four
+correct; wrong passphrase; wrong voice; wrong face; liveness fails at least
+two ways) — needs a real microphone and camera and can only be attested by
+the human. It is not something this session (or any automated verifier) can
+run. Per Mode 3's contract, this is exactly what "the human is checked in
+with at the feature-end checkpoint" means. **Task 4 (and F8 as a whole)
+cannot be marked DONE until this is attested**, per spec §5 cmd 4's own
+"PENDING — this is what remains after Task 4" line and `plan.md`'s
+done-criteria.
 
 ### next_action
 
-**Task 4 (LAST task) — Booth UI**: challenge display + AV capture UX +
-fifth reject chip. Needs Task 3's bridge methods
-(`start_unlock_capture()`/`stop_unlock_capture()`, `new_challenge()`,
-`auth_liveness`). Mode 3's standing approval covers task-to-task
-progression — this wrap-up completing is the precondition. Task 4's
-done-criteria is the FULL spec Verification list, including the **required
-manual 5-outcome check** — not automatable, attested by the human at the
-feature-end checkpoint. Per the earned Booth-layout guardrail: the
-challenge-phrase display is new visible content in the `main`/`.booth`
-column — smoke-test it manually before calling Task 4 done.
-
-### Where the rest lives
-
-Full task history and the bug/mutation-check trail: `plan.md` Task 3
-(notes + build notes), `memory/verdicts/2026-07-28-F8-T3.json`,
-`adr/0005-liveness-gates-in-front-of-the-vault.md`.
+**Verifier**: spawn the clean-context verifier now
+(`formats/VERIFIER-PROMPT.md`, used verbatim; task id `Task 4 (LAST task)`,
+base `1854e87`, head `eff074e`) for the automatable parts of spec §5's full
+Verification list (cmds 1–3, `ruff`, `pytest`, spec/standards compliance).
+**If the verifier's Gate/Review comes back clean, the session does NOT
+self-declare F8 done** — it presents the automated results to the human
+and asks them to run spec §5 cmd 4 (the live demo) before wrap-up finalizes
+Task 4 and the feature completion report. This is the feature-end
+checkpoint Mode 3 reserves for the human, not a self-verification.
 
 ### Session commits
 
-Task 3 full history: `08676fa` (DOING) → `e571695` (build) → `6856cc5`
-(handoff) → next commit is this wrap-up's state-file checkpoint (plan.md
-DONE + verdict + ADR + this handoff).
-
-### Pending guardrail
-
-None.
+Base (DOING) → head (build): `1854e87` → `eff074e`. Files this session:
+`src/voicelock/ui/index.html`, `.harness/plan.md` (DOING → REVIEW + build
+notes), `.harness/handoff.md` (this file, committed separately as
+bookkeeping).
