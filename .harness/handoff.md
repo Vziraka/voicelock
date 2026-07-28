@@ -59,14 +59,33 @@ not mid-build.
   covered by Task 2's bridge tests (`test_booth_api.py`) — this task only
   wires the UI to bridge methods that already exist and are tested.
 
+## Manual check — ATTESTED by the human (2026-07-28)
+
+The human ran `uv run voicelock` and walked the full spec §5 cmd 4 script:
+enroll (name + passphrase + 5 voice sentences + 3 face frames) → unlock
+with all three correct → unlocked, name shown; unlock with a wrong
+passphrase → outer REJECT; unlock with the right passphrase but a wrong
+voice → middle REJECT; unlock with the right passphrase and voice but a
+different face → inner REJECT. Also asked to flag anything visually
+clipped, especially the new face-enrollment step added to the side panel
+this task (the CSS-reasoning disclosure in `plan.md`'s Task 3 entry).
+
+Verbatim: **"everything worked perfect"** — no layout clipping, no visual
+defect, all four outcomes matched spec §1's demo script exactly. This is
+the required §5 cmd 4 manual attestation, the same shape and authority as
+`memory/verdicts/2026-07-23-F3-T5.json`, `memory/verdicts/2026-07-26-F5-T7.json`,
+and `memory/verdicts/2026-07-27-F6-T5.json`'s human attestations that
+closed those tasks' Gates.
+
 ## next_action
-Mode 3 is the standing "go". Spawn the clean-context verifier now
-(`formats/VERIFIER-PROMPT.md`, verbatim, task id `Task 3`, base `6ea3d9c`,
-head `30f4add`) — this session proceeds immediately. On APPROVE, `wrap-up`
-runs — since this is the feature's last task, that means the **feature-end
-checkpoint**: the human attests §5 cmd 4 live, reviews the final verdict,
-and approves commit/push. On REJECT, Task 3 returns to `TODO` with feedback
-appended to `plan.md`, `rejects:` increments (cap 3).
+Mode 3 is the standing "go". Spawn the clean-context verifier now, with
+this attestation quoted into its prompt so its Gate step can score §5
+cmd 4 as satisfied (`formats/VERIFIER-PROMPT.md`, verbatim, task id
+`Task 3`, base `6ea3d9c`, head `30f4add`) — this session proceeds
+immediately. On APPROVE, `wrap-up` runs — since this is the feature's last
+task, that means the **feature-end checkpoint**: review the final verdict
+summary and approve commit/push. On REJECT, Task 3 returns to `TODO` with
+feedback appended to `plan.md`, `rejects:` increments (cap 3).
 
 ## Pending guardrail
 None — the guardrail earned this feature (signature-change/caller-coupling
