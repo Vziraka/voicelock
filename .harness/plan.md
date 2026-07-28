@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **PLANNED — ready to build Task 1.**
+  Phase: **BUILDING — Task 1 DOING.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -194,7 +194,7 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Vendor Vosk + `challenge.py`: phrase pool, grammar-constrained match
-  - state: TODO
+  - state: DOING
   - rejects: 0
   - files: `pyproject.toml`, `src/voicelock/models/vosk/` (new, vendored
     `vosk-model-small-en-us-0.15` + `LICENSE` + `NOTICE`),
