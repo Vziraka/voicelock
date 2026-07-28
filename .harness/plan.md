@@ -3,7 +3,7 @@
 ## Active context
 - Updated: 2026-07-28
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 1 REVIEW — build complete, awaiting verification.**
+  Phase: **Task 1 REJECTED (1/3) — budgeted retry in progress, same session.**
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -194,8 +194,21 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
 `rejects:` is the durable retry count — 3 failed fix attempts set the task `BLOCKED`.
 
 - [ ] **Task 1** — Vendor Vosk + `challenge.py`: phrase pool, grammar-constrained match
-  - state: REVIEW
-  - rejects: 0
+  - state: TODO
+  - rejects: 1
+  - feedback log:
+    - **REJECT 1 (2026-07-28, verifier subagent, base `b3be5c6`..head `5e637e1`).**
+      Gate: PASS (all three commands exit 0, scope check clean). Review:
+      Spec axis APPROVE, Standards axis REJECT. Finding: `ChallengeError` at
+      `src/voicelock/challenge.py:72-73` is dead code — zero raises, zero
+      catches, zero test references anywhere in the repo; neither `plan.md`'s
+      Task 1 decisions nor spec §5 cmd 1 call for a custom exception type
+      (`check()`/`matches()` both return plain `bool`, never raise). Violates
+      `project.md`'s earned no-unexercised-surface guardrail (three prior F4
+      REJECTs on this identical pattern) and `topics/code-quality.md`'s
+      no-speculative-anything floor. Feedback: delete the unused class;
+      introduce it only in the task that actually needs it, with a caller and
+      a test.
   - files: `pyproject.toml`, `src/voicelock/models/vosk/` (new, vendored
     `vosk-model-small-en-us-0.15` + `LICENSE` + `NOTICE`),
     `src/voicelock/challenge.py` (new), `tests/test_challenge.py` (new)
