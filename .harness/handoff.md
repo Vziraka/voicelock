@@ -77,4 +77,6 @@ resolution is logged as the 2026-07-29 "F9 (pre-plan gate check)" entry in
 ### Session commits
 
 Base: `957b908` (F8 handoff bookkeeping, last commit before this session).
-Head: recorded after the commit checkpoint below.
+Head: `09fd830` (this plan session's state commit, human-approved, pushed to
+origin/main). If a follow-up state commit exists on top of `09fd830`, it
+contains only this hash-recording amendment (the `957b908` precedent).
