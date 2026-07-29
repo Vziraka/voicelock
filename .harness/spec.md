@@ -1,326 +1,333 @@
-# Spec: F8 — Lip-sync liveness (challenge-response)
+# Spec: F9 — Demo reliability
 
-Feature: Feature 8 from `roadmap.md`
+Feature: Feature 9 from `roadmap.md`
 
 ## 0. Approval gate
 
 - [x] Grilling record below is `CLEAR` (a search for the clarification marker —
   the bracketed `NEEDS-CLARIFICATION` token in its colon form — returns zero
   hits in this file)
-- [x] Approved by human
+- [ ] Approved by human
 
-- **Mode: Mode 3 — Spec-to-done.** Set by the human 2026-07-28. Build↔verify
+- **Mode: Mode 3 — Spec-to-done.** Set by the human 2026-07-29. Build↔verify
 cycles and the feature-end wrap-up run unattended within this feature; the
-human is checked in with at the feature-end checkpoint (final-verdict
-review + commit/push approval). Same mode as F4 through F7. Mode 4 was
-mechanically unlocked (F7 completed cleanly at Mode 3) but not chosen.
+human is checked in with at the feature-end checkpoint (final-verdict review
++ commit/push approval). Same mode as F4 through F8. Mode 4 was mechanically
+unlocked (F5.5 completed cleanly at Mode 4) but not chosen — F9's expanded
+size argues for a human pause before whatever comes next.
 
 The agent may NOT plan or build until BOTH boxes are checked.
 The second box is checked by the HUMAN typing the `x` — the agent never checks it.
 
 ## 1. Outcome
 
-Make **liveness** real: each unlock attempt shows a fresh, random **challenge**
-phrase, and the user proves — in **one webcam+mic AV capture** — that they are
-the enrolled person, speaking, right now. A single capture is pulled apart into
-four independent checks:
+Make the full F1–F8 demo **reliable and presentable**. F8 completed the demo
+arc (five visibly distinct outcomes); F9 removes the ways that arc fails or
+confuses when a real human runs it: a bad enrollment that produces flaky
+unlocks, no way to see or adjust how strict the matching is, and one
+mislabeled, stuck error state inherited from F5.
 
-1. the **spoken words match the challenge** (defeats a pre-recorded clip of
-   different words, or silence);
-2. the **voiceprint matches** the enrolled voice (F4's middle lock, already
-   built — reused, not rebuilt);
-3. the **faceprint matches** the enrolled face (F7's inner lock, already
-   built — reused, not rebuilt);
-4. the **lips move in sync with the audio** over the challenge (defeats a
-   still photo, an audio-only replay played at a face, or a muted video with
-   different audio dubbed in).
+Five pillars. Pillars 1–3 are `roadmap.md`'s F9 entry; pillar 4 pulls in
+F8's parked capture-visibility ask (Q5a); pillar 5 absorbs roadmap **F11**
+(Q5b) — both human-decided expansions beyond the original roadmap entry:
 
-After F8 the full impostor arc from `roadmap.md`'s original idea is reachable:
-wrong passphrase, wrong voice, wrong face, and now a **replay/liveness**
-failure each reject **visibly and distinctly**.
+1. **Enrollment-quality gate (voice AND face).** A low-quality enrollment is
+   the main source of "it worked yesterday" flakiness — the fuzzy locks seal
+   whatever takes they are given, and inconsistent takes produce a key that
+   natural day-to-day variation cannot reliably reproduce. F9 measures
+   enrollment quality at enroll time and **refuses a bad enrollment with a
+   visible, named reason** (which factor, and what to do about it) instead of
+   sealing it. **RESOLVED (2026-07-29, human-approved, Q1): cross-take
+   spread vs. the correction budget.** Reuse the signals already computed at
+   enroll time — voice: spread across the 5 enroll takes measured against
+   `middlelock`'s correction budget (default radius 110); face: pairwise
+   SFace distance across the 3 banked frames against `facelock`'s budget
+   (default 95). Refuse when the cross-take spread leaves no headroom for
+   natural day-to-day variation. Refusal names the factor with actionable
+   Booth copy (e.g. "voice takes too inconsistent — re-record take N in a
+   quieter room"); already-banked takes stay banked so only the weak
+   material needs redoing. Existing floors (`need_more_audio`, `no_face`)
+   stay as-is. The exact refuse thresholds are **measured at `/plan`–build
+   time** against the real fixtures/signals per `project.md`'s
+   dry-run-before-pinning guardrail — never guessed in this spec.
 
-Demo (five outcomes, each visibly distinct):
+2. **Visible tolerance knobs.** The demo's strictness is currently five
+   invisible constants (`middlelock.CORRECTION_RADIUS = 110`,
+   `facelock.CORRECTION_RADIUS = 95`, `lipsync.SYNC_THRESHOLD = 0.5`, plus
+   the two diagnostic-panel cutoffs). F9 surfaces tolerance as something the
+   demo runner can **see and dial**, so a borderline reject can be
+   demonstrated and resolved live. **RESOLVED (2026-07-29, human-approved,
+   Q2): real-path knobs, persisted.** Three knobs — voice radius (default
+   110), face radius (default 95), lip-sync threshold (default 0.5) —
+   affecting the **real unlock path**. Feasible without re-enrollment
+   (verified in code before asking: both `reconcile()` functions bound
+   acceptance by `residual > CORRECTION_RADIUS` at decode time —
+   `middlelock.py:161`, `facelock.py:166` — so the radius never touches
+   enrolled helper data). Values persist in `~/.voicelock/settings.json`
+   (a demo aid, not a secret); each knob shows its pinned default; one
+   reset control; honest Booth copy that loosening a knob weakens the
+   demo's strictness. Threading a tolerance through `vault.unlock` is a
+   shared-signature change — the `project.md` caller-grep guardrail
+   applies at `/plan`.
 
-- right passphrase + enrolled voice + enrolled face + live challenge speech →
-  **unlocked** (display name shown);
-- wrong passphrase → REJECT at the **outer** lock (unchanged from F2);
-- right passphrase, different voice → REJECT at the **middle** lock
-  (unchanged from F4);
-- right passphrase, right voice, different face → REJECT at the **inner**
-  lock (unchanged from F7);
-- right passphrase, right voice, right face, but **liveness fails** (wrong
-  words spoken, a replayed recording, a held-up photo, or a muted video) →
-  REJECT at the **liveness** gate. **Resolved by precedent** (mirrors F7's
-  `showWrongFace()`/`chip-wrong-face` pattern exactly): status text
-  `"REJECT · LIVENESS CHECK FAILED"`, a new `chip-liveness-failed` chip
-  reading `"Didn't look or sound live"`, sub-text naming that passphrase,
-  voice, and face all already passed. Exact copy may be refined at `/plan`
-  the way F7's chip wording was — not architecture, no further grilling
-  needed.
+3. **Per-rejection cause clarity — the camera-error fix.** The five unlock
+   outcomes already reject distinctly (F7/F8 built the four reject chips);
+   the remaining mislabel is inherited from F5 and recorded in `roadmap.md`:
+   a **camera** failure is pushed through `_push_mic_error`, so a machine
+   with no webcam shows "No camera available" under a **"LOCKED · MIC
+   ERROR"** status, and with no `hideMicError` path the banner **persists
+   for the whole session** while the mic works fine. F9 gives the camera
+   its own named error surface and a way for it to clear.
+   **RESOLVED (2026-07-29, human-approved, Q3): auto-clear on recovery.**
+   A distinct "CAMERA ERROR" status + chip via a new `_push_camera_error`
+   (the message already exists — `facedetect.py` produces
+   `_camera_error_message`; only the bridge surface at `app.py:720`
+   mislabels it), cleared automatically the next time the camera delivers
+   a frame; the mic banner likewise clears on the next successful capture
+   start. No manual dismiss button — each banner reflects live device
+   state, consistent with "Python owns state, JS renders only."
 
-**RESOLVED (2026-07-28, human-approved, Q6).** Liveness (challenge-word-match
-+ lip-sync) is checked **before any lock layer is attempted**. Only once both
-pass does the Booth bridge call `vault.unlock()` at all — peeling
-outer→middle→inner exactly as today, using the same AV capture's voice/face
-embeddings as the reconcile inputs. A liveness failure never touches the
-vault, is its own distinct reject, and — symmetric with how a wrong
-passphrase never reaches voice or face today — a replay attacker who fails
-liveness learns nothing about whether the underlying voice/face would have
-matched.
+4. **Live capture-visibility warning.** **RESOLVED (2026-07-29,
+   human-decided, Q5a — pulled INTO F9, against the agent's initial
+   recommendation, then shaped by two follow-ups):** during the unlock AV
+   capture, the Booth warns **live** — while recording, not only after —
+   when the camera can't usably see the user. Two tiers, split by
+   feasibility:
+   - **Face not visible at all** (absent, turned away, fully covered) —
+     **firm deliverable**. Buildable with existing signals: the landmarker
+     already reports zero faces per frame and the bridge already receives
+     every frame's result (`_push_face_frame`), so "no face for the last N
+     frames while capturing" is real data today. Visible live Booth copy
+     (e.g. "can't see your face"), never a crash, capture still ends
+     cleanly per the release guardrail.
+   - **Mouth-only occlusion** (face tracks, but the mouth specifically is
+     blocked, e.g. by a hand) — **research-first, go/no-go**
+     (human-approved shape): F9 opens with a bounded `research`-skill task
+     hunting for a usable "mouth not visible" signal (per-landmark
+     confidence/score if the vendored library exposes one, geometric
+     cues), findings written to a cited file in `memory/research/`. Signal
+     found → build the mouth-tier warning; no signal → F9 is complete
+     without it, and the item re-parks on the roadmap WITH the evidence
+     file (so the next revisit starts from findings, not from zero). The
+     rest of F9 never blocks on this task.
+
+5. **Profile management from inside the vault (absorbs roadmap F11).**
+   **RESOLVED (2026-07-29, human-decided, Q5b — bundled INTO F9 against
+   the agent's recommendation, accepting the larger feature):** after a
+   successful unlock — and only then — the Booth offers per-factor
+   management: **change passphrase**, **re-enroll voice**, **re-enroll
+   face**. Mechanics compose the existing constructions; no new crypto,
+   no format change (vault stays v3):
+   - *Change passphrase* — re-seal the **outer** layer only with the new
+     passphrase-derived key; the middle/inner ciphertexts and both helper
+     datas are byte-untouched.
+   - *Re-enroll voice* — 5 fresh takes → new `middlelock.commit` → new
+     voice key + helper data; re-seal middle (and outer above it). The
+     inner face layer is untouched.
+   - *Re-enroll face* — 3 fresh takes → new `facelock.commit` → new face
+     key + helper data; re-seal inner (and the layers above it).
+   Each re-enrollment path runs **the same quality gate as pillar 1** —
+   one bar for good enrollment, enforced everywhere. The vault file is
+   replaced **atomically** (write-new-then-swap), so a failed or abandoned
+   management operation never corrupts the existing vault. These
+   operations necessarily use key material the unlocked session already
+   holds (unlock derived it); the Booth returns to the locked state after
+   a management operation completes or the user locks (F8's Lock button).
+   Exact bridge/UI call shapes are `/plan`'s, as with every prior feature.
+
+Housekeeping item, routed here by the 2026-07-26 calibration runs
+(`.out-of-scope/2026-07-26-calibration-findings-run2.md`, item 2) —
+**RESOLVED (2026-07-29, human-approved, Q4): included in F9.** The existing
+same-speaker test passes even with no speaker model at all, because the
+probe is a byte-level sub-window of the reference audio. F9 rewrites the
+same-speaker assertion to use the byte-disjoint pair the fixture README
+already guarantees (`enroll1` vs `enroll5`, zero shared audio) so it can
+actually fail, and adds a Gate check that no probe fixture is a subarray of
+any reference fixture. Test-only; no constant re-pinning; no new fixtures.
+The calibration caveat (voice `ACCEPT_CUTOFF = 0.45` was measured against a
+same-recording probe, not cross-validated) is disclosed in a comment beside
+the constant as part of this item.
+
+Demo (what the human sees):
+
+- **Bad enrollment refused:** deliberately inconsistent enroll takes (voice
+  or face) → Enroll refuses with a per-factor named reason; consistent takes
+  → enrollment proceeds exactly as today.
+- **Dial tolerance:** a borderline unlock rejects; the runner opens the
+  knobs, loosens the relevant factor, retries, and it accepts — then resets
+  to defaults and the reject returns. Each knob shows its default.
+- **Each reject names its cause:** the existing five-outcome arc still holds
+  verbatim (wrong passphrase / voice / face / liveness, each distinct), and
+  additionally a missing/blocked **camera** now shows a camera-named error —
+  not "MIC ERROR" — which clears when the camera comes back.
+- **Live visibility warning:** during an unlock capture, turn away or cover
+  your face → the Booth warns "can't see your face" **while recording**
+  (and, if the mouth-tier research lands, covering just the mouth warns
+  too); the take still ends cleanly and the end-of-take reject is unchanged.
+- **Manage the profile:** unlock, then change the passphrase → the old
+  passphrase now rejects and the new one unlocks; re-enroll voice (or face)
+  → the next unlock works with the new material, and a deliberately bad
+  re-enrollment is refused by the same quality gate as first enrollment.
 
 ## 2. Grilling record — ambiguity scan
 
-**Status: CLEAR.** All six content markers (Q1–Q6) resolved interactively
-with the human (2026-07-28) — a search for the `NEEDS-CLARIFICATION` token
-in this file now returns zero hits. (The Mode line in §0 and the Mode 2+
-blind-spot question in §6 are set separately, per the `spec` skill's step 5 —
+**Status: CLEAR.** All content questions (Q1–Q5b) resolved interactively
+with the human (2026-07-29) — a search for the `NEEDS-CLARIFICATION` token
+in its colon form returns zero hits in this file. (The Mode line in §0 and
+the §6 blind-spot answer are set at the mode step, per the `spec` skill —
 not ambiguity markers.)
 
-| Category                           | Verdict      | State                                                                                                                                             |
-| ----------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Functional scope & behavior        | **Resolved** | Liveness = words-match-challenge + voice + face + lip-sync, one AV capture, five visibly distinct outcomes (§1). Gate-ordering: liveness before any lock (Q6). |
-| Domain & data model                | **Resolved** | Q1 — Vosk, grammar-constrained. Q4 — lag-windowed normalized cross-correlation for lip-sync.                                                       |
-| Interaction & UX flow              | **Resolved** | Q2 — Record/Stop transport, fixed ceiling, phrase shown + stays visible. Q3 — small hand-authored phrase pool, no-immediate-repeat.                |
-| Non-functional (perf, security)    | **Resolved** | Offline-only inherited; Vosk adds no new ML runtime; lip-sync is pure numpy.                                                                        |
-| Integration & dependencies         | **Resolved** | Q1 (Vosk) · Q6 (liveness gates before outer/middle/inner) · AV capture reuses F1/F5's device threads, adds retention.                              |
-| Edge cases & failure modes         | **Resolved** | Q5 — Gate fixture strategy: synthetic unit tests for both scoring functions + real-audio reject-path exercise for challenge-match; required live manual check covers the accept paths and the four replay/photo/muted-video impostor classes. |
-| Completion signals                 | **Resolved** | §5 — what's automatable (reject paths, scoring-function correctness) vs. what stays a required manual check (accept paths, real impostor classes), disclosed rather than smoothed over.                                                        |
-| Terminology (matches `CONTEXT.md`) | **Clear**    | Uses **Challenge**, **Liveness**, **Lip-sync**, **AV capture**, **Impostor** exactly as the glossary defines them. No new terms needed.             |
+| Category                           | Verdict      | State                                                                                                              |
+| ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Functional scope & behavior        | **Resolved** | Five pillars (§1): quality gate (Q1), real-path knobs (Q2), camera-error fix (Q3), two-tier visibility warning (Q5a), profile management absorbing F11 (Q5b). Fixture-test fold-in included (Q4). |
+| Domain & data model                | **Resolved** | Q2 — `~/.voicelock/settings.json` for knob values. Q5b — vault stays v3; management is per-layer re-seal, atomic replace. |
+| Interaction & UX flow              | **Resolved** | Q2 (knobs with defaults + reset + honesty copy), Q3 (auto-clear banners), Q5a (live warning copy), Q5b (management only in unlocked state). |
+| Non-functional (perf, security)    | **Resolved** | Q2's real-path knobs signed off with honesty copy; Q5b's no-bypass rule (§3); offline-only inherited.               |
+| Integration & dependencies         | **Resolved** | No new dependency anticipated — numpy/UI/vault-composition work on existing modules. Any surprise → TECH-PICK.       |
+| Edge cases & failure modes         | **Resolved** | Q3 (recovery); §4's edge list (corrupt settings, refused re-enrollment leaves vault intact, atomic swap, release-on-every-exit). |
+| Completion signals                 | **Resolved** | §5 — automatable per pillar + the required live manual check; the mouth-tier's go/no-go is completion-by-evidence either way. |
+| Terminology (matches `CONTEXT.md`) | **Clear**    | Uses **Enroll**, **Booth**, **Vault**, **Impostor**, **Liveness** as defined. "Tolerance knob" is plain English, not new jargon. |
 
-### The questions
+### The questions (all resolved 2026-07-29, answers written into §1/§3)
 
-**Q1 — How is "the spoken words match the challenge" verified — does this
-need a new offline speech-recognition dependency, and if so, which one?**
-
-**RESOLVED (2026-07-28, human-approved).** **Vosk**, with its
-grammar-constrained recognition (`KaldiRecognizer(model, rate, grammar_json)`,
-confirmed from the project's own GitHub issues) decoding directly against a
-small JSON list of allowed challenge phrases — a purpose-built fit that avoids
-open-vocabulary transcription plus fuzzy text matching entirely. Adds
-**zero** new ML runtime (no torch/CTranslate2 dependency;
-`cffi`/`requests`/`tqdm`/`srt`/`websockets` only); its small English model
-(`vosk-model-small-en-us-0.15`, 40 MB) is Apache-2.0, established from the
-model's own distribution page. **Disclosed and explicitly waived by the
-human:** Vosk's own PyPI wheel has not been rebuilt since 2023-06-21 —
-failing the ~12-month liveness bar on its face — but the underlying GitHub
-repo has a commit from 2026-07-02 (26 days before the research), so the
-project is not abandoned, only the published wheel is stale. Recorded in
-`memory/decisions.md` per the TECH-PICK protocol. Full comparison:
-`memory/research/2026-07-28-f8-offline-stt-challenge-match.md`.
-
-**Q2 — How is the single AV (audio+video) capture triggered and bounded?**
-
-**RESOLVED (2026-07-28, human-approved).** The challenge phrase is shown and
-**stays visible** (folds in Q3's UI sub-question); the user presses **Record**
-when ready (F1's existing transport button, unchanged interaction), speaks
-the phrase, and the capture auto-stops at a **fixed ceiling** or an explicit
-**Stop** press, whichever comes first — mirrors F1's Record/Stop pattern
-exactly, no new interaction pattern. The ceiling's exact value is a `/plan`-
-level sizing decision (per `project.md`'s dry-run-before-pinning guardrail,
-measured against how long the chosen phrase pool actually takes to speak,
-not guessed here) — provisionally ~6–8 s, generous for a short sentence,
-confirmed or adjusted when the phrase pool (Q3) is finalized in code.
-
-F1's audio Record and F5's camera preview already run concurrently in the
-Booth (independent threads reading the same devices today), but neither
-currently **retains** a time-aligned sequence — F5's camera loop composites
-and displays frames live without keeping them, and F1's capture retains
-audio only. F8's new capture path must retain both, aligned to one clock, for
-the lip-sync check (Q4) — an implementation detail for `/plan`, not a further
-grilling question, since the shape (reuse both existing device threads,
-add retention) is now settled by this answer.
-
-**Q3 — Where does the challenge phrase pool come from, and how is it shown
-to the user?**
-
-**RESOLVED (2026-07-28, human-approved).** A small, **hand-authored** list —
-~10–20 short, phonetically varied sentences declared as a constant (mirrors
-F4/F7's precedent of hand-picked, disclosed literal constants), one picked at
-random per unlock attempt with no-immediate-repeat (never the same phrase
-twice in a row). A bounded, hand-authored pool also fits Q1's Vosk
-grammar-constrained decoding better than a programmatically generated
-phrase would — the exact phrase set is exactly what gets passed as Vosk's
-grammar. Booth UX for displaying the challenge text: **resolved by Q2** —
-shown before Record and kept visible throughout the capture.
-
-**Q4 — Lip-sync scoring: what signal, what construction, what threshold, and
-how is the threshold justified given this repo has zero comparison data for
-"lips out of sync"?**
-
-**RESOLVED (2026-07-28, human-approved).** **Normalized cross-correlation,
-lag-windowed.** Per-frame mouth-aperture (from F5's existing lip-contour
-landmarks) correlated against the audio envelope (already computed for the
-Visualizer) within a small lag window — mouth movement may lead or trail
-audio slightly, so a fixed-lag comparison would be too brittle. No new
-dependency; pure numpy; the same hand-rolled, glass-box approach F4/F7 used
-for fuzzy commitment. The peak correlation score within the lag window is
-the sync signal; **threshold sizing is Q5's territory** (what there is to
-measure it against) — this only fixed the construction, not the number.
-
-**Q5 — Automated Gate test strategy given zero AV fixtures exist in this
-repo.**
-
-**RESOLVED (2026-07-28, human-approved).** **Synthetic unit tests for the
-scoring functions, plus the required live manual check for the real path.**
-No new AV fixtures, no new fixture-licensing research. Concretely, per
-signal:
-
-- **Lip-sync**: the cross-correlation function (Q4) is tested against
-  synthetic time series with a known, deliberately constructed
-  relationship — an in-phase mouth-aperture series built directly from a
-  real audio envelope (one of the existing voice fixtures) should score
-  high; the same series shifted/decorrelated past the lag window, or
-  replaced with a flat (non-moving-mouth) series, should score low. This
-  proves the *math* — a real still photo or muted video in production is
-  exactly the flat/decorrelated case the synthetic reject probes — not
-  that it works on a real face's real video.
-- **Challenge-word match**: real Vosk decoding is exercised where the
-  repo's existing data already supports it honestly — the existing voice
-  fixtures (`speakerA_*.wav`, `speakerB.wav`) almost certainly do not say
-  any of the hand-authored challenge phrases (Q3), so running Vosk's
-  grammar-constrained recognizer against them and asserting **reject** is
-  a real, unmocked exercise of the reject path. The **accept** path (a
-  real recording actually saying a challenge phrase) has no honest
-  existing fixture — proven only by the required live manual check, same
-  as the accept path for lip-sync and, going back further, the same gap
-  F4/F7 always closed with a live check rather than synthetic accept data.
-  Disclosed explicitly, not smoothed over: the automated Gate proves
-  challenge-word-match can correctly REJECT on real audio; it cannot prove
-  it correctly ACCEPTs without the manual check.
-- This mirrors F6/F7's established shape ("the automated Gate proves the
-  math; the required live manual check proves the real path") one notch
-  further, since even the *reject* side needed care to stay honest here.
-
-**Q6 — Gate-ordering: where does the liveness check sit relative to the
-outer/middle/inner cryptographic layers?**
-
-**RESOLVED — see §1.**
+**Q1 — quality gate:** cross-take spread vs. the correction budget; refuse
+with per-factor actionable copy. *(§1 pillar 1)*
+**Q2 — tolerance knobs:** three real-path knobs, persisted, defaults +
+reset + honesty copy. *(§1 pillar 2)*
+**Q3 — error recovery:** distinct camera surface, auto-clear on device
+recovery. *(§1 pillar 3)*
+**Q4 — fixture-test fold-in:** yes — byte-disjoint pair + subarray guard +
+cutoff caveat disclosure. *(§1 housekeeping item)*
+**Q5a — capture visibility:** pulled INTO F9 (human-decided): face tier
+firm, mouth tier research-first go/no-go. *(§1 pillar 4)*
+**Q5b — F11:** bundled INTO F9 (human-decided): profile management after
+unlock. *(§1 pillar 5)*
 
 ## 3. Non-goals
 
-- **No strong deepfake / synced-video resistance.** Per `roadmap.md`'s
-  standing honest framing: lip-sync liveness defeats a still photo, an
-  audio-only replay, and a muted video — not a sophisticated video where the
-  lips already match the dubbed audio. This is stated in the Booth copy, not
-  just in `.harness/`.
-- **No enrollment-quality gate or tolerance-tuning UI** (F9's job) — F8 pins
-  one fixed, disclosed threshold for lip-sync and challenge-word matching,
-  the same way F4/F7 pinned fixed fuzzy-commitment constants.
-- **No change to F2/F4/F7's lock constructions** — `outerlock`, `middlelock`,
-  `facelock`, and `vault.py`'s existing three-layer nesting are reused as-is;
-  F8 adds a gate in front of/around them (per Q6), not a fourth AEAD layer.
-  Voice and face identity are still proven the same way they always were —
-  F8 adds *whose voice said what* and *did the mouth move with it*, not a new
-  identity mechanism.
-- **No re-pinning of any existing constant** — `ACCEPT_CUTOFF`,
-  `CORRECTION_RADIUS` (voice or face), etc. stay untouched.
-- **No multi-profile, no account recovery** — unchanged from every prior
-  feature's non-goals.
+- **Occluded-mouth detection is scoped exactly as §1 pillar 4 says — no
+  further.** The face-visibility tier is a firm deliverable; the mouth-only
+  tier ships ONLY if its research task finds a real signal (go/no-go). If
+  the research says no, building a weak guess-based heuristic anyway is a
+  non-goal — the item re-parks with evidence. Today's end-of-take liveness
+  REJECT stays the correct fallback either way.
+- **Profile management is scoped exactly as §1 pillar 5 says — no
+  further.** No multi-profile, no account recovery, no "reset a factor
+  without unlocking first" (that would be a bypass), no changing the
+  display name, no partial re-enrollment (fewer takes than first
+  enrollment requires).
+- **No re-pinning of measured constants as constants.** `ACCEPT_CUTOFF`,
+  both `CORRECTION_RADIUS` values, `SYNC_THRESHOLD` keep their pinned
+  defaults; F9 may make some of them *adjustable at runtime* (Q2) but does
+  not change any default, and the calibration caveat (the voice 0.45 was
+  measured against a same-recording probe, not cross-validated) gets
+  disclosed beside the constant, not "fixed" by tuning.
+- **No change to the lock constructions or the vault format** —
+  `outerlock`, `middlelock`, `facelock` and vault format **v3** stay as
+  F7/F8 left them. The quality gate refuses *before* sealing; knobs adjust
+  *decode-time* bounds; profile management (pillar 5) **composes** the
+  existing constructions into per-layer re-seal operations — new `vault.py`
+  surface, but no new AEAD construction, no fourth layer, no version bump.
+- **No new impostor classes, no deepfake resistance** — unchanged standing
+  non-goals.
 - Out-of-scope discoveries during build: record in `.out-of-scope/`, never
   build.
 
 ## 4. Constraints
 
-- Honor `constitution/project.md` + conventions: Python 3.11 + uv;
-  engine/crypto in `src/voicelock/`, UI in `src/voicelock/ui/`, tests in
-  `tests/`; **Python owns all crypto/DSP, JS renders only**; **offline-only —
-  no network at runtime**.
-- Entry point remains `uv run voicelock`. F1–F7 engines
-  (`capture.py`, `playback.py`, `voiceprint.py`, `middlelock.py`,
-  `facedetect.py`, `faceprint.py`, `facelock.py`, `vault.py`) are reused, not
-  modified in their core constructions — F8 consumes their outputs (voice/face
-  embeddings, lip landmarks, audio envelope) and adds new modules for the two
-  new signals.
-- **New dependency `vosk`** (Q1, human-approved TECH-PICK), vendored
-  `vosk-model-small-en-us-0.15` (Apache-2.0, 40 MB) offline beside
-  `models/ecapa/` and the Face Landmarker bundle, per the existing per-asset
-  licence rule. Challenge-word matching uses Vosk's grammar-constrained
-  recognition against the current attempt's phrase (and, per Q3, the rest of
-  the pool as decoys where useful) — not open transcription.
-- Lip-sync construction: no new dependency regardless of Q4's outcome — pure
-  numpy over F5's existing lip-contour landmarks and F1's existing audio
-  envelope.
-- New sibling engine modules (exact call shapes left to `/plan`, naming fixed
-  here so the Verification section below can name real files): `challenge.py`
-  (the hand-authored phrase pool, Vosk model loading, and grammar-constrained
-  match) and `lipsync.py` (the lag-windowed cross-correlation scorer). Both
-  live beside `facelock.py`/`middlelock.py` in `src/voicelock/`.
-- Booth UX: reuse existing mock chrome; add challenge-phrase display + the AV
-  capture UX (Q2/Q3); keep F3/F6's diagnostic panels and F1
-  Record/Stop/Play unchanged; a fifth, visibly distinct reject message for
-  the liveness gate, per §1.
-- Edge cases (visible, no crash): no vault → "enroll first" (unchanged); the
-  existing outer/middle/inner REJECT edges (unchanged); no face/no speech
-  detected during the AV capture → visible Booth copy, not a crash; a
-  too-short or silent capture → visible Booth copy, not a crash.
+- Honor `constitution/project.md` + conventions: Python 3.11 + uv; engine in
+  `src/voicelock/`, UI in `src/voicelock/ui/`, tests in `tests/`; **Python
+  owns state and thresholds, JS renders only**; **offline-only**.
+- **No new dependencies expected.** Quality metrics reuse embeddings/
+  distances already computed at enroll time; knobs are UI + a settings file;
+  the camera-error fix is bridge + UI plumbing. Any exception → TECH-PICK.
+- F1–F8 engines are reused, not restructured. Anticipated touch points (exact
+  shapes left to `/plan`): `app.py` (quality checks at enroll, knob
+  plumbing, `_push_camera_error`, capture-visibility watch, management
+  bridge methods), `ui/index.html` (refusal copy, knobs panel, camera
+  chip/banner, live warning, unlocked-state management controls),
+  `vault.py` (additive per-layer re-seal operations for pillar 5 — a
+  shared-surface change, so the `project.md` caller-grep guardrail applies
+  at `/plan`), possibly small additive surface on
+  `middlelock`/`facelock`/`lipsync` to accept a runtime tolerance argument
+  where today a module constant is read directly, and the `research` task's
+  findings file in `memory/research/` (pillar 4's mouth tier).
+- Per the earned Booth-layout guardrail: every new visible Booth element
+  (refusal copy, knobs panel, camera banner/chip) gets a manual layout smoke
+  test — this repo's Gate cannot see CSS/layout regressions.
+- Edge cases (visible, no crash): knob file missing/corrupt → defaults +
+  visible note, never a crash; quality gate refusal never discards already-
+  banked takes without saying so; camera error during an unlock capture
+  still ends the take cleanly (release-on-every-exit-path guardrail); a
+  management operation that fails or is abandoned mid-way leaves the
+  on-disk vault byte-identical (atomic write-new-then-swap) and the Booth
+  in a coherent state; a re-enrollment refused by the quality gate leaves
+  the existing enrollment fully intact and unlockable.
 
 ## 5. Verification — definition of done (runnable)
 
-Fixtures: reuses existing committed fixtures only — `tests/fixtures/voiceprint/*.wav` (for the real-audio reject-path exercise, Q5) — **no new fixtures** (per Q5's resolution: synthetic data + the existing voice fixtures cover the automated Gate; no new AV data is sourced or committed).
+Fixtures: existing committed fixtures only (`tests/fixtures/voiceprint/*.wav`,
+`tests/fixtures/face/*.jpg`) — no new fixtures anticipated; sourcing one is a
+scope escalation, not a silent add. Exact test-file names may be finalized at
+`/plan`; the coverage obligations below are the contract.
 
 **Standing** (the regression net — `project.md`'s Gate commands):
 
 - `uv run ruff check .` → exit 0.
-- `uv run pytest` → exit 0. Reference: **186 passing** at the end of F7; the
-  count rises by F8's tests and must not fall.
+- `uv run pytest` → exit 0. Reference: **229 passing** at the end of F8; the
+  count rises by F9's tests and must not fall.
 
 **Feature-specific:**
 
-1. `uv run pytest tests/test_challenge.py -q` → exit 0. Must cover:
-   - the hand-authored phrase pool (Q3) is a fixed, non-empty constant, and
-     random selection never repeats the immediately-previous phrase across
-     consecutive calls (exercised over enough draws to make a false failure
-     statistically negligible);
-   - Vosk's grammar-constrained recognizer, loaded from the vendored
-     `vosk-model-small-en-us-0.15`, run for real (no mocked recognition)
-     against `tests/fixtures/voiceprint/speakerA_take1.wav` (or another
-     existing voice fixture) constrained to a specific challenge phrase's
-     grammar, asserts **reject** — the fixture audio does not say that
-     phrase, so a true positive there is not available to this repo's
-     existing data, and the test's docstring says so explicitly (Q5's
-     disclosed limitation) rather than silently asserting less;
-   - the match/no-match decision function itself (independent of Vosk) is
-     unit-tested against a synthetic "recognizer said X, challenge was Y"
-     table covering an exact match, a case/punctuation-only difference (must
-     still accept), and a genuinely different phrase (must reject).
-2. `uv run pytest tests/test_lipsync.py -q` → exit 0. Must cover, using the
-   **real** audio envelope from an existing voice fixture paired with
-   **synthetic** mouth-aperture series (per Q5 — no real video needed to
-   test the scoring math):
-   - an in-phase synthetic mouth-aperture series (derived directly from the
-     real audio envelope, e.g. a monotonic function of it) scores **above**
-     `SYNC_THRESHOLD`;
-   - the same series shifted outside the lag window, and a flat
-     (non-moving) series, both score **below** `SYNC_THRESHOLD` — the flat
-     case is the direct analog of a still photo or a muted video in
-     production;
-   - `SYNC_THRESHOLD` and the lag-window width are named constants, and the
-     module docstring discloses that they are picked from this synthetic
-     separation, not measured against real human lip-sync data — the
-     required live manual check (cmd 4) is what actually exercises real
-     synchrony.
-3. `uv run pytest tests/test_booth_api.py -q` → exit 0. Must cover the
-   bridge's new AV-capture flow (start/stop, retention, release-on-every-exit-
-   path per `project.md`'s acquisition/release guardrail — including the
-   fixed-ceiling auto-stop), the liveness gate running before `vault.unlock`
-   is ever called (Q6 — assert a failed-liveness attempt makes zero calls
-   into the vault layer), and the fifth reject reason
-   (`auth_liveness`/equivalent) alongside the existing
-   `auth_outer`/`auth_voice`/`auth_face`, none leaking the display name.
-4. **Manual (required)** — run `uv run voicelock`: enroll (name + passphrase
-   + voice + face) → unlock with all four correct (passphrase, voice, face,
-   live spoken challenge) → **unlocked** (name shown); **wrong passphrase**
-   → outer REJECT; right passphrase + **wrong voice** → middle REJECT; right
-   passphrase + right voice + **wrong face** → inner REJECT; right
-   passphrase + right voice + right face but **liveness fails** — tried at
-   least two ways per §1 (e.g. speaking the wrong words, and one of: holding
-   up a photo, playing a silent/muted video, or replaying a separate
-   audio-only recording) → **liveness REJECT**. Each reject names its
-   distinct cause. This is where the accept-path proof for challenge-match
-   and lip-sync actually lives (per Q5's disclosed gap) — not optional,
-   attested by the human at the feature-end checkpoint.
+1. **Quality gate** — `uv run pytest tests/test_enroll_quality.py -q` (name
+   indicative) → exit 0. Must cover, per factor: an inconsistent
+   enrollment (constructed from the existing fixtures/synthetic spread) is
+   **refused** with the per-factor reason code, a consistent one is
+   accepted, and refusal makes **zero** calls into `vault.enroll` (mirror
+   of F8's liveness-gate assertion). The refuse thresholds' provenance
+   (measured, per the dry-run-before-pinning rule) is disclosed where they
+   are pinned.
+2. **Knobs** — `uv run pytest tests/test_booth_api.py -q` → exit 0,
+   extended to cover: the knob bridge surface (read values + defaults, set,
+   reset; out-of-range/corrupt/missing settings file → defaults, refused
+   visibly, never a crash), and a dialed tolerance provably changing an
+   unlock outcome that the pinned default rejects (same fake/spy patterns
+   the suite already uses).
+3. **Error surfaces** — same suite: the camera-error path pushes its
+   **own** error code, asserted distinct from the mic error's, and each
+   banner's auto-clear condition fires (camera frame delivered / capture
+   start succeeded).
+4. **Visibility warning** — same suite: a capture whose fake frames report
+   no face for N consecutive frames pushes the live warning; frames with a
+   face do not; the warning never aborts the take's release path. (Mouth
+   tier, only if its research task lands a signal: the same shape against
+   that signal.)
+5. **Profile management** — `uv run pytest tests/test_vault.py -q` and
+   `tests/test_booth_api.py` → exit 0, extended to cover: passphrase
+   change → old passphrase raises `AuthError`, new one unlocks, middle/
+   inner ciphertexts byte-unchanged; voice re-enroll → unlockable with the
+   new material, face layer byte-unchanged; face re-enroll likewise;
+   management methods refused in locked state; a re-enrollment refused by
+   the quality gate leaves the on-disk vault byte-identical; the atomic
+   swap (a simulated failure mid-write leaves the original vault intact).
+6. **Fixture-test strengthening (Q4)** — the same-speaker assertion runs
+   on the byte-disjoint pair (`enroll1` vs `enroll5`), and a Gate check
+   asserts no probe fixture is a byte-subarray of any reference fixture →
+   both exit 0. The `ACCEPT_CUTOFF` calibration caveat is disclosed beside
+   the constant (source-text check, regex not literal, per the earned
+   rule).
+7. **Manual (required)** — run `uv run voicelock` and walk the full §1
+   demo: bad enrollment (each factor) refused with its named reason; good
+   enrollment proceeds; a borderline reject flips to accept when its knob
+   is loosened and back on reset; the five-outcome F8 arc still holds
+   verbatim; camera unplugged/blocked shows the camera-named error and
+   clears on recovery; covering/turning away the face mid-capture warns
+   live; unlock → change passphrase → old rejects/new unlocks; re-enroll
+   voice and face → next unlock works. Attested by the human at the
+   feature-end checkpoint. Layout smoke test on every new Booth element
+   (earned guardrail — this feature adds several).
 
-**Out-of-scope default (Mode 3+):** anything discovered during the build that
+**Out-of-scope default (Mode 2+):** anything discovered during the build that
 is not in §1 gets recorded in `.out-of-scope/` and is never built.
 
 ## 6. Mode 2+ blind-spot question
@@ -328,35 +335,39 @@ is not in §1 gets recorded in `.out-of-scope/` and is never built.
 **"If every gate in this spec passed but the feature were still wrong, what
 would be wrong?"**
 
-**RESOLVED (2026-07-28, human-approved).** The automated Gate (§5 cmds 1–3)
-can only prove the challenge-match **REJECT** path and the lip-sync scoring
-**math** on synthetic data (Q5) — it cannot prove either signal correctly
-**ACCEPTs** a real live person, or that lip-sync genuinely resists a
-well-produced replay, because this repo has zero real synced audio+video
-fixtures. The gates cannot catch this because the gap is structural (no
-honest fixture exists, not a bug to fix); the mitigation is disclosure plus
-the human's own live exercise of the real path — the required manual check
-(§5 cmd 4), which explicitly walks all five outcomes including at least two
-distinct liveness-failure modes. Same shape as F4's and F7's own disclosed
-generalization gaps for voice and face respectively (spec §6 in each).
+**RESOLVED (2026-07-29, human-approved): recorded as accepted risk.** The
+quality gate's refuse thresholds and the knobs' useful ranges are
+calibrated from this repo's tiny fixture set and the developer's own
+single voice/face — the gate could refuse enrollments that are actually
+fine, or pass ones that still flake, for a body of users this repo has
+never measured. The gates cannot catch this because the gap is structural
+(no honest multi-person AV data exists in an offline repo), the same shape
+as F4/F7/F8's disclosed generalization gaps. Mitigation: provenance
+disclosure at every pinning site (§5 cmd 1) plus the human's own live
+manual check (§5 cmd 7) exercising real enroll/refuse/dial behavior.
 
-## 7. What F8 inherits (recorded so it survives the next handoff rewrite)
+## 7. What F9 inherits (recorded so it survives the next handoff rewrite)
 
-- **From F4/F7:** the discipline that a reconcile tolerance (here, a
-  lip-sync threshold and an STT match tolerance) must be justified by real
-  measurement or explicit, disclosed estimation — never tuned until the demo
-  "looks like it works."
-- **From F5:** the full 478-point landmark set, including the lip contour,
-  was deliberately kept in `facedetect.py`'s output even though only a
-  subset is drawn — F8 is the reason.
-- **From F6/F7:** the no-repo-owner-biometrics-as-fixture precedent, and the
-  general shape of "the automated Gate proves the math; the required live
-  manual check proves the real path" for anything with thin or no real
-  comparison data.
-- **From `project.md`:** the per-asset licence rule (if Q1 leads to a new
-  vendored model), the no-unexercised-surface rule, the mutation-sensitivity
-  rule, the source-text-meaning rule, the dry-run-before-pinning rule, the
-  every-acquisition-must-release rule (an AV capture acquires both mic and
-  camera — every exit path, including timeouts, must release both), and the
-  Booth-layout manual-smoke-test rule (a challenge-phrase display + capture
-  UI is new visible content in the Booth column).
+- **From F5 (via `roadmap.md`):** the camera-error-through-`_push_mic_error`
+  mislabel and its stuck banner — F9 owns the fix (pillar 3).
+- **From F8's checkpoint:** the occluded-mouth ask — now §1 pillar 4
+  (human-decided): the face-visibility tier builds on existing signals; the
+  mouth tier is research-first go/no-go, because MediaPipe's landmark
+  output has no known "occluded" signal — the research task either finds
+  one or documents that it does not exist.
+- **From `roadmap.md`'s parked list:** F11 (profile management), absorbed
+  whole as §1 pillar 5 (human-decided) — `roadmap.md`'s F11 entry is
+  updated to point here.
+- **From the 2026-07-26 calibration runs:** the same-speaker test's
+  vacuity (Q4) and the disclosure that voice `ACCEPT_CUTOFF = 0.45` was
+  measured against a same-recording probe (§3 — disclose beside the
+  constant, do not re-tune).
+- **From F4/F7/F8:** thresholds are measured or explicitly-estimated and
+  disclosed, never tuned until the demo "looks right" — F9's quality gate
+  and knob defaults follow the same discipline.
+- **From `project.md`:** the no-unexercised-surface rule, the
+  mutation-sensitivity rule, the source-text-meaning rule, the
+  dry-run-before-pinning rule, the acquisition/release rule, the
+  Booth-layout manual-smoke-test rule, and the caller-grep rule if any
+  shared signature changes (e.g. threading a tolerance argument through
+  `reconcile`).

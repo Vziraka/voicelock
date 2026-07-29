@@ -337,6 +337,14 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   Enrollment-quality gate (voice **and** face), visible tolerance knobs, clear
   per-rejection reason (wrong passphrase / voice / face / liveness).
   *Demo:* bad enrollment refused; dial tolerance; each reject names its cause.
+  **Scope expanded at spec time (2026-07-29, human-decided, spec Q5a/Q5b):**
+  (1) the parked occluded-mouth ask below is pulled IN as a two-tier live
+  capture-visibility warning — face-not-visible is a firm deliverable
+  (existing no-face signal), mouth-only occlusion is research-first
+  go/no-go; (2) parked **F11 (profile management) is absorbed whole** —
+  change passphrase / re-enroll voice / re-enroll face after a successful
+  unlock, per-layer re-seal, vault stays v3. Five pillars total; the full
+  contract is `spec.md` (F9).
   **Inherited from F5 Task 7's REJECT #1 (2026-07-26), recorded here so it
   survives handoff rewrites:** a **camera** error is surfaced through
   `_push_mic_error`, because `spec.md` (F5) §4 said to surface it "the way
@@ -367,12 +375,11 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   Optional exploration only; never claimed as deepfake-proof. Revisit after F9
   if you still want it.
 
-- **F11 — Manage enrollment from inside the vault** · blocked-by: F7
-  Once unlocked, let the user change the passphrase and re-enroll voice/face
-  from inside their profile (edit/reset any of the three factors). Profile
-  management — only meaningful after all three factors are real locks (post-F7),
-  likely bundled with or after F9. Human-requested 2026-07-23; not yet specced,
-  parked here so it isn't lost.
+- **F11 — Manage enrollment from inside the vault** · **ABSORBED INTO F9**
+  (2026-07-29, human-decided at F9's spec grilling, Q5b). Once unlocked, let
+  the user change the passphrase and re-enroll voice/face from inside their
+  profile. Originally human-requested 2026-07-23 and parked here; now §1
+  pillar 5 of F9's spec — no longer a separate future feature.
 
 ## Out of scope
 

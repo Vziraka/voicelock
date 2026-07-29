@@ -1,122 +1,87 @@
 # Handoff
 
-## F8 — Lip-sync liveness (challenge-response) · COMPLETION REPORT (updated)
+## F9 — Demo reliability · SPEC DRAFTED, PARKED AT THE APPROVAL GATE
 
-**2026-07-29.** All 4 tasks `DONE` (`rejects: 1/1/0/0`). The human's first
-live run of spec §5 cmd 4 (2026-07-28) found liveness failing almost every
-attempt despite correct passphrase/voice/face — a real defect, exactly what
-the required manual check exists to catch (Q5/§6's disclosed gap: the
-automated Gate cannot prove either liveness signal's ACCEPT path). Diagnosed
-with temporary debug prints (removed once confirmed fixed, not left in) and
-fixed same session — three independent root causes, all in
-`plan.md`'s Task 4 build notes in full. **Still nothing from this feature is
-committed** — this report is the feature-end checkpoint Mode 3 reserves for
-you.
+**2026-07-29.** `/spec` ran interactively for F9. All grilling questions
+resolved with the human (Q1–Q5b + mode + blind-spot); the Grilling record is
+`Status: CLEAR` (mechanically verified — zero `[NEEDS-CLARIFICATION:` hits);
+box 1 is checked; **box 2 awaits the human's own `x`**. Mode line set:
+**Mode 3 — Spec-to-done** (human-chosen 2026-07-29).
 
-### What was actually wrong, and the fix
+### next_action
 
-1. **Frame/audio misalignment (the dominant cause).** Real camera frames
-   don't arrive on the fixed 30fps grid the audio envelope assumed —
-   `lipsync.score()`'s index-for-index comparison silently desynced over a
-   take's length. Fixed by timestamping each retained mouth-aperture
-   sample and resampling onto the envelope's real time grid
-   (`_resample_mouth_series`, `app.py`). Measured, not assumed: the exact
-   dropped-frame shape from your log scores 0.34–0.46 (fail) under the old
-   alignment, 0.93+ (pass) after the fix — both numbers are pinned into a
-   test.
-2. **`matches()` required an exact full-string match.** Real Vosk decoding
-   glued on stray words / repeated the phrase in your log
-   (`"my wild horses run across the plain"`). Relaxed to substring
-   containment — safe because `check()`'s grammar is constrained to only
-   the challenge + decoy pool + `[unk]`, so the phrase can only appear if
-   actually said.
-3. **The Record/Stop routing heuristic was unreliable.** Your very first
-   take fell back to the plain 30s pair before liveness retention ever
-   armed — the exact risk flagged (uncertain) in `memory/deviations.md` at
-   Task 4. Replaced with a deterministic rule (enroll panel open/closed)
-   rather than a focus heuristic — your approval on this is recorded
-   2026-07-29.
+1. **Human:** in `spec.md`, read §1 Outcome + §5 Verification, confirm the
+   Mode line, and type the `x` in approval box 2 yourself.
+2. Then run `/plan` in a **fresh session**.
 
-Also added, at your request and outside spec's original scope (parked, not
-formally speced): a **Lock** button that resets the display without
-touching the vault. Also parked to `roadmap.md`'s F9 entry (not built):
-detecting a covered/occluded mouth during capture and stopping early —
-infeasible today, MediaPipe's landmarks can't distinguish "occluded" from
-"just not moving."
+### What F9 became at grilling (larger than the roadmap entry)
 
-### Outcome vs. spec §1 (updated)
+Five pillars — the human expanded scope twice, both against the agent's
+initial recommendation (recorded as human decisions, not drift):
 
-| Demo outcome (spec §1) | Status |
-|---|---|
-| Right passphrase + voice + face + live challenge → **unlocked** | You confirmed this now works live ("much better") |
-| Wrong passphrase → outer REJECT | Automated-tested, unchanged since F2 — **not re-confirmed live since the fix** |
-| Right passphrase, wrong voice → middle REJECT | Automated-tested, unchanged since F4 — **not re-confirmed live since the fix** |
-| Right passphrase, right voice, wrong face → inner REJECT | Automated-tested, unchanged since F7 — **not re-confirmed live since the fix** |
-| Right passphrase/voice/face, **liveness fails** → liveness REJECT | You confirmed one method live (covering your mouth); spec wants **a second method** too |
+1. **Enrollment-quality gate** (Q1) — cross-take spread vs. the lock's
+   correction budget, per factor; refuse with actionable per-factor copy;
+   thresholds measured at build time, never guessed.
+2. **Tolerance knobs** (Q2) — three real-path knobs (voice radius 110,
+   face radius 95, lip-sync threshold 0.5 as defaults), persisted in
+   `~/.voicelock/settings.json`, defaults shown + reset + honesty copy.
+   Feasible without re-enrollment: both `reconcile()`s bound acceptance at
+   decode time (`middlelock.py:161`, `facelock.py:166`).
+3. **Camera-error fix** (Q3) — distinct CAMERA ERROR surface via a new
+   `_push_camera_error` (mislabel lives at `app.py:720`), auto-clear on
+   device recovery; mic banner auto-clears likewise.
+4. **Live capture-visibility warning** (Q5a — pulled in from F8's parked
+   ask) — face-not-visible tier is a FIRM deliverable (existing no-face
+   signal); mouth-only-occlusion tier is **research-first go/no-go** (a
+   bounded `research` task opens the feature; no signal → item re-parks
+   WITH the evidence file, F9 still completes).
+5. **Profile management** (Q5b — absorbs roadmap F11 whole) — after
+   unlock only: change passphrase / re-enroll voice / re-enroll face as
+   per-layer re-seals (vault stays v3, no new construction), atomic
+   write-new-then-swap, re-enrollment runs the same quality gate.
 
-None of today's fixes touched the outer/middle/inner lock paths or their
-tests, so those three are low-risk, but per this repo's own standard
-("required means required," not "probably fine") they should still get a
-quick live re-confirmation before this closes out.
+Plus the Q4 housekeeping fold-in: rewrite the vacuous same-speaker test to
+the byte-disjoint `enroll1`/`enroll5` pair + a no-probe-is-a-subarray Gate
+check + the `ACCEPT_CUTOFF = 0.45` calibration caveat disclosed beside the
+constant.
 
-### Full Gate evidence (command → exit code, after the fix)
+Blind-spot answer (human-approved): the calibration gap (thresholds/ranges
+from a tiny fixture set + one person's biometrics) is **accepted risk**,
+disclosed at pinning sites + covered by the live manual check.
 
-- `uv run ruff check .` → 0 (clean)
-- `uv run pytest` → 0 (**229 passed**, up from the original Task 4
-  completion's 222 — +7 tests covering all three fixes)
-- `node --check` on the extracted Booth `<script>` → 0 (syntax OK)
-- Manual layout smoke test: headless-Chromium screenshot confirms the new
-  Lock button fits cleanly next to Unlock, no clipping.
-- **Spec §5 cmd 4 (live 5-outcome demo): partially run by the human,
-  in-progress — see the table above for what's confirmed vs. not.**
+### Notes for `/plan`
 
-### Retry counts per task (unchanged from the original completion)
+- `vault.py` gains per-layer re-seal surface → **the caller-grep guardrail
+  applies** (F4-T3/F7-T2 both BLOCKED on exactly this shape).
+- Threading runtime tolerances through `vault.unlock` is also a
+  shared-signature change — same guardrail.
+- Several new visible Booth elements → the Booth-layout manual-smoke-test
+  guardrail applies to each.
+- Pillar 4's research task should run FIRST or in parallel — the rest of
+  F9 never blocks on it.
+- Verification contract: spec §5 — 7 items; test-file names indicative,
+  coverage obligations fixed.
 
-Task 1: `rejects: 1` (unused exception class). Task 2: `rejects: 1`
-(untested lag-search loop). Task 3: `rejects: 0`. Task 4: `rejects: 0`. The
-live-demo bugfixes above happened AFTER Task 4's wrap-up, at the
-feature-end checkpoint — they're not counted against any task's retry
-budget (that budget governs the build↔verify cycle, not post-wrap-up fixes
-found by the human's own required check).
+### State-file conflict resolved this session (before the spec ran)
 
-### `memory/deviations.md` entries made during this feature
+`handoff.md`'s previous content still showed F8's checkpoint as pending
+while `plan.md`/`roadmap.md`/git (`adc7fed`, F8 complete commit) all said
+DONE. Adjudicated via git history per the universal [State] precedence
+rule; logged in `memory/deviations.md` (2026-07-29 entry). F8 is closed;
+this file's previous content is superseded by exactly that resolution.
 
-One, at Task 4 (2026-07-28): the plan-note claiming an "existing per-panel
-branching" precedent that didn't actually exist. Logged for your review
-rather than silently resolved. **Update, 2026-07-29:** the live demo then
-found the resulting design (passphrase-focus heuristic) genuinely
-unreliable in practice — your first take silently used the wrong capture
-pair. Replaced it with the deterministic rule described above, which you
-approved in chat. The original deviations.md entry is left as-is (it's an
-append-only historical log of the judgment made at the time); this note is
-the forward pointer to what actually happened next.
+### Session writes (this session)
 
-### Anything escalation-worthy that resolved itself
+- `spec.md` — rewritten for F9 (was F8's spec, which lives in git history).
+- `roadmap.md` — F9 entry records the two scope expansions; F11 parked
+  entry marked ABSORBED INTO F9.
+- `memory/deviations.md` — one appended entry (the F8 handoff staleness
+  conflict + resolution).
+- `handoff.md` — this file.
+- `plan.md` — NOT touched: still F8's completed ledger; `/plan` rewrites it
+  for F9 after box 2 is checked.
 
-Task 3's `_pump_loop()` auto-stop bug (found by the task's own Gate test) —
-third confirmed occurrence of the acquisition/release guardrail's own
-predicted failure shape. No new guardrail needed.
+### Session commits
 
-### What's left
-
-1. Re-run the live demo, confirming: wrong passphrase / wrong voice / wrong
-   face still reject correctly (should be unaffected, but not yet
-   re-checked since the fix), and a **second** liveness-fail method (photo,
-   muted video, or an audio-only replay — you've already covered "covering
-   your mouth" as one).
-2. Tell me the results.
-3. Your commit/push approval — proposed message below, unchanged in shape
-   from before, now covering the fix session too.
-
-### Session commits (this feature, newest first — all local, nothing pushed)
-
-`11d00bd` (Task 4 handoff bookkeeping) ← `eff074e` (Task 4 build) ←
-`1854e87` (Task 4 DOING) ← `1311123` (Task 3 wrap-up) ← `6856cc5` (Task 3
-handoff) ← `e571695` (Task 3 build) ← `08676fa` (Task 3 DOING) ← `04c9cf4`
-(Task 2 wrap-up) ← `9230111` (Task 2 handoff, retry 1) ← `1e42625` (Task 2
-build, retry 1) ← `0f21cdd` (Task 2 DOING retry 1) ← `16d6769` (Task 2
-REJECT 1) ← `c81a34e` (Task 2 handoff) ← `6959dee` (Task 2 build) ←
-`bc91244` (Task 2 DOING) ← next commit covers BOTH the original Task 4
-wrap-up checkpoint AND the 2026-07-29 live-demo bugfix session in one
-commit (nothing from either was committed separately). Base of the whole
-feature: `fc03108` (prior HEAD, F8 plan session).
+Base: `adc7fed` (F8 complete). Head: recorded at the commit checkpoint
+below once the human approves the commit.
