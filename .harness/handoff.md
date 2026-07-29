@@ -1,89 +1,80 @@
 # Handoff
 
-## F9 — Demo reliability · SPEC DRAFTED, PARKED AT THE APPROVAL GATE
+## F9 — Demo reliability · PLANNED — READY TO BUILD
 
-**2026-07-29.** `/spec` ran interactively for F9. All grilling questions
-resolved with the human (Q1–Q5b + mode + blind-spot); the Grilling record is
-`Status: CLEAR` (mechanically verified — zero `[NEEDS-CLARIFICATION:` hits);
-box 1 is checked; **box 2 awaits the human's own `x`**. Mode line set:
-**Mode 3 — Spec-to-done** (human-chosen 2026-07-29).
+**2026-07-29.** `/plan` ran for F9. The ledger is in `plan.md`: **10 tasks,
+all `TODO`, `rejects: 0`**, dependency-ordered, every done-criterion
+runnable. Mode 3 — Spec-to-done (human-set in `spec.md` §0).
 
 ### next_action
 
-1. **Human:** in `spec.md`, read §1 Outcome + §5 Verification, confirm the
-   Mode line, and type the `x` in approval box 2 yourself.
-2. Then run `/plan` in a **fresh session**.
+**The approved Mode 3 is the standing go: `/implement` starts Task 1
+(the mouth-occlusion research go/no-go) in a fresh session.** No further
+human "go" is needed inside the feature; the human is next consulted at the
+feature-end checkpoint (or on an escalation/amendment).
 
-### What F9 became at grilling (larger than the roadmap entry)
+### Gate incident resolved at session start (before planning)
 
-Five pillars — the human expanded scope twice, both against the agent's
-initial recommendation (recorded as human decisions, not drift):
+The spec's §6 blind-spot answer still carried the live `[NEEDS-CLARIFICATION:`
+token on disk — the spec session resolved it with the human in chat
+(recorded in the previous handoff) but never wrote it into §6, so the
+mechanical zero-hits scan FAILED despite the human's genuine box-2 approval
+(their `x` was the only substantive uncommitted spec edit). Executed the
+missed write-before-proceed: §6 now carries the human-approved answer
+(calibration gap = accepted risk, disclosed at pinning sites + covered by
+the live manual check), the scan returns zero hits, and the conflict +
+resolution is logged as the 2026-07-29 "F9 (pre-plan gate check)" entry in
+`memory/deviations.md`.
 
-1. **Enrollment-quality gate** (Q1) — cross-take spread vs. the lock's
-   correction budget, per factor; refuse with actionable per-factor copy;
-   thresholds measured at build time, never guessed.
-2. **Tolerance knobs** (Q2) — three real-path knobs (voice radius 110,
-   face radius 95, lip-sync threshold 0.5 as defaults), persisted in
-   `~/.voicelock/settings.json`, defaults shown + reset + honesty copy.
-   Feasible without re-enrollment: both `reconcile()`s bound acceptance at
-   decode time (`middlelock.py:161`, `facelock.py:166`).
-3. **Camera-error fix** (Q3) — distinct CAMERA ERROR surface via a new
-   `_push_camera_error` (mislabel lives at `app.py:720`), auto-clear on
-   device recovery; mic banner auto-clears likewise.
-4. **Live capture-visibility warning** (Q5a — pulled in from F8's parked
-   ask) — face-not-visible tier is a FIRM deliverable (existing no-face
-   signal); mouth-only-occlusion tier is **research-first go/no-go** (a
-   bounded `research` task opens the feature; no signal → item re-parks
-   WITH the evidence file, F9 still completes).
-5. **Profile management** (Q5b — absorbs roadmap F11 whole) — after
-   unlock only: change passphrase / re-enroll voice / re-enroll face as
-   per-layer re-seals (vault stays v3, no new construction), atomic
-   write-new-then-swap, re-enrollment runs the same quality gate.
+### Shape of the plan (details in `plan.md` — do not re-derive)
 
-Plus the Q4 housekeeping fold-in: rewrite the vacuous same-speaker test to
-the byte-disjoint `enroll1`/`enroll5` pair + a no-probe-is-a-subarray Gate
-check + the `ACCEPT_CUTOFF = 0.45` calibration caveat disclosed beside the
-constant.
+1. **Task 1** research: mouth-occlusion signal, go/no-go — verdict decides
+   Task 5's mouth tier; nothing else blocks on it.
+2. **Task 2** Q4 fold-in (byte-disjoint same-speaker test + subarray guard
+   + `ACCEPT_CUTOFF` caveat comment).
+3. **Task 3** `settings.py` + additive-optional tolerance params through
+   `reconcile`×2 / `is_live` / `vault.unlock`.
+4. **Task 4** `enrollquality.py` + enroll refusal (thresholds MEASURED at
+   build, zero `vault_enroll` calls on refusal).
+5. **Task 5** camera-error surface (fix site `app.py:720`) + auto-clear +
+   live face-visibility warning (+ mouth tier iff Task 1 says GO).
+6. **Task 6** knob bridge + unlock-path consumption (threshold flip test).
+7. **Task 7** vault per-layer re-seal (`change_passphrase` /
+   `reseal_voice` / `reseal_face`) + atomic write-new-then-swap,
+   byte-identity asserted directly.
+8. **Task 8** management bridge (unlocked session held by `BoothApi`,
+   `lock()` clears; re-enrolls run the SAME quality gate).
+9. **Task 9** UI: refusal copy, camera banner/chip, live warning, knobs
+   panel (+ layout smoke per element, earned guardrail).
+10. **Task 10** UI: management panel — LAST task, full spec Verification
+   incl. the required human-attested live demo.
 
-Blind-spot answer (human-approved): the calibration gap (thresholds/ranges
-from a tiny fixture set + one person's biometrics) is **accepted risk**,
-disclosed at pinning sites + covered by the live manual check.
+### Standing cautions for the implementor
 
-### Notes for `/plan`
-
-- `vault.py` gains per-layer re-seal surface → **the caller-grep guardrail
-  applies** (F4-T3/F7-T2 both BLOCKED on exactly this shape).
-- Threading runtime tolerances through `vault.unlock` is also a
-  shared-signature change — same guardrail.
-- Several new visible Booth elements → the Booth-layout manual-smoke-test
-  guardrail applies to each.
-- Pillar 4's research task should run FIRST or in parallel — the rest of
-  F9 never blocks on it.
-- Verification contract: spec §5 — 7 items; test-file names indicative,
-  coverage obligations fixed.
-
-### State-file conflict resolved this session (before the spec ran)
-
-`handoff.md`'s previous content still showed F8's checkpoint as pending
-while `plan.md`/`roadmap.md`/git (`adc7fed`, F8 complete commit) all said
-DONE. Adjudicated via git history per the universal [State] precedence
-rule; logged in `memory/deviations.md` (2026-07-29 entry). F8 is closed;
-this file's previous content is superseded by exactly that resolution.
+- **Caller grep already executed at plan time** (`plan.md` has the results):
+  every shared-surface change is additive-optional. If any change turns out
+  NOT to stay additive-optional mid-build, that is a plan contradiction —
+  STOP per the universal [Modes] rule (F4-T3/F7-T2 precedent).
+- Thresholds (quality gate, faceless-frame N) are measured/dry-run before
+  pinning, provenance disclosed — never guessed (earned guardrail; the
+  novel Task 1 done-criterion command was itself dry-run at plan time,
+  positive and negative cases).
+- Every new visible Booth element needs the manual layout smoke test — the
+  Gate cannot see CSS/layout regressions (earned guardrail).
+- No default constant changes anywhere (spec §3); knobs are decode-time
+  runtime values only.
 
 ### Session writes (this session)
 
-- `spec.md` — rewritten for F9 (was F8's spec, which lives in git history).
-- `roadmap.md` — F9 entry records the two scope expansions; F11 parked
-  entry marked ABSORBED INTO F9.
-- `memory/deviations.md` — one appended entry (the F8 handoff staleness
-  conflict + resolution).
+- `spec.md` — §6 token replaced with the human-approved blind-spot answer
+  (the gate incident above); no other content touched.
+- `memory/deviations.md` — one appended entry (the pre-plan gate conflict +
+  resolution).
+- `plan.md` — rewritten: F9 ledger (was F8's completed ledger, which lives
+  in git history).
 - `handoff.md` — this file.
-- `plan.md` — NOT touched: still F8's completed ledger; `/plan` rewrites it
-  for F9 after box 2 is checked.
 
 ### Session commits
 
-Base: `adc7fed` (F8 complete). Head: `1e02169` (this spec session's state
-commit, human-approved, pushed to origin/main). The base→head hash pair in
-this file was amended after the checkpoint commit; if a follow-up state
-commit exists on top of `1e02169`, it contains only this amendment.
+Base: `957b908` (F8 handoff bookkeeping, last commit before this session).
+Head: recorded after the commit checkpoint below.
