@@ -1067,3 +1067,80 @@ def test_unlock_liveness_failure_does_not_leak_the_display_name(
 
     rejected = api.unlock({"passphrase": "correct-horse"})
     assert "name" not in rejected
+
+
+# ---------------------------------------------------------------------------
+# F8 live-demo bugfix (2026-07-29): real camera frames do not arrive on a
+# guaranteed fixed-rate grid, so index-for-index alignment between the
+# mouth-aperture series and the audio envelope silently desyncs. Fixed by
+# timestamping each retained sample and resampling onto the envelope's grid.
+# ---------------------------------------------------------------------------
+
+
+def test_push_face_frame_also_records_a_timestamp_per_sample(tmp_path: Path) -> None:
+    api, _, face = _recording_booth(tmp_path)
+    landmarks = _lip_sync_landmarks(upper_y=0.45, lower_y=0.55)
+    api.start_unlock_capture()
+
+    api._push_face_frame(FrameResult(data_uri="data:image/jpeg;base64,AAAA", landmarks=landmarks))
+    api._push_face_frame(FrameResult(data_uri="data:image/jpeg;base64,AAAA", landmarks=landmarks))
+
+    assert len(api._liveness_mouth_timestamps) == 2
+    assert len(api._liveness_mouth_timestamps) == len(api._liveness_mouth_series)
+    assert api._liveness_mouth_timestamps[0] >= 0.0
+    assert api._liveness_mouth_timestamps[1] >= api._liveness_mouth_timestamps[0]
+
+
+def test_resample_mouth_series_recovers_the_grid_by_timestamp() -> None:
+    """Pure unit test of the interpolation math (no BoothApi involved).
+
+    Value == timestamp, so exact linear interpolation must recover the
+    envelope grid's own times exactly -- proves this resamples BY TIME, not
+    by index (the naive approach it replaces would just return whatever
+    values happened to be at each position, not these).
+    """
+    hop = app_module._ENVELOPE_HOP
+    timestamps = np.array([0.0, 0.05, 0.20, 0.21, 0.50, 0.80])
+    mouth = timestamps.copy()
+    envelope_size = 8
+
+    resampled = app_module._resample_mouth_series(mouth, timestamps, envelope_size)
+
+    expected_grid = (np.arange(envelope_size) + 0.5) * (hop / app_module.SAMPLE_RATE)
+    clamped = np.clip(expected_grid, timestamps.min(), timestamps.max())
+    assert np.allclose(resampled, clamped)
+
+
+def test_resample_mouth_series_empty_input_returns_empty() -> None:
+    assert app_module._resample_mouth_series(np.zeros(0), np.zeros(0), 5).size == 0
+    assert app_module._resample_mouth_series(np.array([1.0]), np.array([0.0]), 0).size == 0
+
+
+def test_liveness_survives_dropped_camera_frames_via_timestamp_resampling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The actual bug this session fixed, proven end-to-end through
+    _liveness_passes(): real camera delivery drops frames under load, so
+    only every 3rd envelope-grid instant has a retained mouth sample here
+    (matching the ~65-75% drop rate observed in the live demo). With real
+    per-sample timestamps and resampling, the signal still reads as live;
+    without resampling (feeding the sparse series straight to lipsync.score,
+    the pre-fix behavior) the same data scores 0.457 -- below threshold,
+    confirmed by direct measurement, not asserted blindly.
+    """
+    api, cap, face, _ = _enrolled_booth(tmp_path)
+    api.new_challenge()
+    face.last_frame = _face_fx("personA_2.jpg")
+    monkeypatch.setattr(app_module.challenge, "check", lambda *a, **k: True)
+
+    audio = _fx("speakerA_live.wav")
+    cap.set(audio)
+    envelope = app_module._audio_envelope(audio)
+    grid = (np.arange(envelope.size) + 0.5) * (app_module._ENVELOPE_HOP / app_module.SAMPLE_RATE)
+    sparse = np.arange(0, envelope.size, 3)  # ~1/3 of frames "arrive"
+    api._liveness_mouth_timestamps = list(grid[sparse])
+    api._liveness_mouth_series = list(envelope[sparse] * 2.0 + 0.1)  # in-phase, sparse
+
+    opened = api.unlock({"passphrase": "correct-horse"})
+    assert opened["ok"] is True
+    assert opened["name"] == "Ada"

@@ -289,12 +289,49 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   in-repo caller of a function before splitting a signature change across
   two tasks.
 
-- [ ] **F8 — Lip-sync liveness (challenge-response)** · blocked-by: F7
+- [x] **F8 — Lip-sync liveness (challenge-response)** · blocked-by: F7 ·
+  **DONE 2026-07-29 (Mode 3)**
   Each unlock shows a fresh random phrase; in one webcam+mic capture the user
   speaks it. Verify the spoken words match the challenge, the voiceprint matches,
   the faceprint matches, **and** the lips move in sync with the audio.
   *Demo:* **replay a recording / hold up a photo / play audio at a muted video →
   REJECT.** Full enroll → auth → four-impostor arc is now reachable.
+  Built: vendored Vosk small-en model (Apache-2.0) + `challenge.py`
+  (hand-authored 12-phrase pool, grammar-constrained match); `lipsync.py`
+  (lag-windowed cross-correlation of mouth-aperture vs audio envelope,
+  `SYNC_THRESHOLD`/`LAG_WINDOW` dry-run measured); Booth bridge liveness
+  gate (`new_challenge()`, `start_unlock_capture()`/`stop_unlock_capture()`,
+  `_liveness_passes()` runs BEFORE any `vault_unlock()` call — ADR 0005);
+  Booth UI (challenge display, fifth `auth_liveness` reject chip, plus a
+  human-requested **Lock** button that resets the display without touching
+  the vault). 4 tasks, `rejects: 1/1/0/0` — both REJECTs were
+  Standards-axis (an unused exception class; an untested lag-search loop),
+  fixed same session each time.
+  **The required live demo (spec §5 cmd 4) found real bugs on its first
+  run (2026-07-28/29), exactly the gap Q5/§6 disclosed in advance** — the
+  automated Gate can prove the challenge-match reject path and the
+  lip-sync scoring math, never either signal's real ACCEPT path. Three
+  independent causes, diagnosed with temporary instrumentation and fixed
+  same day: (1) real camera frames don't arrive on the fixed grid the
+  audio envelope assumed, desyncing the correlation over a take's length
+  — fixed by timestamping every retained mouth-aperture sample and
+  resampling onto the envelope's real time grid; (2) `matches()` required
+  an exact full-string match, but real Vosk decoding routinely glues on a
+  stray word or repeats the phrase — relaxed to substring containment,
+  still safe under the grammar-constrained decode; (3) the Record/Stop
+  routing heuristic (passphrase-field focus) silently misrouted the
+  session's first take — replaced with a deterministic rule (enroll panel
+  open/closed). 229 tests passing (up from 186 at F7). Human attested the
+  full live demo after the fix: unlock, wrong passphrase/voice/face, and
+  liveness REJECT via two distinct methods (covering the mouth, plus a
+  second). One `memory/deviations.md` entry at Task 4 (a plan-note
+  precedent that didn't exist), whose resulting design is what the live
+  demo then found unreliable and prompted fix (3) above — see that entry
+  and `plan.md`'s Task 4 build notes for the full chain.
+  **Parked to F9** (human-requested, not built): detect a covered/occluded
+  mouth during capture and stop early, instead of only failing afterward
+  as a generic liveness reject — infeasible today since MediaPipe's
+  landmarks can't distinguish "occluded" from "just not moving."
 
 - [ ] **F9 — Demo reliability** · blocked-by: F7
   Enrollment-quality gate (voice **and** face), visible tolerance knobs, clear
@@ -311,6 +348,18 @@ sequence. The full success arc (all impostor classes) becomes reachable at
   buttons are re-enabled by `setRecording(true)`), so this is a labelling and
   stuck-state problem, not a functional one. F9 owns per-cause messaging and is
   where a distinct camera chip — and a way to clear it — belongs.
+  **Parked from F8's live-demo checkpoint (2026-07-29, human-requested):**
+  detect during the AV capture itself when the mouth/face isn't clearly
+  visible (e.g. covered by a hand) and stop or warn early, instead of
+  letting the whole take finish and only failing afterward as a generic
+  `auth_liveness` reject. Not built at F8 because the underlying signal
+  doesn't exist yet — MediaPipe's landmark output can't currently
+  distinguish "mouth occluded" from "mouth just not moving," both read as
+  a flat `mouth_aperture()` series; a real version would need a new signal
+  (e.g. per-landmark detection confidence, not currently exposed by
+  `facedetect.py`) and its own design pass, not a quick patch. Today's
+  behavior (occluded mouth → liveness REJECT) is correct-by-design, not a
+  bug — the ask is a better UX for reaching that same reject sooner.
 
 ### Parked (not in the must-build path)
 

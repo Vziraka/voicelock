@@ -1,10 +1,14 @@
 # Plan — F8 — Lip-sync liveness (challenge-response)
 
 ## Active context
-- Updated: 2026-07-28
+- Updated: 2026-07-29
 - Feature: Feature 8 from `roadmap.md` · Mode: **Mode 3 — Spec-to-done** ·
-  Phase: **Task 4 REVIEW (LAST task) — automated checks done, required
-  manual demo still pending human attestation.**
+  Phase: **FEATURE COMPLETE.** All 4 tasks DONE; the human's first
+  live-demo run found real liveness bugs (3 root causes, fixed same
+  session, 7 new tests — Task 4's build notes have the full writeup); a
+  second live run confirmed all 5 outcomes (unlock, wrong
+  passphrase/voice/face, liveness REJECT via two methods). Human approved
+  commit + push. `roadmap.md`'s F8 box is checked.
 - Spec: `spec.md` holds F8's spec, Grilling `Status: CLEAR` (zero
   `[NEEDS-CLARIFICATION:` hits), both approval boxes checked, `Mode: Mode 3`
   set 2026-07-28 by the human.
@@ -178,24 +182,21 @@ These fill the "exact call shape" gaps the spec deliberately left to `/plan`
    `auth_liveness`, not a new code.
 
 ### Memory spine
-1. **Tasks 1-3 DONE** (2026-07-28; `rejects` 1/1/0) — `challenge.py`,
-   `lipsync.py`, and the Booth bridge (`new_challenge()`,
-   `start_unlock_capture()`/`stop_unlock_capture()`, the liveness gate in
-   `unlock()`) are landed and stable. Task 4 (UI-only) calls these bridge
-   methods; it does not revisit their shape or `app.py`'s Python logic.
+1. **FEATURE COMPLETE** (2026-07-29; `rejects` 1/1/0/0) — all 4 tasks DONE,
+   live 5-outcome demo attested by the human after a same-day bugfix round
+   (frame/audio timestamp resampling, `matches()` substring containment,
+   deterministic Record/Stop routing — full writeup in Task 4's build
+   notes). 229 tests passing.
 2. Zero `vault.py` changes this feature (decision, item 3 above; confirmed
    at Task 3) — the `project.md` caller-grep guardrail is
    inherited-and-not-triggered, not inherited-and-applied.
 3. `facedetect.py`/`capture.py` stay byte-for-byte unchanged (decision 5,
    confirmed at Task 3) — all new retention state lives in `app.py`,
    additive only.
-4. Task 4 wires the Unlock panel's Record/Stop to
-   `start_unlock_capture()`/`stop_unlock_capture()` (NOT the plain
-   `start_record()`/`stop_record()` pair enroll keeps using), calls
-   `new_challenge()` when the panel activates and after each attempt, and
-   adds the `auth_liveness` branch + `chip-liveness-failed` per plan.md's
-   Task 4 notes — the bridge surface it needs already exists and is
-   stable.
+4. Task 4's "which panel is active" gate ended up being passphrase-focus
+   AND-ed with "enroll panel not open" (not the nonexistent
+   `btnRecord`-branching precedent the plan note assumed) — see Task 4's
+   build notes if a future feature needs to touch this routing.
 
 ## Task ledger
 One task `DOING` at a time (**WIP=1**). States: `TODO` · `DOING` · `REVIEW` · `DONE` · `BLOCKED`.
@@ -412,8 +413,8 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
     - `uv run ruff check .` → exit 0
     - `uv run pytest` → exit 0 (0 failed; count rises further from Task 2's end)
 
-- [ ] **Task 4** — Booth UI: challenge display + AV capture UX + fifth reject chip *(LAST task — full spec Verification)*
-  - state: REVIEW
+- [x] **Task 4** — Booth UI: challenge display + AV capture UX + fifth reject chip *(LAST task — full spec Verification)*
+  - state: DONE
   - rejects: 0
   - files: `src/voicelock/ui/index.html`
   - notes: Challenge phrase shown on the Unlock panel BEFORE Record is
@@ -489,7 +490,68 @@ The `DOING` write is committed BEFORE building starts (implement skill step 3).
       photo, playing a silent/muted video, or replaying a separate
       audio-only recording) → **liveness REJECT**. Each reject names its
       distinct cause. Attested by the human at the feature-end checkpoint.
-      **PENDING — this is what remains after Task 4.**
+      **ATTESTED 2026-07-29** — all five outcomes confirmed live by the
+      human, after the fix session below (first run found real bugs; the
+      re-run confirmed unlock, wrong passphrase/voice/face, and liveness
+      REJECT via two distinct methods).
+  - **live-demo fix session (2026-07-29, human-run, real bugs found and
+    fixed same session):** the human's first live run of cmd 4 found
+    liveness (`auth_liveness`) failing almost every time even with
+    correct passphrase/voice/face. Diagnosed with temporary debug prints
+    (removed once confirmed fixed) rather than guessed. Three real,
+    independent root causes, all fixed:
+    1. **Frame/audio misalignment (the dominant cause).** `_audio_envelope`
+       assumes a perfect fixed-30fps grid computed purely from audio
+       duration; real camera delivery drops frames under load (observed
+       `mouth_series_len` at ~65-75% of `envelope_len`), so
+       `lipsync.score()`'s index-for-index comparison silently desynced
+       over the length of a take. Fixed: `_push_face_frame` now
+       timestamps each retained mouth-aperture sample
+       (`_liveness_mouth_timestamps`, wall-clock seconds since
+       `start_unlock_capture()`), and a new `_resample_mouth_series()`
+       (`app.py`) linearly interpolates onto the envelope's own time grid
+       before scoring. Verified by direct measurement, not assumed: the
+       exact dropped-frame shape observed live scores 0.34-0.46 (fail)
+       under the old naive alignment and 0.93+ (pass) after resampling —
+       both numbers pinned into
+       `test_liveness_survives_dropped_camera_frames_via_timestamp_resampling`.
+    2. **`matches()` was exact-match-only.** Real Vosk decoding against a
+       live mic routinely glues on a stray leading word or repeats the
+       phrase (observed: `"my wild horses run across the plain"`,
+       `"my dog runs fast in rain my dog runs fast in rain"`). Relaxed to
+       substring containment (`challenge.py`) — safe specifically because
+       `check()`'s grammar is constrained to the challenge + decoy pool +
+       `[unk]`, so the target phrase can only appear verbatim if actually
+       said; a genuinely different phrase still cannot match.
+    3. **The Record/Stop routing heuristic (`isUnlockCapture()`,
+       originally passphrase-field-focus AND-ed with "enroll panel
+       closed" — the plan-note correction from Task 4's own build,
+       flagged uncertain in `memory/deviations.md` 2026-07-28) proved
+       unreliable in practice**: the very first take of the live session
+       fell back to the plain `start_record()` pair (30s cap, no
+       retention armed) before the passphrase field was ever focused,
+       so liveness silently had zero data to score. Replaced with a
+       deterministic rule: enroll panel open → old pair, closed →
+       liveness-capture pair, always — human-approved 2026-07-29 (a
+       further step past the already-logged deviation, not a new one;
+       see that entry for the original reasoning this supersedes).
+    - Also added, human-requested and out of spec's original scope
+      (parked, not formally speced): a **Lock** button next to Unlock
+      that resets the Booth's display back to "locked" without touching
+      the vault or requiring re-enrollment (`resetToLocked`-shaped
+      handler in `index.html`, no bridge call).
+    - Also parked to `roadmap.md`'s F9 entry (human-requested, not
+      built): detecting a covered/occluded mouth *during* capture and
+      stopping early, instead of only failing afterward as a generic
+      liveness reject — infeasible today because MediaPipe's landmark
+      output can't distinguish "occluded" from "just not moving," both
+      read as a flat `mouth_aperture()` series.
+    - `uv run ruff check .` → clean · `uv run pytest` → 229 passed (up
+      from Task 4's original 222; +7 new tests covering all three fixes).
+      Full suite command list re-run clean after the fix; §5 cmd 4 (the
+      live demo) is back with the human for a fresh run confirming
+      liveness now passes/fails correctly and the other four outcomes
+      are unaffected.
 
 **Out-of-scope default (Mode 3):** anything discovered during the build that
 is not in spec §1 gets recorded in `.out-of-scope/` and is never built.

@@ -767,6 +767,7 @@
           <div class="unlock-row">
             <input class="pass-input mono" id="pass-input" type="password" placeholder="Enter passphrase" autocomplete="current-password">
             <button type="button" class="btn" id="btn-unlock">Unlock</button>
+            <button type="button" class="btn btn-secondary" id="btn-lock" title="Reset the display back to locked -- the vault on disk is untouched, this never requires re-enrolling">Lock</button>
           </div>
           <div class="voice-hint mono" id="unlock-voice-hint">Then record a full sentence in your normal speaking voice, SAY the challenge phrase above, and press Unlock.</div>
         </div>
@@ -861,6 +862,7 @@
     const btnOverwriteCancel = document.getElementById("btn-overwrite-cancel");
     const passInput = document.getElementById("pass-input");
     const btnUnlock = document.getElementById("btn-unlock");
+    const btnLock = document.getElementById("btn-lock");
     const chipSuccess = document.getElementById("chip-success");
     const chipWrongPass = document.getElementById("chip-wrong-pass");
     const chipWrongVoice = document.getElementById("chip-wrong-voice");
@@ -929,24 +931,28 @@
     let faceCompareTimer = null;
     let pendingOverwrite = false;
 
-    /* F8 — which Record/Stop bridge pair a take should use. There is no
-       separate "Unlock panel" to open/close in this Booth (unlike Enroll,
-       which slides out its own aside panel) -- the passphrase + Record
-       controls are always the same persistent view. So "the Unlock panel
-       is active" is read from the signal that actually exists: the
-       passphrase field has been focused (the natural first step of an
-       unlock attempt), and the enroll panel is NOT currently open (enroll's
-       voice-take recordings must keep using the plain start_record()/
-       stop_record() pair, per spec's "F1 Record/Stop/Play unchanged"
-       constraint -- this overrides a stale passphrase focus). Captured
-       once at Record-press time into activeCaptureIsUnlock and reused at
-       Stop, so a mid-take state change can never mismatch the start/stop
-       pair Python sees. */
-    let unlockContext = false;
+    /* F8 — which Record/Stop bridge pair a take should use. A focus-based
+       heuristic ("the passphrase field has been focused") was tried first
+       and found unreliable in the live demo -- the very first take of a
+       session could be pressed before the field was ever focused, silently
+       falling back to the 30s enroll/diagnostic pair with no liveness
+       retention armed at all, so every liveness check failed regardless of
+       voice/face. Replaced with a deterministic rule: the enroll panel is
+       the only real mode toggle in this Booth's DOM, so closed == an
+       unlock attempt, open == an enroll voice/face take. Set Reference and
+       the plain diagnostic Record/Play flows also get the shorter
+       liveness-capture pair when the enroll panel is closed -- an accepted
+       trade against spec's original "F1 Record/Stop/Play unchanged"
+       framing, since a diagnostic sentence is short enough that a 10s cap
+       instead of 30s is not a real loss, and correctness for the actual
+       liveness gate matters more than that framing (human-approved
+       2026-07-29). Captured once at Record-press time into
+       activeCaptureIsUnlock and reused at Stop, so a mid-take state change
+       can never mismatch the start/stop pair Python sees. */
     let activeCaptureIsUnlock = false;
 
     function isUnlockCapture() {
-      return unlockContext && !enrollPanel.classList.contains("visible");
+      return !enrollPanel.classList.contains("visible");
     }
 
     function drawBars() {
@@ -1392,12 +1398,7 @@
       return window.pywebview.api[name](payload);
     }
 
-    passInput.addEventListener("focus", function () {
-      unlockContext = true;
-    });
-
     btnEnrollOpen.addEventListener("click", async function () {
-      unlockContext = false;
       showEnrollPanel(true);
       /* Awaited: the bridge must have dropped any abandoned takes before the
          user can bank a new one, or the two counts race. */
@@ -1578,7 +1579,22 @@
       setProfileName(result.name || "");
       showStatusSuccess("UNLOCKED");
       passInput.value = "";
-      unlockContext = false;
+    });
+
+    /* Display-only reset -- the vault on disk is never touched, so this is
+       never required before retrying Unlock; it just makes repeated manual
+       testing/demoing easier by returning the Booth to a visibly "locked"
+       look without re-enrolling. Human-requested 2026-07-29 during F8's
+       live-demo checkpoint. */
+    btnLock.addEventListener("click", function () {
+      hideResultChips();
+      setProfileName("");
+      passInput.value = "";
+      status.textContent = "LOCKED · BOOTH READY";
+      prompt.textContent = hasTake ? "Take ready" : "Ready to record";
+      sub.textContent = hasTake
+        ? "press Play to hear the capture"
+        : "record · visualizer · play back";
     });
 
     btnSetReference.addEventListener("click", async function () {

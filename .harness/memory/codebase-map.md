@@ -4,9 +4,19 @@ A light, human-readable map so a fresh session can navigate without re-reading
 everything. It is **not** a second source of truth — the code is the truth.
 Regenerate it when it drifts.
 
-- Updated: 2026-07-28 after **F7**. Solid = built (F1 booth + F2 outer lock +
+- Updated: 2026-07-28 after **F8**. Solid = built (F1 booth + F2 outer lock +
   F3 voiceprint diagnostic + F4 voice middle lock + F5 camera booth + F6
-  faceprint diagnostic + **F7 face inner lock**); dashed = planned (F8–F9).
+  faceprint diagnostic + F7 face inner lock + **F8 lip-sync liveness**);
+  dashed = planned (F9). **F8 adds a liveness GATE, not a fourth lock:**
+  `challenge.py` (new, Vosk grammar-constrained challenge-word match) and
+  `lipsync.py` (new, lag-windowed cross-correlation of mouth-aperture vs
+  audio envelope) are two independent signal modules; `app.py`'s `unlock()`
+  runs both — via `_liveness_passes()` — BEFORE any call into
+  `vault_unlock()`, so a failed liveness attempt makes zero calls into the
+  vault layer and learns nothing about whether voice/face would have
+  matched (ADR 0005). `vault.py`/`middlelock.py`/`facelock.py`/
+  `facedetect.py`/`capture.py` are all byte-for-byte unchanged — the whole
+  feature lives in two new modules plus additive `app.py`/UI wiring.
   F4 made the voiceprint a real lock: a hand-rolled numpy code-offset fuzzy
   commitment turns it into a stable key, the vault became **two nested AEAD
   layers** (passphrase outer around voice middle), and the Booth showed two
@@ -86,9 +96,6 @@ flowchart TB
     Middle --> Vault
     Inner --> Vault
     Liveness -- "gate before unlock" --> Inner
-
-    classDef planned stroke-dasharray:6 4
-    class Liveness planned
 ```
 
 ## Shape
@@ -208,6 +215,30 @@ flowchart TB
   `LICENSE` + `NOTICE`; licence established from opencv_zoo's own
   per-directory README statement naming the exact `.onnx` file, a stronger
   chain than `face_landmarker`'s three-model-card corroboration)
+- `src/voicelock/challenge.py` — challenge-word liveness signal (F8):
+  `CHALLENGE_PHRASES` (12 hand-authored short sentences, own words),
+  `pick_challenge(previous, rng)` (no-immediate-repeat, injectable `rng`),
+  `matches()` (pure text compare — lowercase + strip punctuation, no model
+  load), `check(audio, challenge, decoys)` (Vosk grammar-constrained
+  `KaldiRecognizer` decode against `challenge` + the rest of the pool as
+  decoys + `[unk]`, returns `matches()` on the recognized text). Model
+  loaded once, module-cached, `vosk.SetLogLevel(-1)` silences Kaldi's
+  default stderr chatter.
+- `src/voicelock/models/vosk/` — vendored `vosk-model-small-en-us-0.15`
+  (Apache-2.0, established from the distribution page's own per-model
+  table — the archive itself carries no licence text), loaded fully
+  offline from a local path.
+- `src/voicelock/lipsync.py` — lip-sync liveness signal (F8):
+  `mouth_aperture(landmarks)` (normalized inner-lip vertical gap — indices
+  13/14, confirmed against the vendored bundle's own topology — divided by
+  inter-eye distance, reusing `faceprint.py`'s eye-corner indices),
+  `score(mouth_series, audio_envelope, lag_window)` (peak Pearson
+  correlation over `[-LAG_WINDOW, +LAG_WINDOW]`, compares over the shorter
+  length if the two arrays differ), `is_live(score)` (`score >=
+  SYNC_THRESHOLD`). `LAG_WINDOW = 5`, `SYNC_THRESHOLD = 0.5` — dry-run
+  measured from a real audio envelope + synthetic mouth series (module
+  docstring discloses this is synthetic-only, not real human lip-sync
+  data). Pure numpy, no new dependency.
 - `src/voicelock/app.py` — pywebview host + JS bridge. **F5 added:** an
   injectable `face` engine; `start_record` starts the camera (after capture, so
   a broken webcam never costs the take) and `stop_record` stops it;
@@ -227,6 +258,22 @@ flowchart TB
   `need_face_takes` guard in `enroll()` after `need_voice_takes`, and
   `unlock()` now embeds `self.face.last_frame` and passes it through;
   `FaceAuthError` maps to `auth_face` alongside `auth_outer`/`auth_voice`.
+  **F8 added:** `new_challenge()` (picks + stores `_current_challenge` via
+  `challenge.pick_challenge`); `start_unlock_capture()`/
+  `stop_unlock_capture()` — a THIRD Record/Stop pair, distinct from
+  `start_record()`/`stop_record()` (enroll keeps using those unmodified),
+  capped at `LIVENESS_CAPTURE_CEILING_SECONDS = 10.0` instead of
+  `capture.MAX_SECONDS = 30.0`, arming `_retain_landmarks` so
+  `_push_face_frame` additively feeds `_liveness_mouth_series`; the fixed-
+  ceiling auto-stop path in `_pump_loop()` resets both fields too (it
+  bypasses `stop_unlock_capture()` entirely — a real bug F8 Task 3 found
+  and fixed, the third occurrence of the acquisition/release guardrail's
+  own predicted failure shape). `unlock()`'s body: after computing the
+  voice and face embeddings exactly as F7 left them, `_liveness_passes()`
+  (`challenge.check()` AND `lipsync.is_live(lipsync.score(...))`, envelope
+  from `_audio_envelope()` — fixed-hop RMS at `facedetect.FRAME_INTERVAL`)
+  gates BEFORE `vault_unlock()` is ever called; `auth_liveness` is the new
+  fifth reject reason.
 - `src/voicelock/ui/index.html` — Booth chrome + Record/Stop/Play + Enroll/Unlock
   + F3 voiceprint panel (3-band meter, Set reference, Reset) + F4 enroll voice
   step (5 sentences, per-take dots) and two distinct reject chips
@@ -252,7 +299,19 @@ flowchart TB
   `showUnlockNoFace()` for the `no_face` edge at unlock. `.enroll-panel`
   sits inside `.profiles`, which is `overflow-y: auto` with default
   top-anchored flex (no `justify-content: center`) — structurally distinct
-  from the `main`/`.booth` clipping hazard above.
+  from the `main`/`.booth` clipping hazard above. **F8 added:**
+  `.challenge-display` (shown before Record, stays visible through the
+  capture — Python is authoritative for the phrase via `new_challenge()`,
+  called at Booth init and after every completed unlock attempt; JS never
+  computes one); Record/Stop routed to `start_unlock_capture()`/
+  `stop_unlock_capture()` only during an unlock attempt via
+  `isUnlockCapture()` (passphrase-field-focus AND-ed with "enroll panel
+  not open" — there is no separate "Unlock panel" toggle in this Booth's
+  DOM, so intent is read from the signal that actually exists; decided
+  once per Record press into `activeCaptureIsUnlock` and reused at Stop so
+  a mid-take state change can't send Python a mismatched start/stop pair);
+  a fifth reject chip (`chip-liveness-failed` / `showLivenessFailed()`)
+  wired on `auth_liveness`, mirroring `showWrongFace()` exactly.
 - `src/voicelock/__main__.py` — `python -m voicelock`
 
 ## Where things live
@@ -261,7 +320,8 @@ flowchart TB
 - Voiceprint reference: `~/.voicelock/voiceprint.ref` (F3, plaintext sibling, not the vault)
 - Faceprint reference: `~/.voicelock/faceprint.ref` (F6, plaintext sibling, not the vault)
 - Tests: `tests/` via `uv run pytest`
-- Config: `pyproject.toml` + `uv.lock` (includes `pynacl`, and `soundfile` since F4.5)
+- Config: `pyproject.toml` + `uv.lock` (includes `pynacl`, `soundfile` since
+  F4.5, and `vosk` since F8)
 - Lint: `uv run ruff check .`
 
 ## Conventions

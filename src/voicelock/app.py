@@ -55,18 +55,21 @@ LOCK_WINDOW_FRACTION = 0.7
 LIVENESS_CAPTURE_CEILING_SECONDS = 10.0
 
 
+_ENVELOPE_HOP = int(SAMPLE_RATE * FRAME_INTERVAL)
+
+
 def _audio_envelope(audio: np.ndarray) -> np.ndarray:
     """Fixed-hop RMS envelope, one value per video-frame interval.
 
-    Lands the audio on the same per-frame grid the retained mouth-aperture
-    series is built on (``facedetect.FRAME_INTERVAL``'s hop), so
-    ``lipsync.score()`` can compare the two index-for-index with no further
-    alignment (plan.md decision 5) — the same fixed-window-RMS technique
-    that already produces the Visualizer's levels, just re-run at a hop
-    chosen for this grid instead of PortAudio's own irregular per-callback
-    chunk boundaries.
+    A deterministic per-audio-sample grid, unlike the camera's own frame
+    delivery (real capture drops frames under load — drop-don't-queue
+    pacing — so it is not a guaranteed fixed rate). ``_resample_mouth_series``
+    is what actually lines the two series up, by timestamp rather than by
+    index — the same fixed-window-RMS technique that already produces the
+    Visualizer's levels, just re-run at a hop chosen for this grid instead
+    of PortAudio's own irregular per-callback chunk boundaries.
     """
-    hop = int(SAMPLE_RATE * FRAME_INTERVAL)
+    hop = _ENVELOPE_HOP
     sig = np.asarray(audio, dtype=np.float64).reshape(-1)
     frames = sig.size // hop
     if frames == 0:
@@ -77,6 +80,29 @@ def _audio_envelope(audio: np.ndarray) -> np.ndarray:
             for index in range(frames)
         ]
     )
+
+
+def _resample_mouth_series(
+    mouth_series: np.ndarray, mouth_timestamps: np.ndarray, envelope_size: int
+) -> np.ndarray:
+    """Resample retained mouth-aperture samples onto the audio envelope's grid.
+
+    ``_push_face_frame`` timestamps each retained sample against wall-clock
+    time since capture start (real camera delivery is not a fixed rate), so
+    index *i* in ``mouth_series`` is generally NOT the same instant as
+    ``envelope[i]``. Linear interpolation against those real timestamps
+    restores that alignment: each envelope index is mapped to the time at
+    the CENTRE of its RMS window (matching how the envelope itself sums
+    over ``[i*hop, (i+1)*hop)``), and ``np.interp`` gives a mouth-aperture
+    value at that exact instant. Timestamps outside the retained range clamp
+    to the nearest real sample (``np.interp``'s default), a reasonable
+    fallback for a capture that starts or ends a touch late/early on either
+    side.
+    """
+    if mouth_series.size == 0 or envelope_size == 0:
+        return np.zeros(0, dtype=np.float64)
+    grid = (np.arange(envelope_size, dtype=np.float64) + 0.5) * (_ENVELOPE_HOP / SAMPLE_RATE)
+    return np.interp(grid, mouth_timestamps, mouth_series)
 
 
 def lock_voiceprint(audio: np.ndarray) -> np.ndarray:
@@ -145,6 +171,13 @@ class BoothApi:
         # stop_record() — a wholly separate capture pair (plan.md decision 6).
         self._retain_landmarks: bool = False
         self._liveness_mouth_series: list[float] = []
+        # Wall-clock seconds since start_unlock_capture(), one per retained
+        # mouth-aperture sample -- camera frames do NOT arrive on a
+        # guaranteed fixed grid (drop-don't-queue pacing, real processing
+        # load), so _liveness_passes() resamples onto the audio envelope's
+        # grid by timestamp rather than assuming index-for-index alignment.
+        self._liveness_mouth_timestamps: list[float] = []
+        self._liveness_capture_started_at: float | None = None
         # The phrase the Booth is currently displaying; None until
         # new_challenge() is first called (plan.md decision 7).
         self._current_challenge: str | None = None
@@ -314,6 +347,7 @@ class BoothApi:
         if self.capture.is_recording:
             return self.stop_unlock_capture()
         self._liveness_mouth_series = []
+        self._liveness_mouth_timestamps = []
         self._retain_landmarks = True
         self.capture.start()
         if self.capture.status == CaptureStatus.ERROR:
@@ -322,6 +356,10 @@ class BoothApi:
             self._push_mic_error(error)
             return {"ok": False, "error": error}
         self.capture.max_seconds = LIVENESS_CAPTURE_CEILING_SECONDS
+        # Reference point for mouth-sample timestamps -- anchored here since
+        # the audio envelope's own timeline (_audio_envelope) starts from
+        # the beginning of the recorded PCM, i.e. right after capture.start().
+        self._liveness_capture_started_at = time.monotonic()
         # Camera before pump, same reasoning as start_record(): the pump loop
         # is what notices a take ending and tears the camera down.
         self._start_camera()
@@ -414,11 +452,13 @@ class BoothApi:
         if self._current_challenge is None:
             return False
         audio = self.capture.pcm_buffer()
-        if not challenge.check(audio, self._current_challenge):
-            return False
+        challenge_ok = challenge.check(audio, self._current_challenge)
         envelope = _audio_envelope(audio)
         mouth_series = np.asarray(self._liveness_mouth_series, dtype=np.float64)
-        return lipsync.is_live(lipsync.score(mouth_series, envelope))
+        mouth_timestamps = np.asarray(self._liveness_mouth_timestamps, dtype=np.float64)
+        resampled_mouth = _resample_mouth_series(mouth_series, mouth_timestamps, envelope.size)
+        sync_score = lipsync.score(resampled_mouth, envelope)
+        return challenge_ok and lipsync.is_live(sync_score)
 
     def set_reference(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         """Consume the last captured take as one of the reference sentences.
@@ -691,8 +731,14 @@ class BoothApi:
         # or to FaceEngine/facedetect.py (spec §4's F1-F7 engines constraint).
         # A faceless frame (no landmarks) is skipped, not appended as 0 —
         # lipsync.score() already tolerates a shorter mouth-aperture series.
-        if self._retain_landmarks and result.landmarks:
+        # Real camera delivery is NOT a guaranteed fixed-rate grid (dropped
+        # frames under load), so each sample is timestamped and
+        # _liveness_passes() resamples onto the audio envelope's own grid
+        # rather than assuming index-for-index alignment.
+        if self._retain_landmarks and result.landmarks and self._liveness_capture_started_at is not None:
+            elapsed = time.monotonic() - self._liveness_capture_started_at
             self._liveness_mouth_series.append(lipsync.mouth_aperture(result.landmarks))
+            self._liveness_mouth_timestamps.append(elapsed)
         # The data URI is base64 — no quote or backslash can appear in it, so it
         # needs no escaping the way a free-text error message does.
         self._eval(

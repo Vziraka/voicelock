@@ -66,7 +66,7 @@ def test_pick_challenge_covers_the_whole_pool_over_many_draws() -> None:
     assert seen == set(CHALLENGE_PHRASES)
 
 
-# --- case: matches() — pure text comparison, no model load ---------------------
+# --- case: matches() — substring containment (2026-07-29 live-demo fix) -------
 @pytest.mark.parametrize(
     ("recognized", "challenge", "expected"),
     [
@@ -75,6 +75,13 @@ def test_pick_challenge_covers_the_whole_pool_over_many_draws() -> None:
         ("silver clouds drift over mountains", "open the blue door now", False),
         ("the [unk]", "open the blue door now", False),
         ("", "open the blue door now", False),
+        # Real Vosk decode noise observed in the live demo (2026-07-29):
+        # a stray leading word, and the phrase appearing twice in one take.
+        ("my open the blue door now", "open the blue door now", True),
+        ("open the blue door now open the blue door now", "open the blue door now", True),
+        # The target phrase must still appear whole -- a partial overlap
+        # (missing a word) does not count as saying it.
+        ("open the blue door", "open the blue door now", False),
     ],
 )
 def test_matches_synthetic_table(recognized: str, challenge: str, expected: bool) -> None:

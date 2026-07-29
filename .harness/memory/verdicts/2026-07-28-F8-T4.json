@@ -1,0 +1,29 @@
+{
+  "task": "F8-T4",
+  "spec": "spec.md@211f812",
+  "change": "1854e87..eff074e",
+  "gate": {
+    "commands": [
+      "uv run ruff check .",
+      "uv run pytest",
+      "uv run pytest tests/test_challenge.py -q",
+      "uv run pytest tests/test_lipsync.py -q",
+      "uv run pytest tests/test_booth_api.py -q"
+    ],
+    "exit": 0,
+    "note": "First and only build (eff074e). Full spec Verification list run since this is the feature's LAST task: ruff clean; full suite 222 passed; test_challenge.py 10 passed; test_lipsync.py 9 passed; test_booth_api.py 58 passed. Spec Sec5 cmd 4 is explicitly labeled 'Manual (required)' in spec.md itself -- a live mic/camera demo, not a shell command -- so it carries no exit code and is not part of the Gate's checklist; it is deferred to the human at the Mode 3 feature-end checkpoint per plan.md's own done-criteria line ('PENDING -- this is what remains after Task 4'), not a FAIL or ESCALATE_HUMAN. Scope check: diff 1854e87..eff074e touches only src/voicelock/ui/index.html plus .harness state files -- matches Task 4's declared files: line exactly."
+  },
+  "reviewer": {
+    "verdict": "APPROVE",
+    "axes": { "spec": "pass", "standards": "pass" },
+    "note": "APPROVE, zero rejects -- the second consecutive F8 task to pass on first review. Spec axis: challenge display shown before Record and stays visible; Record/Stop routed to start_unlock_capture()/stop_unlock_capture() only during an unlock attempt via isUnlockCapture(), enroll keeps the unmodified pair; new_challenge() called at Booth init and after every completed attempt; exact required copy (status text, chip text, sub-text naming passphrase/voice/face already passed, no name leak) confirmed against app.py's real bridge methods and mirroring showWrongFace() exactly per spec Sec1. Standards axis: no dead code (every new JS symbol has a real call site, grep-confirmed), no local mirroring of engine-owned state (the phrase is always fetched fresh from Python), the plan-note correction (no 'existing per-panel branching' precedent actually existed in btnRecord's handler) is logged and reasoned under universal.md's rule-you-cannot-follow-literally clause rather than silently deviated from, Booth-layout guardrail addressed with a disclosed manual smoke test (headless-Chromium screenshots at the real window size, three states, no clipping). Handoff doubts folded in: the only outstanding item is spec Sec5 cmd 4's live demo, already correctly flagged as pending human attestation, not something the session should self-declare.",
+    "history": "APPROVE on first review (eff074e) -- no REJECT this task"
+  },
+  "mechanism": "subagent",
+  "lesson": "none",
+  "mode": "full",
+  "dev_mode": "Mode 3",
+  "date": "2026-07-28",
+  "rejects": 0,
+  "note": "Observation parked for future pattern-matching, not yet a guardrail (single occurrence -- 'one-offs never clear the bar' per the learn skill's own workflow): this task's plan.md notes (written at /plan time) contained a factual inaccuracy about existing code -- claiming Record/Stop routing should be 'gated on which panel is active (mirrors the existing per-panel branching already in btnRecord's handler)', but no such branching existed anywhere in index.html, and there is no separate 'Unlock panel' toggle in this Booth's DOM at all. Cost real investigation time (had to read the actual DOM structure and design a routing heuristic from scratch rather than following a stated precedent) but no rework, since the inaccuracy was caught before any code was written against it. Handled as a plan-note correction under universal.md's 'rule you cannot follow literally' clause (the core instruction was still followable; only the parenthetical's claimed precedent was wrong) rather than a BLOCKED stop, and documented in plan.md's build notes. If a similar /plan-note-vs-actual-code mismatch recurs on a future feature, that second occurrence should combine with this one into a guardrail along the lines of: '/plan's implementation notes describing existing code behavior must be grep/read-confirmed, not assumed from a mental model of the codebase' -- distinct in scope from the existing dry-run-before-pinning guardrail, which covers runnable Verification commands specifically, not prose claims about code structure."
+}

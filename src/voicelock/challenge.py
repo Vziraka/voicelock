@@ -90,9 +90,20 @@ def matches(recognized: str, challenge: str) -> bool:
     """Compare recognized text against the challenge phrase.
 
     Normalizes by lowercasing and stripping punctuation only — no stemming
-    or fuzzy edit distance (Q3/Q4 both describe exact-pool matching).
+    or fuzzy edit distance (Q3/Q4 both describe matching against the fixed
+    pool, not open text). **Revised 2026-07-29** (live-demo bugfix): the
+    challenge phrase must appear as a contiguous substring of the
+    recognized text, not require an exact full-string match — real Vosk
+    decoding against a live mic routinely glues on a stray leading word or
+    repeats the phrase (breath noise, a pause before speaking, one extra
+    grammar-constrained pass), and an exact-match requirement rejects a
+    speaker who said the right words. Substring containment is still safe
+    here specifically because ``check()``'s grammar is constrained to only
+    the challenge phrase, the decoy pool, and ``[unk]`` — the recognizer
+    cannot hallucinate arbitrary text, so the target phrase can only appear
+    verbatim if it was actually said.
     """
-    return _normalize(recognized) == _normalize(challenge)
+    return _normalize(challenge) in _normalize(recognized)
 
 
 def check(
@@ -116,7 +127,8 @@ def check(
     recognizer = vosk.KaldiRecognizer(model, SAMPLE_RATE, grammar)
     recognizer.AcceptWaveform(_to_pcm16(audio))
     result = json.loads(recognizer.FinalResult())
-    return matches(result.get("text", ""), challenge)
+    recognized = result.get("text", "")
+    return matches(recognized, challenge)
 
 
 def _to_pcm16(audio: np.ndarray) -> bytes:
