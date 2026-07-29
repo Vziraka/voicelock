@@ -83,5 +83,7 @@ this file's previous content is superseded by exactly that resolution.
 
 ### Session commits
 
-Base: `adc7fed` (F8 complete). Head: recorded at the commit checkpoint
-below once the human approves the commit.
+Base: `adc7fed` (F8 complete). Head: `1e02169` (this spec session's state
+commit, human-approved, pushed to origin/main). The base→head hash pair in
+this file was amended after the checkpoint commit; if a follow-up state
+commit exists on top of `1e02169`, it contains only this amendment.
